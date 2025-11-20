@@ -14,6 +14,7 @@ Example (as library):
 
 import argparse
 import sys
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -21,13 +22,16 @@ from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.datamodel.base_models import InputFormat
 from hierarchical.postprocessor import ResultPostprocessor
+from hierarchical.hierarchy_builder import create_toc
+from hierarchical.hierarchy_builder_metadata import HierarchyBuilderMetadata
 
 
 def convert_pdf_to_markdown(
     pdf_path: str | Path,
     output_path: Optional[str | Path] = None,
     verbose: bool = False,
-    ocr: bool = False
+    ocr: bool = False,
+    hierarchical: bool = True
 ) -> str:
     """
     Convert a PDF file to Markdown format.
@@ -38,6 +42,7 @@ def convert_pdf_to_markdown(
                     If provided, the markdown will be written to this file.
         verbose: If True, print progress information.
         ocr: If True, enable OCR for scanned PDFs. Default False for text PDFs.
+        hierarchical: If True, apply hierarchical heading detection. Default True.
 
     Returns:
         The converted Markdown content as a string.
@@ -72,8 +77,90 @@ def convert_pdf_to_markdown(
     result = converter.convert(str(pdf_path))
 
     # Apply hierarchical post-processing for better heading structure
-    postprocessor = ResultPostprocessor(result, pdf_path)
-    postprocessor.process()
+    if hierarchical:
+        if verbose:
+            print("Applying hierarchical heading detection...")
+
+        # First check if TOC-based approach will have too many missing titles
+        use_style_based = False
+        try:
+            hbm = HierarchyBuilderMetadata(result, pdf_path)
+            toc = hbm.toc
+            if toc:
+                # Count how many TOC entries are missing coordinates (not found)
+                missing_count = sum(1 for _, _, _, info in toc if "coords" not in info)
+                total_count = len(toc)
+                if missing_count > 0 and verbose:
+                    print(f"TOC has {missing_count}/{total_count} entries not found in document")
+                # If more than 20% of entries are missing, use style-based approach
+                if total_count > 0 and missing_count / total_count > 0.2:
+                    if verbose:
+                        print("Too many missing TOC entries, falling back to style-based approach")
+                    use_style_based = True
+        except Exception as e:
+            if verbose:
+                print(f"TOC extraction failed: {e}, using style-based approach")
+            use_style_based = True
+
+        # Run hierarchical processing with timeout
+        error_container = [None]
+        timed_out = [False]
+
+        def run_hierarchical():
+            try:
+                postprocessor = ResultPostprocessor(result, pdf_path)
+                if use_style_based:
+                    # Force style-based by clearing the TOC cache
+                    postprocessor.result = result
+                    headings = postprocessor.get_headers()
+                    if headings:
+                        from hierarchical.postprocessor import flatten_hierarchy_tree
+                        from docling_core.types.doc.document import SectionHeaderItem
+                        root = create_toc(headings)
+                        flat_hierarchy = flatten_hierarchy_tree(root, 0)
+                        by_ref = {el[0].doc_ref: el for el in flat_hierarchy}
+                        for item, _ in result.document.iterate_items():
+                            if item.self_ref in by_ref and isinstance(item, SectionHeaderItem):
+                                _, level = by_ref[item.self_ref]
+                                item.level = level
+                else:
+                    postprocessor.process()
+            except Exception as e:
+                error_container[0] = e
+
+        thread = threading.Thread(target=run_hierarchical)
+        thread.start()
+        thread.join(timeout=60)  # 60 second timeout
+
+        if thread.is_alive():
+            timed_out[0] = True
+            if verbose:
+                print("Warning: Hierarchical processing timed out")
+            # Try style-based as fallback
+            if not use_style_based:
+                if verbose:
+                    print("Attempting style-based fallback...")
+                try:
+                    postprocessor = ResultPostprocessor(result, pdf_path)
+                    headings = postprocessor.get_headers()
+                    if headings:
+                        from hierarchical.postprocessor import flatten_hierarchy_tree
+                        from docling_core.types.doc.document import SectionHeaderItem
+                        root = create_toc(headings)
+                        flat_hierarchy = flatten_hierarchy_tree(root, 0)
+                        by_ref = {el[0].doc_ref: el for el in flat_hierarchy}
+                        for item, _ in result.document.iterate_items():
+                            if item.self_ref in by_ref and isinstance(item, SectionHeaderItem):
+                                _, level = by_ref[item.self_ref]
+                                item.level = level
+                        if verbose:
+                            print("Style-based fallback successful")
+                except Exception as e:
+                    if verbose:
+                        print(f"Style-based fallback failed: {e}")
+        elif error_container[0]:
+            if verbose:
+                print(f"Warning: Hierarchical processing failed: {error_container[0]}")
 
     # Export to markdown
     markdown_content = result.document.export_to_markdown()
@@ -133,6 +220,12 @@ Examples:
         help="Enable OCR for scanned PDFs (default: off for text PDFs)"
     )
 
+    parser.add_argument(
+        "--no-hierarchical",
+        action="store_true",
+        help="Disable hierarchical heading detection (use if conversion hangs)"
+    )
+
     args = parser.parse_args()
 
     try:
@@ -140,7 +233,8 @@ Examples:
             pdf_path=args.pdf_path,
             output_path=args.output,
             verbose=args.verbose,
-            ocr=args.ocr
+            ocr=args.ocr,
+            hierarchical=not args.no_hierarchical
         )
 
         # Print to stdout if no output file specified
