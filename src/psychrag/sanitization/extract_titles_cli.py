@@ -22,7 +22,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from .extract_titles import extract_titles_to_file
+from .extract_titles import extract_titles, extract_titles_to_file
 
 
 def main() -> int:
@@ -41,10 +41,23 @@ def main() -> int:
         default=None,
         help="Output file path (default: <input>.titles.md)"
     )
+    parser.add_argument(
+        "--preview",
+        action="store_true",
+        help="Preview extracted titles without writing to file"
+    )
 
     args = parser.parse_args()
 
     try:
+        if args.preview:
+            titles = extract_titles(args.input_file)
+            print(f"Titles in {args.input_file}:\n")
+            for title in titles:
+                print(title)
+            print(f"\nTotal: {len(titles)} titles")
+            return 0
+
         output_path = extract_titles_to_file(args.input_file, args.output)
         print(f"Titles extracted to: {output_path}")
         return 0

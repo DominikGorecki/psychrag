@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 # Configuration
-OUTPUT_DIR = Path("output/markdown")
+OUTPUT_DIR = Path("output")
 
 
 def main() -> int:

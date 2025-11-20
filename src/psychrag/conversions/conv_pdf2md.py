@@ -97,6 +97,11 @@ def convert_pdf_to_markdown(
                     if verbose:
                         print("Too many missing TOC entries, falling back to style-based approach")
                     use_style_based = True
+            else:
+                # No TOC found at all - use style-based approach
+                if verbose:
+                    print("No TOC found in document, using style-based approach")
+                use_style_based = True
         except Exception as e:
             if verbose:
                 print(f"TOC extraction failed: {e}, using style-based approach")
