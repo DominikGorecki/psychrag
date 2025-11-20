@@ -128,7 +128,7 @@ def convert_pdf_to_markdown(
             except Exception as e:
                 error_container[0] = e
 
-        thread = threading.Thread(target=run_hierarchical)
+        thread = threading.Thread(target=run_hierarchical, daemon=True)
         thread.start()
         thread.join(timeout=60)  # 60 second timeout
 

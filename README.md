@@ -11,7 +11,7 @@ venv\Scripts\activate  # Windows
 # or: source venv/bin/activate  # Unix/Mac
 
 # Install package in development mode
-venv\Scripts\pip install -r requirements.txt
+venv\Scripts\pip install -e .
 ```
 
 ## Tools

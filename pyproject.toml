@@ -9,9 +9,28 @@ description = "A Retrieval-Augmented Generation system for psychology literature
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    # Document conversion
     "docling",
+    "docling-hierarchical-pdf",
     "ebooklib",
     "beautifulsoup4",
+    "markdownify",
+
+    # Database
+    "psycopg[binary]",
+
+    # Configuration
+    "pydantic",
+    "pydantic-settings",
+    "python-dotenv",
+
+    # LLM/AI
+    "pydantic-ai",
+    "langchain-core",
+    "langchain-openai",
+    "langchain-google-genai",
+
+    # Testing
     "pytest",
 ]
 

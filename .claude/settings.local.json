@@ -18,7 +18,10 @@
       "Bash(venv/Scripts/pip show:*)",
       "Bash(dir \"c:\\code\\python\\pyschRAG\\venv\\Lib\\site-packages\")",
       "Bash(findstr:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(venvScriptspython -c \"from docling.document_converter import DocumentConverter; help(DocumentConverter)\")",
+      "Bash(venvScriptspython -c \"from docling.document_converter import DocumentConverter; import inspect; print(inspect.signature(DocumentConverter.__init__))\")",
+      "Bash(cmd /c \"venv\\Scripts\\python -c \"\"from docling.document_converter import DocumentConverter; import inspect; print(inspect.signature(DocumentConverter.__init__))\"\"\")"
     ],
     "deny": [],
     "ask": []

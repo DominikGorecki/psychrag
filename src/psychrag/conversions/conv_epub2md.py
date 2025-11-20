@@ -15,14 +15,44 @@ Example (as library):
 
 import argparse
 import sys
-import tempfile
 from pathlib import Path
 from typing import Optional
 
 import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
-from docling.document_converter import DocumentConverter
+from markdownify import markdownify as md
+
+
+def _get_navigation_map(book) -> dict[str, str]:
+    """
+    Extract navigation map from EPUB to get chapter titles.
+
+    Args:
+        book: The ebooklib epub object.
+
+    Returns:
+        Dictionary mapping HTML filenames to chapter titles.
+    """
+    nav_map = {}
+
+    for item in book.get_items_of_type(ebooklib.ITEM_NAVIGATION):
+        content = item.get_content().decode("utf-8", errors="ignore")
+        soup = BeautifulSoup(content, "xml")
+
+        for nav_point in soup.find_all("navPoint"):
+            label = nav_point.find("navLabel")
+            content_elem = nav_point.find("content")
+
+            if label and content_elem:
+                text = label.get_text(strip=True)
+                src = content_elem.get("src", "")
+                # Remove any anchor from the source
+                filename = src.split("#")[0]
+                if filename and text:
+                    nav_map[filename] = text
+
+    return nav_map
 
 
 def _extract_epub_to_html(epub_path: Path) -> str:
@@ -37,12 +67,29 @@ def _extract_epub_to_html(epub_path: Path) -> str:
     """
     book = epub.read_epub(str(epub_path))
 
+    # Get navigation map for chapter titles
+    nav_map = _get_navigation_map(book)
+
     # Collect body content from all document items
     body_parts = []
 
     for item in book.get_items_of_type(ebooklib.ITEM_DOCUMENT):
         content = item.get_content().decode("utf-8", errors="ignore")
         soup = BeautifulSoup(content, "html.parser")
+
+        # Get the filename for this item
+        item_name = item.get_name()
+        filename = item_name.split("/")[-1] if "/" in item_name else item_name
+
+        # If this file has a chapter title in navigation, inject H1 heading
+        if filename in nav_map:
+            chapter_title = nav_map[filename]
+            h1_tag = soup.new_tag("h1")
+            h1_tag.string = chapter_title
+            body = soup.find("body")
+            if body:
+                # Insert H1 at the beginning of the body
+                body.insert(0, h1_tag)
 
         # Remove internal anchor links (links to .html files or # anchors)
         for a_tag in soup.find_all("a", href=True):
@@ -109,26 +156,14 @@ def convert_epub_to_markdown(
     # Extract HTML from EPUB
     html_content = _extract_epub_to_html(epub_path)
 
-    # Create temporary HTML file for Docling to process
-    with tempfile.NamedTemporaryFile(
-        mode="w",
-        suffix=".html",
-        delete=False,
-        encoding="utf-8"
-    ) as tmp_file:
-        tmp_file.write(html_content)
-        tmp_path = tmp_file.name
-
-    try:
-        # Initialize converter and convert HTML
-        converter = DocumentConverter()
-        result = converter.convert(tmp_path)
-
-        # Export to markdown
-        markdown_content = result.document.export_to_markdown()
-    finally:
-        # Clean up temporary file
-        Path(tmp_path).unlink(missing_ok=True)
+    # Convert HTML to Markdown using markdownify
+    # This preserves heading hierarchy (h1 -> #, h2 -> ##, etc.)
+    markdown_content = md(
+        html_content,
+        heading_style="ATX",  # Use # style headings
+        bullets="-",  # Use - for unordered lists
+        strip=["script", "style"],  # Remove script and style tags
+    )
 
     # Write to output file if specified
     if output_path:

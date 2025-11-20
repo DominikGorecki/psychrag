@@ -49,10 +49,10 @@ psychrag/                      # Root folder
 - Export public functions in the subpackage's `__init__.py`
 
 ## Dependency Management
+- This project uses `pyproject.toml` as the single source of truth for dependencies (not requirements.txt)
 - Whenever adding a new library/package:
-  1. Install it using: `venv\Scripts\pip install <package>`
-  2. **IMMEDIATELY** add it to `pyproject.toml` under `[project.dependencies]`
-  3. Reinstall the package: `venv\Scripts\pip install -e .`
+  1. Add it to `pyproject.toml` under `[project.dependencies]`
+  2. Install/update using: `venv\Scripts\pip install -e .`
 - This ensures all dependencies are tracked and the project can be easily reproduced
 
 ## Testing Requirements
