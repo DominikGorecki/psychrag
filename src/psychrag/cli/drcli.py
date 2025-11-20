@@ -8,6 +8,7 @@ Commands:
     dbinit              Initialize the database
     conv2md <file>      Convert PDF/EPUB to Markdown
     bib2db <file>       Extract bibliography and save to database
+    sanitize <file>     Sanitize markdown headings based on AI suggestions
 """
 
 import argparse
@@ -62,6 +63,10 @@ def main() -> int:
         help="Number of lines to extract from the beginning (overrides --chars)"
     )
 
+    # sanitize command
+    sanitize_parser = subparsers.add_parser("sanitize", help="Sanitize markdown headings based on AI suggestions")
+    sanitize_parser.add_argument("input_file", type=str, help="Input Markdown file")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -80,6 +85,10 @@ def main() -> int:
         elif args.command == "bib2db":
             from .bib_commands import run_bib2db
             return run_bib2db(args.input_file, verbose=args.verbose, preview=args.preview, chars=args.chars, lines=args.lines)
+
+        elif args.command == "sanitize":
+            from .sanitize_commands import run_sanitize
+            return run_sanitize(args.input_file, verbose=args.verbose)
 
         else:
             parser.print_help()

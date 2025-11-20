@@ -69,3 +69,24 @@ Now I want to run the  `markdown_file.titles.md` and the ToC in the DB to try to
     # CLI FOR src\psychrag\sanitization\extract_titles.py
 
     Create a CLI for `src\psychrag\sanitization\extract_titles.py` and remember to follow the instructions and add documentation at the top for how to use it in both `src\psychrag\sanitization\extract_titles.py` and the new cli filee. 
+
+# Sanitization Document for Hierarchy 
+The next step is to create a cli command for a work (`<work_file.md>`). This should be implemented in the <<drcli>> and and in a seperate sanitize_commands.py in the cli folder. 
+
+When running `drcli <work_file.md>` it should do the following:
+1. Hash the file to ensure that the hash exists in the db and pull out the id of the <<work.py>> in the DB (to be used later)
+2. If `<work_file.title_changes.md>` doesn't exist, then using the library of <<suggested_heading_changes.py>> we should generate the file:
+   a) if `<work_file.titles.md>` doesn't exist then we should generate that using <<extract_titles_cli.py>>
+   b) then run <<suggested_heading_changes.py>> accordingly
+   c) if `<work_file.title_changes.md>` exists, we can skip this step and proceed to step 3:
+3. Based on `<work_file.title_changes.md>` cop the `<work_file.md>` to `<work_file.sanitized.md>` and for each line make the relevant changes as described in `<work_file.title_changes.md>`:
+   a) if `NO_CHANGE` then skip updating that line
+   b) if `REMOVE` then remove the heading of that line (**DO NOT REMOVE THE LINE--Just the heading hash**)
+   c) if H1 ... H4, change the heading accordingly for example if heading is `## SOME HEADING` but the change is `H1` it should be changed to `# SOME HEADING`
+   d) Only adjust the heading hash (remove or adjust--`#`,`##`,`###`,`####`) and **NEVER DELETE OR ADD TO THE DOCUMENT SO THAT THE LINE NUMBERS CONTINUE TO MATCH UP**
+4. After completing all the changes suggested in `<work_file.title_changes.md>` we need to update the database for the <<work.py>> model. For the ID saved in step 1, we should do the following:
+   a) Update the new `markdown_path` to be the new `<work_file.sanitized.md>`
+   b) Update the hash so it's the hash of the new `<work_file.sanitized.md>`
+
+
+# Chunking Sanitized Work
