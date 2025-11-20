@@ -111,6 +111,21 @@ def run_bib2db(input_file: str, verbose: bool = False, preview: bool = False, ch
             for entry in metadata.toc.entries
         ]
 
+        # Display extracted metadata
+        print("\n=== Extracted Metadata ===")
+        print(f"Title: {metadata.bibliographic.title or input_path.stem}")
+        print(f"Authors: {', '.join(metadata.bibliographic.authors) if metadata.bibliographic.authors else 'N/A'}")
+        print(f"Year: {year or 'N/A'}")
+        print(f"Publisher: {metadata.bibliographic.publisher or 'N/A'}")
+        print(f"ISBN: {metadata.bibliographic.isbn or 'N/A'}")
+        print(f"Edition: {metadata.bibliographic.edition or 'N/A'}")
+        print(f"\n=== Table of Contents ({len(toc_json)} entries) ===")
+        for entry in toc_json[:20]:  # Show first 20 entries
+            indent = "  " * (entry["level"] - 1)
+            print(f"{indent}{entry['title']}")
+        if len(toc_json) > 20:
+            print(f"  ... and {len(toc_json) - 20} more entries")
+
         # Create Work object
         work = Work(
             title=metadata.bibliographic.title or input_path.stem,

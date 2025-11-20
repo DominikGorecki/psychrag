@@ -17,12 +17,75 @@ Functions:
 """
 
 import hashlib
+import json
 import re
+from datetime import datetime
 from pathlib import Path
 
 from psychrag.ai import create_langchain_chat, ModelTier
 from psychrag.data.database import SessionLocal
 from psychrag.data.models import Work
+
+# Directory for LLM logs
+LLM_LOGS_DIR = Path("llm_logs")
+
+
+def _log_llm_interaction(prompt: str, response_text: str, filename_prefix: str = "suggest_heading") -> None:
+    """Log LLM prompt and response to a file.
+
+    Args:
+        prompt: The prompt sent to the LLM.
+        response_text: The response received from the LLM.
+        filename_prefix: Prefix for the log filename.
+    """
+    LLM_LOGS_DIR.mkdir(exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = LLM_LOGS_DIR / f"{filename_prefix}_{timestamp}.md"
+
+    log_content = f"""# LLM Interaction Log
+**Timestamp:** {datetime.now().isoformat()}
+**Type:** {filename_prefix}
+
+## Prompt
+```
+{prompt}
+```
+
+## Response
+```
+{response_text}
+```
+"""
+    log_file.write_text(log_content, encoding='utf-8')
+
+
+def _extract_text_from_response(response_content) -> str:
+    """Extract text string from various LLM response formats.
+
+    Args:
+        response_content: The content from the LLM response (str, list, or dict).
+
+    Returns:
+        The extracted text as a string.
+    """
+    if isinstance(response_content, str):
+        return response_content
+    elif isinstance(response_content, list):
+        # Handle list of content blocks
+        if not response_content:
+            return ""
+        first_item = response_content[0]
+        if isinstance(first_item, str):
+            return first_item
+        elif isinstance(first_item, dict):
+            return first_item.get('text', str(first_item))
+        else:
+            return str(first_item)
+    elif isinstance(response_content, dict):
+        # Handle dict response (e.g., from Gemini)
+        return response_content.get('text', json.dumps(response_content))
+    else:
+        return str(response_content)
 
 
 def suggest_heading_changes(titles_file: str | Path) -> Path:
@@ -100,7 +163,10 @@ def suggest_heading_changes(titles_file: str | Path) -> Path:
     chat = langchain_stack.chat
 
     response = chat.invoke(prompt)
-    response_text = response.content
+    response_text = _extract_text_from_response(response.content)
+
+    # Log the interaction
+    _log_llm_interaction(prompt, response_text)
 
     # Parse the LLM response to extract changes
     changes = _parse_llm_response(response_text)

@@ -15,9 +15,22 @@ venv\Scripts\pip install -e .
 ```
 
 # Adding new Work (Asset) To DB
+
 ## 1. Convert to Markdown
+
+
 ## 2. Extract Bibliography and ToC
-* First preview to ensure ToC is in Char Limit: `python -m psychrag.cli.drcli bib2db <file.md> --preview`
+
+1. First preview to ensure ToC is in Char Limit: `python -m psychrag.cli.drcli bib2db <file.md> --preview --lines 123`
+2. Then run without preview `python -m psychrag.cli.drcli bib2db <file.md> --lines 123`
+3. This will create a new entry into the DB with the Biblio and ToC
+
+
+## 3. Sanitization
+
+1. Extract titles: `python -m psychrag.sanitization.extract_titles_cli <file.md>`
+2. Suggest heading changes: 
+____________________________
 
 # Tools
 
