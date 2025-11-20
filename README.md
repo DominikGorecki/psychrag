@@ -14,7 +14,12 @@ venv\Scripts\activate  # Windows
 venv\Scripts\pip install -e .
 ```
 
-## Tools
+# Adding new Work (Asset) To DB
+## 1. Convert to Markdown
+## 2. Extract Bibliography and ToC
+* First preview to ensure ToC is in Char Limit: `python -m psychrag.cli.drcli bib2db <file.md> --preview`
+
+# Tools
 
 ### conv_epub2md - EPUB to Markdown Converter
 

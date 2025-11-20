@@ -12,11 +12,18 @@ Examples:
     # Preview first 2000 characters without LLM call
     venv\\Scripts\\python -m psychrag.chunking.extract_bib_cli doc.md --preview --chars 2000
 
+    # Preview first 100 lines without LLM call
+    venv\\Scripts\\python -m psychrag.chunking.extract_bib_cli doc.md --preview --lines 100
+
     # Use custom character limit
     venv\\Scripts\\python -m psychrag.chunking.extract_bib_cli doc.md --chars 1500
 
+    # Use custom line limit (overrides --chars)
+    venv\\Scripts\\python -m psychrag.chunking.extract_bib_cli doc.md --lines 150
+
 Options:
     --chars N    Characters to extract (default: 1000)
+    --lines N    Lines to extract (overrides --chars)
     --preview    Show extracted text only, no LLM call
 """
 
@@ -43,9 +50,15 @@ def main():
         help=f"Number of characters to extract from the beginning (default: {EXTRACT_CHARS})"
     )
     parser.add_argument(
+        "--lines",
+        type=int,
+        default=None,
+        help="Number of lines to extract from the beginning (overrides --chars)"
+    )
+    parser.add_argument(
         "--preview",
         action="store_true",
-        help="Only preview the extracted characters without calling the LLM"
+        help="Only preview the extracted text without calling the LLM"
     )
 
     args = parser.parse_args()
@@ -65,21 +78,37 @@ def main():
         print(f"Error reading file: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # Preview mode - just show the extracted characters
+    # Determine text sample based on lines or chars
+    if args.lines is not None:
+        text_lines = markdown_text.split('\n')
+        text_sample = '\n'.join(text_lines[:args.lines])
+        extract_desc = f"{args.lines} lines"
+        total_units = len(text_lines)
+        unit_name = "lines"
+    else:
+        text_sample = markdown_text[:args.chars]
+        extract_desc = f"{args.chars} characters"
+        total_units = len(markdown_text)
+        unit_name = "characters"
+
+    # Preview mode - just show the extracted text
     if args.preview:
-        print(f"Preview of first {args.chars} characters from {args.file.name}:")
+        print(f"Preview of first {extract_desc} from {args.file.name}:")
         print("=" * 60)
-        print(markdown_text[:args.chars])
+        print(text_sample)
         print("=" * 60)
-        print(f"\nTotal characters shown: {min(len(markdown_text), args.chars)}")
-        print(f"Total file length: {len(markdown_text)} characters")
+        if args.lines is not None:
+            print(f"\nTotal lines shown: {min(len(text_lines), args.lines)}")
+        else:
+            print(f"\nTotal characters shown: {min(len(markdown_text), args.chars)}")
+        print(f"Total file length: {total_units} {unit_name}")
         sys.exit(0)
 
     # Extract metadata
-    print(f"Extracting metadata from first {args.chars} characters of {args.file.name}...")
+    print(f"Extracting metadata from first {extract_desc} of {args.file.name}...")
     print()
 
-    result = extract_metadata(markdown_text, chars=args.chars)
+    result = extract_metadata(markdown_text, chars=args.chars, lines=args.lines)
 
     # Print bibliographic information
     print("=" * 60)

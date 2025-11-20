@@ -3,7 +3,7 @@
 import hashlib
 from pathlib import Path
 
-from psychrag.chunking.bib_extractor import extract_metadata
+from psychrag.chunking.bib_extractor import extract_metadata, EXTRACT_CHARS
 from psychrag.data.database import SessionLocal
 from psychrag.data.models import Work
 
@@ -25,13 +25,16 @@ def compute_file_hash(file_path: Path) -> str:
     return sha256.hexdigest()
 
 
-def run_bib2db(input_file: str, verbose: bool = False) -> int:
+def run_bib2db(input_file: str, verbose: bool = False, preview: bool = False, chars: int | None = None, lines: int | None = None) -> int:
     """
     Extract bibliography and TOC from a markdown file and save to database.
 
     Args:
         input_file: Path to the input Markdown file.
         verbose: If True, print progress information.
+        preview: If True, preview extracted text without saving to database.
+        chars: Number of characters to extract for metadata extraction (None for default).
+        lines: Number of lines to extract (overrides chars if specified).
 
     Returns:
         Exit code (0 for success, 1 for error).
@@ -62,10 +65,37 @@ def run_bib2db(input_file: str, verbose: bool = False) -> int:
         # Read markdown content
         markdown_text = input_path.read_text(encoding="utf-8")
 
+        # Determine text sample based on lines or chars
+        if lines is not None:
+            text_lines = markdown_text.split('\n')
+            text_sample = '\n'.join(text_lines[:lines])
+            extract_desc = f"{lines} lines"
+            total_units = len(text_lines)
+            unit_name = "lines"
+        else:
+            char_limit = chars if chars is not None else EXTRACT_CHARS
+            text_sample = markdown_text[:char_limit]
+            extract_desc = f"{char_limit} characters"
+            total_units = len(markdown_text)
+            unit_name = "characters"
+
+        # Preview mode: show text that would be sent to LLM
+        if preview:
+            print(f"Preview of first {extract_desc} from {input_path.name}:")
+            print("=" * 60)
+            print(text_sample)
+            print("=" * 60)
+            if lines is not None:
+                print(f"\nTotal lines shown: {min(len(text_lines), lines)}")
+            else:
+                print(f"\nTotal characters shown: {min(len(markdown_text), char_limit)}")
+            print(f"Total file length: {total_units} {unit_name}")
+            return 0
+
         # Extract metadata
         if verbose:
             print("Extracting metadata...")
-        metadata = extract_metadata(markdown_text)
+        metadata = extract_metadata(markdown_text, chars=chars, lines=lines)
 
         # Parse year from publication_date
         year = None

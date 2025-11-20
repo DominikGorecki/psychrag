@@ -90,20 +90,14 @@ def create_langchain_chat(
             # Web search for OpenAI would be implemented via function calling
             pass
     elif settings.provider == LLMProvider.GEMINI:
-        if search:
-            # Enable Google Search grounding for Gemini
-            chat = ChatGoogleGenerativeAI(
-                model=model_name,
-                google_api_key=settings.google_api_key,
-                temperature=temperature,
-                extra_body={"tools": [{"google_search": {}}]},
-            )
-        else:
-            chat = ChatGoogleGenerativeAI(
-                model=model_name,
-                google_api_key=settings.google_api_key,
-                temperature=temperature,
-            )
+        # Note: Google Search grounding requires specific API setup
+        # For now, search parameter is ignored for Gemini
+        # Future: implement via google.generativeai native API
+        chat = ChatGoogleGenerativeAI(
+            model=model_name,
+            google_api_key=settings.google_api_key,
+            temperature=temperature,
+        )
     else:
         raise ValueError(f"Unsupported provider: {settings.provider}")
 

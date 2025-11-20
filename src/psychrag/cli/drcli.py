@@ -44,6 +44,23 @@ def main() -> int:
     # bib2db command
     bib_parser = subparsers.add_parser("bib2db", help="Extract bibliography and save to database")
     bib_parser.add_argument("input_file", type=str, help="Input Markdown file")
+    bib_parser.add_argument(
+        "--preview",
+        action="store_true",
+        help="Preview extracted metadata without saving to database"
+    )
+    bib_parser.add_argument(
+        "--chars",
+        type=int,
+        default=None,
+        help="Number of characters to extract from the beginning for metadata extraction"
+    )
+    bib_parser.add_argument(
+        "--lines",
+        type=int,
+        default=None,
+        help="Number of lines to extract from the beginning (overrides --chars)"
+    )
 
     args = parser.parse_args()
 
@@ -62,7 +79,7 @@ def main() -> int:
 
         elif args.command == "bib2db":
             from .bib_commands import run_bib2db
-            return run_bib2db(args.input_file, verbose=args.verbose)
+            return run_bib2db(args.input_file, verbose=args.verbose, preview=args.preview, chars=args.chars, lines=args.lines)
 
         else:
             parser.print_help()

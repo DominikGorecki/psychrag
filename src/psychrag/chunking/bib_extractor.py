@@ -42,6 +42,7 @@ class ExtractedMetadata(BaseModel):
 def extract_metadata(
     markdown_text: str,
     chars: int | None = None,
+    lines: int | None = None,
     settings: LLMSettings | None = None,
     tier: ModelTier = ModelTier.LIGHT,
 ) -> ExtractedMetadata:
@@ -51,17 +52,21 @@ def extract_metadata(
     Args:
         markdown_text: The full markdown text of the document
         chars: Number of characters to extract from the beginning (default: EXTRACT_CHARS)
+        lines: Number of lines to extract from the beginning (overrides chars if specified)
         settings: Optional LLM settings, will create default if not provided
         tier: Model tier to use (LIGHT or FULL)
 
     Returns:
         ExtractedMetadata with bibliographic info and table of contents
     """
-    if chars is None:
-        chars = EXTRACT_CHARS
-
-    # Get the first N characters
-    text_sample = markdown_text[:chars]
+    # Determine text sample based on lines or chars
+    if lines is not None:
+        text_lines = markdown_text.split('\n')
+        text_sample = '\n'.join(text_lines[:lines])
+    else:
+        if chars is None:
+            chars = EXTRACT_CHARS
+        text_sample = markdown_text[:chars]
 
     # Create LangChain chat model
     langchain_stack = create_langchain_chat(settings, tier=tier, search=False)
