@@ -1,0 +1,16 @@
+# Core dependencies - let pip resolve versions
+docling
+docling-hierarchical-pdf
+beautifulsoup4
+EbookLib
+pytest
+pydantic
+pydantic-settings
+python-dotenv
+psycopg[binary]
+
+# LLM/AI dependencies
+pydantic-ai
+langchain-core
+langchain-openai
+langchain-google-genai

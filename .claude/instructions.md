@@ -1,0 +1,117 @@
+# Python Development Guidelines for this Project
+
+## Project Structure
+
+This project follows a modern Python package structure:
+
+```
+psychrag/                      # Root folder
+├── src/
+│   └── psychrag/              # Main package (importable name)
+│       ├── __init__.py        # Package init with __version__
+│       ├── conversions/       # File format conversion utilities
+│       │   ├── __init__.py
+│       │   └── conv_epub2md.py
+│       ├── chunking/          # Markdown chunking utilities
+│       │   └── __init__.py
+│       ├── vectorizing/       # Embedding/vectorization utilities
+│       │   └── __init__.py
+│       └── data/              # Data models and schemas
+│           └── __init__.py
+├── tests/                     # pytest test directory
+│   ├── unit/                  # Unit tests
+│   │   └── test_*.py
+│   └── integration/           # Integration tests
+├── raw-data/                  # Raw source data (EPUBs, etc.)
+├── output/                    # Generated output files
+├── pyproject.toml             # Build config and dependencies
+├── README.md
+└── venv/                      # Virtual environment
+```
+
+### Key Conventions:
+- **Source code** goes in `src/psychrag/` organized by functionality
+- **Tests** go in `tests/unit/` or `tests/integration/`
+- **New modules** should be added to appropriate subdirectory with `__init__.py` exports
+- **Imports** use the package name: `from psychrag.conversions import convert_epub_to_markdown`
+
+## Python Execution
+- **ALWAYS** run Python scripts using the virtual environment:
+  - Windows: `venv\Scripts\python -m psychrag.module.script`
+  - Unix/Mac: `venv/bin/python -m psychrag.module.script`
+- **NEVER** use the global Python interpreter unless explicitly requested by the user
+
+## Script Structure
+- Unless explicitly stated or impossible for the use case, **ALWAYS** structure Python scripts to work both:
+  - **As a standalone script** with `if __name__ == "__main__":` block
+  - **As an importable library** with reusable functions/classes
+- This dual-purpose design allows maximum flexibility and reusability
+- Export public functions in the subpackage's `__init__.py`
+
+## Dependency Management
+- Whenever adding a new library/package:
+  1. Install it using: `venv\Scripts\pip install <package>`
+  2. **IMMEDIATELY** add it to `pyproject.toml` under `[project.dependencies]`
+  3. Reinstall the package: `venv\Scripts\pip install -e .`
+- This ensures all dependencies are tracked and the project can be easily reproduced
+
+## Testing Requirements
+- For **ANY** new implementation:
+  - **ALWAYS** create unit tests using `pytest`
+  - Place tests in a `tests/` directory or name them `test_*.py`
+  - Ensure tests can be run with: `venv\Scripts\pytest`
+  - Tests should cover:
+    - Main functionality (happy path)
+    - Edge cases
+    - Error handling
+    - Both script and library usage modes
+
+## Post-Implementation Documentation
+- After completing any new implementation, **ALWAYS** provide:
+  1. **Manual testing instructions**: Step-by-step guide to verify the implementation works
+  2. **Script usage example**: How to run it as a standalone script with example commands
+  3. **Library usage example**: How to import and use it in other Python code
+  4. **Prerequisites**: Any required setup, configuration, or dependencies
+  5. **Expected inputs/outputs**: What the user should provide and what to expect in return
+
+## In-File Documentation
+- **ALL** library and CLI files must have usage documentation in the module docstring at the top
+- Keep it **concise but complete** - users should understand how to use it at a glance
+- Format for CLI scripts:
+  ```python
+  """
+  Brief description of what the script does.
+
+  Usage:
+      venv\\Scripts\\python -m psychrag.module.script <args> [options]
+
+  Examples:
+      # Common use case
+      venv\\Scripts\\python -m psychrag.module.script file.txt
+
+      # With options
+      venv\\Scripts\\python -m psychrag.module.script file.txt --option value
+
+  Options:
+      --option    Description of option
+  """
+  ```
+- Format for library modules:
+  ```python
+  """
+  Brief description of the module.
+
+  Usage:
+      from psychrag.module import function_name
+      result = function_name(arg1, arg2)
+
+  Examples:
+      # Basic usage
+      from psychrag.module import main_function
+      result = main_function("input")
+
+  Classes/Functions:
+      ClassName - Brief description
+      function_name(args) - Brief description
+  """
+  ```

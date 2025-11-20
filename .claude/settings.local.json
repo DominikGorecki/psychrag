@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m venv:*)",
+      "Bash(venv\\Scripts\\python:*)",
+      "Bash(venv\\Scripts\\pip:*)",
+      "Bash(venv\\Scripts\\pytest:*)",
+      "Bash(venvScriptspip install docling pytest)",
+      "Bash(venv/Scripts/pip install:*)",
+      "Bash(venv/Scripts/pip list:*)",
+      "Bash(venv/Scripts/pip freeze)",
+      "Bash(requirements.txt)",
+      "Bash(venv/Scripts/pytest tests/ -v)",
+      "Bash(venv/Scripts/python:*)",
+      "Bash(venv/Scripts/pytest tests/unit/test_conv_pdf2md.py -v)",
+      "Bash(venv/Scripts/pytest tests/ -v --tb=short)",
+      "Bash(venv/Scripts/pip uninstall:*)",
+      "Bash(venv/Scripts/pip show:*)",
+      "Bash(dir \"c:\\code\\python\\pyschRAG\\venv\\Lib\\site-packages\")",
+      "Bash(findstr:*)",
+      "Bash(dir:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

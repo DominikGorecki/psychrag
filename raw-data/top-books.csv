@@ -1,0 +1,116 @@
+Title,Author,Field,Significance/Topic,Status
+"The Principles of Psychology",William James,Foundations,The definitive classic that established psychology as a science.,downloaded
+"The Interpretation of Dreams",Sigmund Freud,Foundations,Foundational text on psychoanalysis and the unconscious.,downloaded
+"Beyond Freedom and Dignity",B.F. Skinner,Behaviorism,Seminal work on behaviorism and operant conditioning.,downloaded
+"The Organization of Behavior",Donald Hebb,Neuroscience,Introduced the concept of Hebbian learning (neurons that fire together wire together).
+"Cognitive Psychology",Ulric Neisser,Cognitive Psychology,The book that named and defined the field of cognitive psychology.
+"Vision",David Marr,Cognitive Science,Foundational text on computational neuroscience and visual processing.
+"The Modularity of Mind",Jerry Fodor,Cognitive Science,Proposed the modularity hypothesis of the mind.
+"Syntactic Structures",Noam Chomsky,Linguistics/CogSci,Revolutionized linguistics and dismantled behaviorist views on language.
+"The Sciences of the Artificial",Herbert A. Simon,Cognitive Science/AI,Foundational work on design, AI, and complex systems.
+"Gödel, Escher, Bach: An Eternal Golden Braid",Douglas Hofstadter,Cognitive Science,Explores consciousness, patterns, and strange loops.
+"Thinking, Fast and Slow",Daniel Kahneman,Behavioral Economics,Definitive summary of dual-process theory (System 1 vs System 2).
+"The Man Who Mistook His Wife for a Hat",Oliver Sacks,Clinical Neuroscience,Classic case studies illuminating neurological disorders.
+"Descartes' Error",Antonio Damasio,Neuroscience,Explores the crucial role of emotion in decision-making (Somatic Marker Hypothesis).
+"Behave: The Biology of Humans at Our Best and Worst",Robert Sapolsky,Neurobiology,Comprehensive integration of endocrinology, neuroscience, and evolution.
+"Principles of Neural Science",Eric Kandel et al.,Neuroscience,The gold-standard textbook for neuroscience specialists.
+"The Selfish Gene",Richard Dawkins,Evolutionary Psych,Popularized the gene-centered view of evolution.
+"Consciousness Explained",Daniel Dennett,Philosophy of Mind,A materialist/functionalist account of consciousness.
+"The Language Instinct",Steven Pinker,Linguistics/CogSci,Argues that language is an innate human adaptation.
+"Influence: The Psychology of Persuasion",Robert Cialdini,Social Psychology,Seminal work on the mechanics of persuasion and compliance.
+"The Nature of Prejudice",Gordon Allport,Social Psychology,Foundational text on intergroup relations and stereotyping.
+"Obedience to Authority",Stanley Milgram,Social Psychology,Detailed account of the famous Milgram experiments.
+"The Lucifer Effect",Philip Zimbardo,Social Psychology,Analysis of the Stanford Prison Experiment and situational evil.
+"Mind in Society",Lev Vygotsky,Developmental Psych,Introduced the Zone of Proximal Development and social learning.
+"The Psychology of the Child",Jean Piaget,Developmental Psych,Summary of Piaget's stages of cognitive development.
+"Attachment",John Bowlby,Developmental Psych,Foundational work on attachment theory.
+"The Nurture Assumption",Judith Rich Harris,Developmental Psych,Challenges the impact of parenting vs. peers and genetics.
+"Phantoms in the Brain",V.S. Ramachandran,Neuroscience,Explores neuroplasticity through phantom limbs and strange disorders.
+"The Computational Brain",Patricia Churchland & Terrence Sejnowski,Computational Neuroscience,Bridging philosophy and neural networks.
+"Metaphors We Live By",George Lakoff & Mark Johnson,Cognitive Linguistics,How language and metaphor structure our conceptual system.
+"The Society of Mind",Marvin Minsky,AI/Cognitive Science,Theories on how intelligence emerges from non-intelligent agents.
+"On the Origin of Species",Charles Darwin,Foundations,The biological basis for evolutionary psychology.
+"Conditioned Reflexes",Ivan Pavlov,Behaviorism,Foundational text on classical conditioning.
+"Man's Search for Meaning",Viktor Frankl,Clinical/Existential,Logotherapy and the psychology of survival.
+"On Becoming a Person",Carl Rogers,Clinical/Humanistic,Foundational text on client-centered therapy.
+"Cognitive Therapy of Depression",Aaron T. Beck,Clinical/CBT,The foundation of Cognitive Behavioral Therapy.
+"Predictably Irrational",Dan Ariely,Behavioral Economics,Explores systemic irrationality in human decision making.
+"Nudge",Richard Thaler & Cass Sunstein,Behavioral Economics,Application of behavioral psychology to public policy.
+"Flow: The Psychology of Optimal Experience",Mihaly Csikszentmihalyi,Positive Psychology,Study of the 'flow' state and happiness.
+"The Righteous Mind",Jonathan Haidt,Moral Psychology,Explores the intuitive and social foundations of morality.
+"The Blank Slate",Steven Pinker,Evolutionary Psych,Arguments against the tabula rasa theory of human nature.
+"How the Mind Works",Steven Pinker,Cognitive Science,Computational theory of mind applied to various faculties.
+"Looking for Spinoza",Antonio Damasio,Neuroscience,Neurobiology of emotion and feelings.
+"Synaptic Self",Joseph LeDoux,Neuroscience,How synapses encode memory and personality.
+"The Emotional Brain",Joseph LeDoux,Neuroscience,Focuses on the amygdala and fear circuitry.
+"Explaining the Brain",Carl Craver,Philosophy of Neuroscience,Mechanistic explanation in neuroscience.
+"Mental Models",Philip Johnson-Laird,Cognitive Psychology,Theory on how humans reason using internal representations.
+"Unified Theories of Cognition",Allen Newell,Cognitive Science/AI,Proposes the SOAR architecture for general intelligence.
+"ACT-R: An Integrated Theory of the Mind",John R. Anderson,Cognitive Science,Details the ACT-R cognitive architecture.
+"The Adapated Mind",Barkow, Cosmides, & Tooby,Evolutionary Psych,Foundational collection of essays on evolutionary psychology.
+"Guns, Germs, and Steel",Jared Diamond,Anthropology/Psych,Environmental determinism and human societal development.
+"Civilization and Its Discontents",Sigmund Freud,Psychoanalysis,Freud's view on the tension between individual drives and society.
+"Archetypes and the Collective Unconscious",Carl Jung,Psychoanalysis,Jungian theory of universal symbols and the psyche.
+"The Divided Self",R.D. Laing,Clinical/Psychiatry,Existential study of schizophrenia and madness.
+"Motivation and Personality",Abraham Maslow,Humanistic Psych,Introduced the Hierarchy of Needs.
+"The Red Book",Carl Jung,Psychoanalysis,Jung's personal exploration of his own unconscious.
+"The Gift of Therapy",Irvin Yalom,Clinical Psych,Guide to existential psychotherapy.
+"Quiet",Susan Cain,Personality Psych,Cultural and psychological analysis of introversion.
+"Mindset",Carol Dweck,Educational Psych,Theory of fixed vs. growth mindsets.
+"The Design of Everyday Things",Don Norman,Cognitive Engineering,Psychology applied to design and usability.
+"Sources of Power",Gary Klein,Decision Making,Naturalistic decision making in high-stakes environments.
+"Judgment Under Uncertainty: Heuristics and Biases",Kahneman, Slovic, & Tversky,Behavioral Economics,Academic collection defining heuristics and biases.
+"The Black Swan",Nassim Nicholas Taleb,Cognitive/Stats,Impact of the highly improbable and our blindness to it.
+"Superforecasting",Philip Tetlock,Decision Making,The science of prediction and judgment.
+"Noise: A Flaw in Human Judgment",Kahneman, Sibony, & Sunstein,Decision Making,Variability in judgments that should be identical.
+"Be Here Now",Ram Dass,Spirituality/Consciousness,Bridging Eastern philosophy and Western psychology.
+"The Doors of Perception",Aldous Huxley,Consciousness,Psychedelics and the alteration of consciousness.
+"Waking Up",Sam Harris,Neuro/Philosophy,Spirituality without religion through a neuroscience lens.
+"How to Change Your Mind",Michael Pollan,Psychopharmacology,The new science of psychedelics.
+"Why We Sleep",Matthew Walker,Neuroscience,The biology and psychology of sleep.
+"The Master and His Emissary",Iain McGilchrist,Neuroscience,Hemispheric differences and their cultural impact.
+"Thinking in Systems",Donella Meadows,Cognitive Systems,Introduction to systems thinking.
+"Steps to an Ecology of Mind",Gregory Bateson,Cybernetics/Anthropology,Essays on anthropology, psychiatry, and cybernetics.
+"Cybernetics",Norbert Wiener,Cybernetics,Control and communication in the animal and the machine.
+"Perception",Julian Hochberg,Cognitive Psychology,Classic text on visual perception.
+"Eye and Brain",Richard Gregory,Cognitive Psychology,The psychology of seeing.
+"Ecological Approach to Visual Perception",James J. Gibson,Cognitive Psychology,Direct perception and affordances.
+"Plans and the Structure of Behavior",Miller, Galanter, & Pribram,Cognitive Science,TOTE units and the shift from behaviorism to cognitivism.
+"Working Memory",Baddeley & Hitch,Cognitive Psychology,The seminal model of working memory.
+"The Mind's New Science",Howard Gardner,History of Science,History of the cognitive revolution.
+"Affective Neuroscience",Jaak Panksepp,Neuroscience,The foundations of human and animal emotions.
+"I of the Vortex",Rodolfo Llinas,Neuroscience,From neurons to self; movement as the basis of mind.
+"Spikes",Rieke et al.,Computational Neuroscience,Exploring the neural code.
+"Theoretical Neuroscience",Dayan & Abbott,Computational Neuroscience,Mathematical modeling of neural systems.
+"Catching Fire: How Cooking Made Us Human",Richard Wrangham,Evolutionary Psych,Role of diet in brain evolution.
+"Grooming, Gossip, and the Evolution of Language",Robin Dunbar,Evolutionary Psych,Dunbar's number and social brain hypothesis.
+"Mothers and Others",Sarah Blaffer Hrdy,Evolutionary Psych,Alloparenting and the evolution of mutual understanding.
+"Visual Intelligence",Donald Hoffman,Cognitive Science,How we construct reality through vision.
+"Reality Is Not What It Seems",Carlo Rovelli,Physics/CogSci,Intersection of quantum physics and perception (peripheral).
+"The Chalmers/Dennett Debate (Various Papers)",Chalmers/Dennett,Philosophy of Mind,The Hard Problem vs. Consciousness as Illusion.
+"Neurophilosophy",Patricia Churchland,Philosophy of Mind,Toward a unified science of the mind-brain.
+"Supersizing the Mind",Andy Clark,Cognitive Science,Extended cognition and the embodied mind.
+"Radical Embodied Cognitive Science",Anthony Chemero,Cognitive Science,Anti-representationalist view of cognition.
+"Action in Perception",Alva Noë,Philosophy/CogSci,Enactivism; perception is something we do.
+"Being There",Andy Clark,Cognitive Science,Putting brain, body, and world together again.
+"Surfing Uncertainty",Andy Clark,Neuroscience,Predictive processing and the bayesian brain.
+"Predictive Minds (Various)",Karl Friston,Neuroscience,Free Energy Principle (specialist papers/collections).
+"Incognito",David Eagleman,Neuroscience,The secret lives of the brain.
+"Suggestible You",Erik Vance,Psychology,Placebos, hypnosis, and belief.
+"The Psychopath Whisperer",Kent Kiehl,Clinical Neuroscience,Science of those without conscience.
+"The Boy Who Was Raised as a Dog",Bruce Perry,Clinical/Trauma,Child trauma and brain development.
+"The Body Keeps the Score",Bessel van der Kolk,Clinical/Trauma,How trauma reshapes the body and brain.
+"Trauma and Recovery",Judith Herman,Clinical Psych,Psychology of domestic abuse and political terror.
+"Against Empathy",Paul Bloom,Moral Psychology,The case for rational compassion over empathy.
+"Just Babies",Paul Bloom,Developmental Psych,The origins of good and evil.
+"The Scientist in the Crib",Gopnik, Meltzoff, & Kuhl,Developmental Psych,Early learning and the brain.
+"Passions Within Reason",Robert Frank,Evolutionary Econ,The strategic role of the emotions.
+"The Moral Animal",Robert Wright,Evolutionary Psych,Evolutionary psychology of everyday life.
+"Seven and a Half Lessons About the Brain",Lisa Feldman Barrett,Neuroscience,Accessible overview of modern brain science.
+"How Emotions Are Made",Lisa Feldman Barrett,Neuroscience,Theory of constructed emotion.
+"Algorithms to Live By",Christian & Griffiths,Cognitive Science,Computer science of human decisions.
+"Deep Thinking",Garry Kasparov,AI/Psychology,Machine intelligence vs. human creativity.
+"User Friendly",Cliff Kuang,Cognitive Design,History of the interface and user psychology.
+"Simulacra and Simulation",Jean Baudrillard,Philosophy/Psych,The nature of reality and symbols (post-modern).
+"Madness and Civilization",Michel Foucault,History of Psych,How insanity has been constructed historically.
+"A History of Experimental Psychology",Edwin Boring,History,The classic historical reference text.

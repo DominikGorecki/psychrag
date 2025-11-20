@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "psychrag"
+version = "0.1.0"
+description = "A Retrieval-Augmented Generation system for psychology literature"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "docling",
+    "ebooklib",
+    "beautifulsoup4",
+    "pytest",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
