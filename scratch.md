@@ -143,3 +143,23 @@ Next lets create a new process in `src\psychrag\chunking` called `suggested_chun
         ...
         ```
    * The output should be saved to the same folder as `work.sanitized.vectorize_suggestions.md`
+
+# Chunking Sanitizing Work Part 2 -- Chunk H1
+
+Now we need to store the H1, H2, H3, H4 chunks into the database. For now, let's create a new object that is related to `src\psychrag\data\models\work.py` object--there will be many `chunk.py` objects for every one `work.py` object and here are the properties is should have:
+* id: integer, auto-increment, primary key
+* parent_id: integer references id of this object (set to null or -1 if it's an H1 and doesn't have a parent--whatever is best for postgres)
+* work_id: integer, foreign key of the id in `work.py`
+* level: varchar that will be either `H1 | H2 | H3 | H4 | H5 | sentence | chunk`
+* content: TEXT -- the content of the actual chunk
+* embedding: vector(768)
+* start_line: integer -- the line number where the chunk begins in the markdown file
+* end_line: integer -- the line number where the chunk ends in the markdown file
+* vector_status: varchar that will be either `no_vec | to_vec | vec`
+
+We should also ensure that an index is created on the embedding like the following:
+```
+CREATE INDEX ON chunk USING hnsw (embedding vector_cosine_ops);
+```
+
+Now I have data in my database, so any updates in `src\psychrag\data\init_db.py` need to be non-destructive, but ideally I want to be able to run it so that the new table is created in the DB without affecting the old one. If the I need to alter the work table, please generate a SQL script for me.

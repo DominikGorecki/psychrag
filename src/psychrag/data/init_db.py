@@ -22,7 +22,7 @@ from sqlalchemy.exc import ProgrammingError
 from .database import Base, engine, get_admin_database_url
 
 # Import all models to register them with Base
-from .models import Work  # noqa: F401
+from .models import Chunk, Work  # noqa: F401
 
 
 def create_database_and_user(verbose: bool = False) -> None:
@@ -104,6 +104,24 @@ def create_database_and_user(verbose: bool = False) -> None:
         )
 
 
+def enable_pgvector_extension(verbose: bool = False) -> None:
+    """
+    Enable the pgvector extension in the database.
+
+    Args:
+        verbose: If True, print progress information.
+    """
+    if verbose:
+        print("Enabling pgvector extension...")
+
+    with engine.connect() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        conn.commit()
+
+    if verbose:
+        print("pgvector extension enabled")
+
+
 def create_tables(verbose: bool = False) -> None:
     """
     Create all tables defined in the models.
@@ -120,15 +138,39 @@ def create_tables(verbose: bool = False) -> None:
         print("Tables created successfully")
 
 
+def create_vector_indexes(verbose: bool = False) -> None:
+    """
+    Create HNSW indexes for vector columns.
+
+    Args:
+        verbose: If True, print progress information.
+    """
+    if verbose:
+        print("Creating vector indexes...")
+
+    with engine.connect() as conn:
+        # Create HNSW index for cosine similarity on chunks.embedding
+        conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS ix_chunks_embedding_hnsw
+            ON chunks USING hnsw (embedding vector_cosine_ops)
+        """))
+        conn.commit()
+
+    if verbose:
+        print("Vector indexes created successfully")
+
+
 def init_database(verbose: bool = False) -> None:
     """
-    Initialize the database: create database, user, and tables.
+    Initialize the database: create database, user, tables, and indexes.
 
     Args:
         verbose: If True, print progress information.
     """
     create_database_and_user(verbose=verbose)
+    enable_pgvector_extension(verbose=verbose)
     create_tables(verbose=verbose)
+    create_vector_indexes(verbose=verbose)
 
     if verbose:
         print("Database initialization complete")

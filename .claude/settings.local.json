@@ -3,7 +3,8 @@
     "allow": [
       "Bash(cmd /c \"dir /b /s c:\\code\\python\\pyschRAG\\venv\\Lib\\site-packages\\psychrag 2>nul || echo Not installed as package\")",
       "Bash(cmd /c \"venv\\Scripts\\pip show psychrag\")",
-      "Bash(cmd /c \"venv\\Scripts\\python -c \"\"import psychrag; print(psychrag.__file__)\"\"\")"
+      "Bash(cmd /c \"venv\\Scripts\\python -c \"\"import psychrag; print(psychrag.__file__)\"\"\")",
+      "Bash(cmd /c \"if not exist c:\\code\\python\\pyschRAG\\migrations mkdir c:\\code\\python\\pyschRAG\\migrations\")"
     ],
     "deny": [],
     "ask": []

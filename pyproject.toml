@@ -18,6 +18,8 @@ dependencies = [
 
     # Database
     "psycopg[binary]",
+    "sqlalchemy",
+    "pgvector",
 
     # Configuration
     "pydantic",
