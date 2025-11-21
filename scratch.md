@@ -105,4 +105,41 @@ Use the results from the LLM to do the following:
    * Based on the new `<work.sanitized.md>` update the `content_hash` and `markdown_path` in that work object
 
 
-# Chunking Sanitized Work
+# Chunking Sanitized Work Part 1 -- determining what to chunk
+
+Next lets create a new process in `src\psychrag\chunking` called `suggested_chunks.py` and it's corresponding cli file `suggested_chunks_cli.py`. This should do the following:
+* Input `<work.sanitized.md>` file
+* From this we should generate titles for this markdown using <<extract_titles>> into `<work.sanitized.titles.md>`
+* We will then pass in the following information into the LLM (light) model with search turned on to try to determine what titles are worth sanitizing:
+   * The new titles file (`<work.sanitized.titles.md>`) will be our index to work off of and pass in the titles codeblock into the llm
+   * Pass in the bibliographical information on the work
+   * Using search, memory, and reasoning, the llm should determine which data in H1 and H2 titles should be chunked and vectorized:
+      * For example table of contents (ToC), indexes and references (and reference data) do not need to be chunked and vectorized
+      * Important data should be vectorized
+      * for each line in the titles codeblock we should get a return like the following: `[line number]: [SKIP | VECTORIZE]
+      * The document is a hierarchy so if an `H1` title is set to `SKIP` than all the subordinate titles should be skipped, if on the other hand a single subordinate titles under an `H1` is set to `VECTORIZE` than the it's parent `H1` should be set to `VECTORIZE` as well
+      * H1 - H5 is determined from the markdown (`#` = `H1`, `##` = `H2`...)
+      * Example if this is the original titles codeblock:
+        ```md
+        ./book.md
+
+        # All TITLES IN DOC
+        10: # Title of the book
+        13: # Table of Contents
+        18: # Chapter 1
+        19: ## Section 1.1
+        20: ### Subsection 1.1.1
+        ...
+        ```
+
+    **THE EXPECTED OUTPUT COULD BE**
+        ```md
+        # CHANGES TO HEADINGS
+        10: SKIP
+        13: SKIP
+        18: VECTORIZE
+        19: VECTORIZE
+        20: VECTORIZE
+        ...
+        ```
+   * The output should be saved to the same folder as `work.sanitized.vectorize_suggestions.md`
