@@ -187,3 +187,114 @@ Now we need to insert all the headings into into `src\psychrag\data\models\chunk
     * End: To determine the end for `Hx` will be until we hit another `Hx`, or `H(x+1)` -- a title with the same heading level or higher (or EOF). (BELOW `Hx`)
     * parent_id is the parent of the `Hx` heading--the heading above that is `H(x+1)` -- the higher level heading ABOVE `Hx` -- you can look up the parent_id using `start_line` of the `H(x+1)` heading
 * Important start_line will be used often in querying, generate a sql script migration to create an index for it
+
+# Create Chunks for Embeddings
+Next I want to create chunks for vector embeddings. We'll use content aware chunking and try chunking based on the following strategy:
+* Paragraph chunks with 2-3 sentence overlap unless it's thee first paragraph under a heading
+    * Goal 200 words -- hard max of 300 words for a chunk -- if breaking a paragraph, overlap at least 3 sentences
+    * Multiple paragraphs under the same heading is fine until we hit the hard max of 300 words--aim for 200 words
+    * If there is a paragraph that is nearing the goal of 200, don't add another paragraph -- lean towards the 200 word goal
+* Treat H1, H2, H3 headings as hard boundaries for chunks unless there is no content under a heading
+    * If we have a case where H1 tag leads right to H2 tag, then the chunk would include both titles (as shown below) and the paragraph(s) up to the word goal/limit
+* For each chunk include the titles as part of the contents in the following format:
+    * For a paragraph that is directly in an H1: `[Heading One Title]\n`
+    * ...
+    * For a paragraph that is in an H3: `[Heading One Title] > [Heading Two Title] > [Heading Three Title]\n`
+    * That is provide all the headings that a paragraph belongs to in the hierarchy up to H1
+* Example markdown input:
+    ```
+    # Title 1 
+    [P1-1 - paragraph 50 words]
+    ## Title 1.1
+    [P1.1-1 paragraph 25 words]
+    [P1.1-2 paragraph 75 words]
+    [P1.1-3 paragraph 200 words]
+    # Title 2
+    # Title 2.1
+    [P2.1-1 - 600 words]
+    [P2.1-2 - 200 words]
+    ### Title 2.1.1
+    [P2.1.1-1 100 words]
+    [P2.1.1-2 50 words]
+    [P2.1.1-3 100 words]
+    ```
+* Chunk output:
+    * Chunk 1:
+    ```
+    Title 1
+    [P1-1 paragraph 50 words]
+    ```
+    * Chunk 2:
+    ```
+    Title 1 > Titles 1.1
+    [P1.1-1 paragraph 25 words]
+    [P1.1-2 paragraph 75 words]
+    ```
+    * Chunk 3:
+    ```
+    Title 1 > Titles 1.1
+    [P1.1-2 last 2 sentences]
+    [P1.1-3 paragraph 200 words]
+    ```
+    * Chunk 4:
+    ```
+    Title 2 > Title 2.1
+    [P2.1-1 - Sentences that add up to ~ 150-200 words respecting 300 total word limit (including above line)]
+    ```
+    * Chunk 5:
+    ```
+    Title 2 > Title 2.1
+    [P2.1-1 - 3 sentence overlap from above chunk and the rest of the paragraph]
+    ```
+    * Chunk 6:
+    ```
+    Title 2 > Title 2.1
+    [P2.1-1 - 2 sentence overlap from end of paragraph] 
+    [P2.1-2 - 200 word paragraph (respecting the hard limit of 300 words) ]
+    ```    
+    * Chunk 7:
+    ```
+    Title 2 > Title 2.1 > Title 2.1.1
+    [P2.1.1-1 100 words]
+    [P2.1.1-2 50 words]
+    [P2.1.1-3 100 words]
+    ```    
+* Convert bullets into sentences and treat bullets in the same list as a paragraph -- do this in memory and do not edit the markdown document -- never edit the markdown document. 
+    * After converting these tables into paragraphs, treat them like other paragraphs in the content
+* Anything that docling determines is a table, figure, or chart:
+    * Note the start_line and end_line
+    * Set the `vector_status` as `tbl | fig | chrt` for table, figure, and chart respectively
+    * We will work on these in the future with an LLM
+* The input will be generally the id of the `work` (src\psychrag\data\models\work.py) in the database
+    * read the `markdown_path` of the row and the chunking will be done on that file--ensure the `content_hash` matches
+    * ensure the file ends with `*.sanitized.md`
+* For each chunk, write them into the `chunks` table (src\psychrag\data\models\chunk.py)
+    * `work_id` is the id of the input (work)
+    * `parent_id` is the id of the chunk where the content can be found under the heading -- use the line number of the heading where the chunk is found and lookup the chunk by the `start_line`:
+        * If the chunk is found under `### heading 3` which is on line 123, then find the `parent_id` by looking up chunk of the same `work_id` where `start_line` is 123
+        * Always try to find the lowest heading where the content is found -- if `H1 > H2` use the line number of `H2` and not `H1`
+    * Capture the `start_line` and `end_line` of the **paragraph** chunk (ignoring the heading part this case)
+    * `content` should be the chunk as shown in the previous example -- the actual chunk including the heading part and paragraph(s)
+        * table -- include the whole table content (no regard for character or word limit)
+        * figure -- empty or null
+        * chart/tabl -- empty or null
+    * `level` is the lowest level where the chunk is found `H1 > H2 > H3 > H4` would b `H4`
+    * `embedding_vector` is null
+    * `vector_status` for paragraph chunks should be `to_vec` (unless it's a tbl, fig, or chrt)
+* should be implemented in `src\psychrag\chunking` as `content_chunking.py` and `content_chunking_cli.py`
+* Use docling to try to generate this chunking if possible
+* Please ask any questions if anything is unclear before proceeding to plan
+
+# Vectorize Chunks
+Next we want to vectorize paragraph chunks in the DB based on the ID of the `work` item in `works` table in the DB and the following:
+1. `vector_status` => `to_vec`
+2. `work_id` is the id passed in
+3. `parent_id` is NOT null
+4. `embedding` should be NULL -- don't need to run it again if the work was already done before
+4. save the vector output to `embedding` of the raw we're working with (update)
+
+We should add and use `text-embedding-004` using our pydantic and langchain setup in `src\psychrag\ai` -- add whatever is needed to use this vectorizing model. Based on my research I can use the same gemini API key. Feel free to add a new property to the langchain and pydantic stack. 
+
+We should create a new `vect_chunks.py` and `vect_chunks_cli.py` that creates the vector embeddings as described above. The input should be the id of the `work` and the number of embeddings (chunks to run)--so we don't just run all the embeddings at once and we can run 5, 10, 100 at a time.. etc. something like `vect_chunks_cli.py 3 --limit 10` to run 10 embeddings. If limit is not passed it, print how many embeddings would be run and a `Y` to continue, a `N` to cancel, or a number to set the limit. 
+
+Ask any questions if anything is not clear. 
