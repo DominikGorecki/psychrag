@@ -88,5 +88,21 @@ When running `drcli <work_file.md>` it should do the following:
    a) Update the new `markdown_path` to be the new `<work_file.sanitized.md>`
    b) Update the hash so it's the hash of the new `<work_file.sanitized.md>`
 
+# Small Files -- Sanitize, Biblio, and ToC
+Let's create a new module and CLI in `src\psychrag\chunking` that uses the LLM to do the Biblio, ToC, and Sanitization. The idea is that the whole markdown file is passed in to the LLM with a prompt to generate the following:
+1) Bibliography
+2) Sanitized Version -- the LLM should rewrite the markdown with appropriate headings
+   a) H1 for Title
+   b) H1 for Top Level Heading
+   c) H2 for Sections under H1
+   d) H3 for sub-section under H2
+3) ToC based on contents (not actual ToC just based on the headings that were parsed)
+
+Use the results from the LLM to do the following:
+* Save a new sanitized version of the work to `<work.sanitized.md>` in the output folder
+* Generate a new entry in the db for this work
+   * Use the results to create the biblio and ToC in the work object
+   * Based on the new `<work.sanitized.md>` update the `content_hash` and `markdown_path` in that work object
+
 
 # Chunking Sanitized Work

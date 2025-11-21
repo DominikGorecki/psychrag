@@ -9,6 +9,7 @@ Commands:
     conv2md <file>      Convert PDF/EPUB to Markdown
     bib2db <file>       Extract bibliography and save to database
     sanitize <file>     Sanitize markdown headings based on AI suggestions
+    llmproc <file>      Process document with LLM for biblio, TOC, and sanitization
 """
 
 import argparse
@@ -67,6 +68,15 @@ def main() -> int:
     sanitize_parser = subparsers.add_parser("sanitize", help="Sanitize markdown headings based on AI suggestions")
     sanitize_parser.add_argument("input_file", type=str, help="Input Markdown file")
 
+    # llmproc command
+    llmproc_parser = subparsers.add_parser("llmproc", help="Process document with LLM for bibliography, TOC, and sanitization")
+    llmproc_parser.add_argument("input_file", type=str, help="Input Markdown file")
+    llmproc_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Process files larger than 2000 lines"
+    )
+
     args = parser.parse_args()
 
     if not args.command:
@@ -89,6 +99,15 @@ def main() -> int:
         elif args.command == "sanitize":
             from .sanitize_commands import run_sanitize
             return run_sanitize(args.input_file, verbose=args.verbose)
+
+        elif args.command == "llmproc":
+            from psychrag.chunking.llm_processor import process_with_llm
+            result = process_with_llm(args.input_file, force=args.force, verbose=args.verbose)
+            print(f"\nProcessing complete:")
+            print(f"  Title: {result.bibliographic.title or 'N/A'}")
+            print(f"  Authors: {', '.join(result.bibliographic.authors) if result.bibliographic.authors else 'N/A'}")
+            print(f"  TOC entries: {len(result.toc)}")
+            return 0
 
         else:
             parser.print_help()

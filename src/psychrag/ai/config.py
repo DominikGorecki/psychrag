@@ -6,6 +6,24 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def _find_env_file() -> Path | None:
+    """Find the .env file by searching up from this file's location."""
+    current = Path(__file__).resolve().parent
+    # Search up to find .env in project root
+    for _ in range(10):  # Limit search depth
+        env_file = current / ".env"
+        if env_file.exists():
+            return env_file
+        if current.parent == current:
+            break
+        current = current.parent
+    return None
+
+
+# Cache the env file path at module load time
+_ENV_FILE_PATH = _find_env_file()
+
+
 class LLMProvider(str, Enum):
     OPENAI = "openai"
     GEMINI = "gemini"
@@ -14,17 +32,6 @@ class LLMProvider(str, Enum):
 class ModelTier(str, Enum):
     LIGHT = "light"
     FULL = "full"
-
-
-# Find project root .env file
-def _find_env_file() -> Path | None:
-    """Find the .env file in the project root."""
-    current = Path(__file__).resolve()
-    for parent in current.parents:
-        env_file = parent / ".env"
-        if env_file.exists():
-            return env_file
-    return None
 
 
 class LLMSettings(BaseSettings):
@@ -40,11 +47,11 @@ class LLMSettings(BaseSettings):
     # Gemini
     google_api_key: str | None = None
     gemini_light_model: str = "gemini-flash-latest"
-    gemini_full_model: str = "gemini-3-pro-preview"
+    gemini_full_model: str = "gemini-2.5-pro"
 
     model_config = SettingsConfigDict(
         env_prefix="LLM_",
-        env_file=_find_env_file(),
+        env_file=_ENV_FILE_PATH,
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -55,6 +62,6 @@ class LLMSettings(BaseSettings):
         if self.provider == LLMProvider.OPENAI:
             return self.openai_light_model if tier == ModelTier.LIGHT else self.openai_full_model
         elif self.provider == LLMProvider.GEMINI:
-            return self.gemini_light_model if tier == ModelTier.LIGHT else self.gemini_full_model
+            return self.gemini_light_model if tier == ModelTier.LIGHT else "gemini-2.5-pro" #self.gemini_full_model
         else:
             raise ValueError(f"Unsupported provider: {self.provider}")
