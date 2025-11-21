@@ -163,3 +163,27 @@ CREATE INDEX ON chunk USING hnsw (embedding vector_cosine_ops);
 ```
 
 Now I have data in my database, so any updates in `src\psychrag\data\init_db.py` need to be non-destructive, but ideally I want to be able to run it so that the new table is created in the DB without affecting the old one. If the I need to alter the work table, please generate a SQL script for me.
+
+# Chunking Sanitizing Work Par 3 -- Chunk Headings
+Now we need to insert all the headings into into `src\psychrag\data\models\chunk.py`. Create a new module and cli script called `chunk_headings.py` and `chunk_headings_cli.py` that does the following:
+* Input: ID of the `src\psychrag\data\models\work.py` row in the database
+* H1 Chunking First:
+    * Lookup the `markdown_path` in the Database for the ID -- this will be `[work].sanitized.md`
+    * using `[work].sanitized.md` and `[work].sanitized.vectorize_suggestions.md` do the following:
+        * Any H1 marked in `[work].sanitized.vectorize_suggestions.md` as `VECTORIZE` create a new chunk in the the database:
+            * parent_id is NULL (since it's an H1)
+            * work_id is the `ID` of the input
+            * level: `H1`
+            * embedding: null
+            * vector_status: `no_vec`
+            * content: The entire H1 and all it's subheadings and contents:
+                * Start: Beginning of the H1 line (include the heading)
+                * End: Either until the next H1 or EOF
+            * start_line: line number of start
+            * end_line: line number of end
+* H2 to H5 Chunking:
+    * Follow a similar pattern as for H1
+    * Start: To determine the beginning of the chunk: Start as the `Hx` including the title just like for H1
+    * End: To determine the end for `Hx` will be until we hit another `Hx`, or `H(x+1)` -- a title with the same heading level or higher (or EOF). (BELOW `Hx`)
+    * parent_id is the parent of the `Hx` heading--the heading above that is `H(x+1)` -- the higher level heading ABOVE `Hx` -- you can look up the parent_id using `start_line` of the `H(x+1)` heading
+* Important start_line will be used often in querying, generate a sql script migration to create an index for it

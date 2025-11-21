@@ -8,10 +8,12 @@ from .bib_extractor import (
     TableOfContents,
     TOCEntry,
 )
+from .chunk_headings import chunk_headings
 from .suggested_chunks import suggest_chunks
 
 __all__ = [
     "BibliographicInfo",
+    "chunk_headings",
     "ExtractedMetadata",
     "EXTRACT_CHARS",
     "extract_metadata",
