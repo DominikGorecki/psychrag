@@ -3,8 +3,9 @@
 from dataclasses import dataclass
 
 from langchain_core.language_models import BaseChatModel
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_openai import ChatOpenAI
+from langchain_core.embeddings import Embeddings
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from pydantic_ai import Agent
 
 from .config import LLMProvider, LLMSettings, ModelTier
@@ -102,6 +103,34 @@ def create_langchain_chat(
         raise ValueError(f"Unsupported provider: {settings.provider}")
 
     return LangChainStack(chat=chat)
+
+
+def create_embeddings(
+    settings: LLMSettings | None = None,
+) -> Embeddings:
+    """Create an Embeddings model based on the configured provider.
+
+    Args:
+        settings: LLM settings with provider and API keys (default: load from .env)
+
+    Returns:
+        Embeddings model instance (GoogleGenerativeAIEmbeddings or OpenAIEmbeddings)
+    """
+    if settings is None:
+        settings = LLMSettings()
+
+    if settings.provider == LLMProvider.OPENAI:
+        return OpenAIEmbeddings(
+            model="text-embedding-3-small",
+            api_key=settings.openai_api_key,
+        )
+    elif settings.provider == LLMProvider.GEMINI:
+        return GoogleGenerativeAIEmbeddings(
+            model="models/text-embedding-004",
+            google_api_key=settings.google_api_key,
+        )
+    else:
+        raise ValueError(f"Unsupported provider: {settings.provider}")
 
 
 def create_llm_stack(

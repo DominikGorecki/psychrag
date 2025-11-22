@@ -298,3 +298,21 @@ We should add and use `text-embedding-004` using our pydantic and langchain setu
 We should create a new `vect_chunks.py` and `vect_chunks_cli.py` that creates the vector embeddings as described above. The input should be the id of the `work` and the number of embeddings (chunks to run)--so we don't just run all the embeddings at once and we can run 5, 10, 100 at a time.. etc. something like `vect_chunks_cli.py 3 --limit 10` to run 10 embeddings. If limit is not passed it, print how many embeddings would be run and a `Y` to continue, a `N` to cancel, or a number to set the limit. 
 
 Ask any questions if anything is not clear. 
+
+# Fix hash for content chunking
+I'm getting a lot of content hash mismatches when running content chunking. A few things--the file `[work].sanitized.md` should not changed after the running `drcli sanitize` and we update the the `markdown_path` to `[work].sanitized.md`:
+1. Ensure that the hash in `content_hash` is computed based on the new `[work].sanitized.md` and added to the db when `drcli sanitize` completes.
+    a. The other place the final `[work].sanitized.md` gets saved is in `llm_processor.py` and `llm_processor_cli.py`. Ensure that the hash is based on the new file and updated to the DB there and then saved as "read only" or "locked" as in the `drcli sanitize`
+2. If possible, try to set the file to "locked" or "read-only" (should work in windows AND linux) when saving the sanitized file
+3. Ensure that the hash hs not updated in the following modules and CLIs:
+    a. `chunk_headings.py` and `chunk_headings_cli.py`
+    b. `content_chunking.py` and `content_chunking_cli.py`
+    c. `suggested_heading_changes.py` and `suggested_heading_changes_cli.py`
+4. Create a new `update_content_hash.py` and `update_content_hash_cli.py` in `src\psychrag\sanitization` to first check if the hash comparison fails. The input should be the id of the work model (`src\psychrag\data\models\work.py`) in the works DB, and use the `markdown_path` and `content_hash` to see if the hash test passes or fails. If it fails, do the following to ensure titles are present ont the same line in `[work].sanitized.md`, `[work].sanitized.vectorize_suggestions.md`, and that there is a DB entry in the `chunks` DB if the `VECTORIZE` tag in `[work].sanitized.vectorize_suggestions.md` is set:
+    a. For every line number present in `[work].sanitized.vectorize_suggestions.md`, there is a title in `[work].sanitized.md`
+    b. Then compare `[work].vectorize_suggestions.md` and just ensure that for every line number that is set to `VECTORIZE` there is an entry in the DB based on the `start_line`
+    c. Only worry about doing a check based on the line numbers--don't worry about the content
+    d. If the tests pass, then lock or set the file as read-only for `[work].sanitized.md` and `[work].sanitized.vectorize_suggestions.md`
+    e. Update the `content_hash` of the DB entry in `works` for that ID
+
+ 

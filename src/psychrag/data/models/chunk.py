@@ -27,7 +27,7 @@ class Chunk(Base):
         embedding: Vector embedding (768 dimensions).
         start_line: Line number where chunk begins in markdown.
         end_line: Line number where chunk ends in markdown.
-        vector_status: Vectorization status (no_vec, to_vec, vec).
+        vector_status: Vectorization status (no_vec, to_vec, vec, vec_err).
     """
 
     __tablename__ = "chunks"

@@ -4,7 +4,7 @@ Analyze markdown headings using AI and suggest corrections based on
 the table of contents stored in the database.
 
 Usage:
-    venv\\Scripts\\python -m psychrag.sanitization.suggest_heading_changes_cli <titles_file>
+    python -m psychrag.sanitization.suggest_heading_changes_cli <titles_file>
 
 Examples:
     # Suggest changes for a titles file (creates book.title_changes.md)
