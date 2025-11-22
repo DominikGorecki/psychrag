@@ -1,28 +1,11 @@
 """Bibliography extraction CLI commands."""
 
-import hashlib
 from pathlib import Path
 
 from psychrag.chunking.bib_extractor import extract_metadata, EXTRACT_CHARS
 from psychrag.data.database import SessionLocal
 from psychrag.data.models import Work
-
-
-def compute_file_hash(file_path: Path) -> str:
-    """
-    Compute SHA-256 hash of a file.
-
-    Args:
-        file_path: Path to the file.
-
-    Returns:
-        Hexadecimal hash string.
-    """
-    sha256 = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            sha256.update(chunk)
-    return sha256.hexdigest()
+from psychrag.utils import compute_file_hash
 
 
 def run_bib2db(input_file: str, verbose: bool = False, preview: bool = False, chars: int | None = None, lines: int | None = None) -> int:

@@ -17,7 +17,6 @@ Examples:
     print(f"Created {num_chunks} chunks")
 """
 
-import hashlib
 import re
 from pathlib import Path
 from typing import Optional
@@ -26,6 +25,7 @@ import spacy
 
 from psychrag.data.database import get_session
 from psychrag.data.models import Chunk, Work
+from psychrag.utils import compute_file_hash
 
 
 # Load spaCy model for sentence tokenization
@@ -43,11 +43,6 @@ MAX_WORDS = 300
 MIN_OVERLAP_SENTENCES = 2
 MAX_OVERLAP_SENTENCES = 3
 PARAGRAPH_BREAK_OVERLAP = 3
-
-
-def _compute_hash(content: str) -> str:
-    """Compute SHA-256 hash of content."""
-    return hashlib.sha256(content.encode('utf-8')).hexdigest()
 
 
 def _count_words(text: str) -> int:
@@ -494,15 +489,17 @@ def chunk_content(work_id: int, verbose: bool = False) -> int:
         if not markdown_path.name.endswith('.sanitized.md'):
             raise ValueError(f"Expected sanitized markdown file (*.sanitized.md), got: {markdown_path.name}")
 
-        # Verify content hash
-        content = markdown_path.read_text(encoding='utf-8')
-        content_hash = _compute_hash(content)
+        # Verify content hash (use file-based hash to match how it was stored)
+        content_hash = compute_file_hash(markdown_path)
 
         if work.content_hash and work.content_hash != content_hash:
             raise ValueError(
                 f"Content hash mismatch for work {work_id}. "
                 f"Expected: {work.content_hash}, Got: {content_hash}"
             )
+
+        # Read content for parsing
+        content = markdown_path.read_text(encoding='utf-8')
 
         if verbose:
             print(f"Processing work {work_id}: {work.title}")

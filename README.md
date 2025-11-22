@@ -28,8 +28,12 @@ venv\Scripts\pip install -e .
 
 ## 3. Sanitization
 
-1. Extract titles: `python -m psychrag.sanitization.extract_titles_cli <file.md>`
-2. Suggest heading changes: 
+1. Extract titles:
+    a) Run `python -m psychrag.sanitization.extract_titles_cli <file.md>`
+    b) will generate `<file>.titles
+
+2. Suggest heading changes: `python -m psychrag.sanitization.suggest_heading_changes_cli <titles_file>`
+
 ____________________________
 
 # Tools

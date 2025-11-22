@@ -1,29 +1,12 @@
 """Sanitization CLI commands for heading hierarchy correction."""
 
-import hashlib
 import re
 from pathlib import Path
 
 from psychrag.data.database import SessionLocal
 from psychrag.data.models import Work
 from psychrag.sanitization import extract_titles_to_file, suggest_heading_changes
-
-
-def compute_file_hash(file_path: Path) -> str:
-    """
-    Compute SHA-256 hash of a file.
-
-    Args:
-        file_path: Path to the file.
-
-    Returns:
-        Hexadecimal hash string.
-    """
-    sha256 = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            sha256.update(chunk)
-    return sha256.hexdigest()
+from psychrag.utils import compute_file_hash, set_file_readonly
 
 
 def parse_title_changes(changes_file: Path) -> dict[int, str]:
@@ -195,6 +178,11 @@ def run_sanitize(input_file: str, verbose: bool = False) -> int:
                 session.commit()
                 if verbose:
                     print(f"Updated database: new hash={new_hash}")
+
+        # Set file as read-only to prevent accidental modifications
+        set_file_readonly(sanitized_path)
+        if verbose:
+            print(f"Set file as read-only: {sanitized_path}")
 
         print(f"Sanitization complete: {sanitized_path}")
         return 0

@@ -2,5 +2,11 @@
 
 from .extract_titles import extract_titles, extract_titles_to_file
 from .suggest_heading_changes import suggest_heading_changes
+from .update_content_hash import update_content_hash
 
-__all__ = ["extract_titles", "extract_titles_to_file", "suggest_heading_changes"]
+__all__ = [
+    "extract_titles",
+    "extract_titles_to_file",
+    "suggest_heading_changes",
+    "update_content_hash",
+]

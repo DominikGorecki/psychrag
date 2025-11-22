@@ -16,7 +16,6 @@ Examples:
     result = process_with_llm("large_book.md", force=True)
 """
 
-import hashlib
 import json
 from pathlib import Path
 
@@ -25,6 +24,7 @@ from pydantic import BaseModel
 from psychrag.ai import create_langchain_chat, LLMSettings, ModelTier
 from psychrag.data.database import SessionLocal
 from psychrag.data.models import Work
+from psychrag.utils import compute_file_hash, set_file_readonly
 
 
 # Maximum lines before requiring force flag
@@ -55,15 +55,6 @@ class LLMProcessResult(BaseModel):
     bibliographic: BibliographicInfo
     sanitized_markdown: str
     toc: list[TOCEntry]
-
-
-def compute_file_hash(file_path: Path) -> str:
-    """Compute SHA-256 hash of a file."""
-    sha256 = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            sha256.update(chunk)
-    return sha256.hexdigest()
 
 
 def _build_prompt(markdown_content: str) -> str:
@@ -236,11 +227,15 @@ def process_with_llm(
     sanitized_path = OUTPUT_DIR / f"{input_path.stem}.sanitized.md"
     sanitized_path.write_text(result.sanitized_markdown, encoding='utf-8')
 
-    if verbose:
-        print(f"Sanitized file saved to: {sanitized_path}")
-
     # Compute hash of sanitized file
     sanitized_hash = compute_file_hash(sanitized_path)
+
+    # Set file as read-only to prevent accidental modifications
+    set_file_readonly(sanitized_path)
+
+    if verbose:
+        print(f"Sanitized file saved to: {sanitized_path}")
+        print(f"Set file as read-only: {sanitized_path}")
 
     # Create database entry
     toc_json = [{"level": e.level, "title": e.title} for e in result.toc]

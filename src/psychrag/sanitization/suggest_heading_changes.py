@@ -16,7 +16,6 @@ Functions:
     suggest_heading_changes(titles_file) - Analyze titles and suggest hierarchy changes
 """
 
-import hashlib
 import json
 import re
 from datetime import datetime
@@ -25,6 +24,7 @@ from pathlib import Path
 from psychrag.ai import create_langchain_chat, ModelTier
 from psychrag.data.database import SessionLocal
 from psychrag.data.models import Work
+from psychrag.utils import compute_file_hash
 
 # Directory for LLM logs
 LLM_LOGS_DIR = Path("llm_logs")
@@ -132,8 +132,7 @@ def suggest_heading_changes(titles_file: str | Path) -> Path:
     titles_codeblock = codeblock_match.group(1)
 
     # Generate SHA256 hash of the original document
-    original_content = original_path.read_bytes()
-    content_hash = hashlib.sha256(original_content).hexdigest()
+    content_hash = compute_file_hash(original_path)
 
     # Look up the document in the database
     with SessionLocal() as session:
