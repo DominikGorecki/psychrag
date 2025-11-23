@@ -51,6 +51,15 @@ venv\Scripts\pip install -e .
     * Pass in some content under each heading until next heading -- perhaps the first 100 words and the last 100 words
     * Update prompt to specifically look for ToC based on the work title.
 
+## 4. Chunking
+1. Suggest vectorization: `python -m psychrag.chunking.suggested_chunks_cli <work>.md`
+
+2. Chunk Headings into DB: `python -m psychrag.chunking.chunk_headings_cli 4 -v`
+
+3. Chunk Content into DB: `python -m psychrag.chunking.content_chunking_cli 4 -v`
+
+## 5. Vectorizing
+
 
 
 
