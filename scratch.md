@@ -316,3 +316,5 @@ I'm getting a lot of content hash mismatches when running content chunking. A fe
     e. Update the `content_hash` of the DB entry in `works` for that ID
 
  
+# Improved pdf extraction
+In the `src\psychrag\conversions` path let's create a new library and cli called `pdf_bookmarks2toc.py` and  `pdf_bookmarks2toc_cli.py` that uses docling to extract the table of contents (without links or pages) into a `<file>_toc_titles.md`. Essentially I want to use the bookmarks to try to generate titles so if possible, return then as a hierarchy -- high level bookmarks as H1 and sub-marks to that sections H2, then H3, and so on. 

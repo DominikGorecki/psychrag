@@ -7,7 +7,8 @@ Usage:
 Commands:
     dbinit              Initialize the database
     conv2md <file>      Convert PDF/EPUB to Markdown
-    bib2db <file>       Extract bibliography and save to database
+    bib <file>          Extract bibliography and save to database
+    toc <file>          Extract table of contents and save to database
     sanitize <file>     Sanitize markdown headings based on AI suggestions
     llmproc <file>      Process document with LLM for biblio, TOC, and sanitization
 """
@@ -43,14 +44,9 @@ def main() -> int:
     conv_parser = subparsers.add_parser("conv2md", help="Convert PDF/EPUB to Markdown")
     conv_parser.add_argument("input_file", type=str, help="Input PDF or EPUB file")
 
-    # bib2db command
-    bib_parser = subparsers.add_parser("bib2db", help="Extract bibliography and save to database")
+    # bib command
+    bib_parser = subparsers.add_parser("bib", help="Extract bibliography and save to database")
     bib_parser.add_argument("input_file", type=str, help="Input Markdown file")
-    bib_parser.add_argument(
-        "--preview",
-        action="store_true",
-        help="Preview extracted metadata without saving to database"
-    )
     bib_parser.add_argument(
         "--chars",
         type=int,
@@ -58,6 +54,22 @@ def main() -> int:
         help="Number of characters to extract from the beginning for metadata extraction"
     )
     bib_parser.add_argument(
+        "--lines",
+        type=int,
+        default=None,
+        help="Number of lines to extract from the beginning (overrides --chars)"
+    )
+
+    # toc command
+    toc_parser = subparsers.add_parser("toc", help="Extract table of contents and save to database")
+    toc_parser.add_argument("input_file", type=str, help="Input Markdown file")
+    toc_parser.add_argument(
+        "--chars",
+        type=int,
+        default=None,
+        help="Number of characters to extract from the beginning for TOC extraction"
+    )
+    toc_parser.add_argument(
         "--lines",
         type=int,
         default=None,
@@ -92,9 +104,38 @@ def main() -> int:
             from .conv_commands import run_conv2md
             return run_conv2md(args.input_file, OUTPUT_DIR, verbose=args.verbose)
 
-        elif args.command == "bib2db":
-            from .bib_commands import run_bib2db
-            return run_bib2db(args.input_file, verbose=args.verbose, preview=args.preview, chars=args.chars, lines=args.lines)
+        elif args.command == "bib":
+            from psychrag.sanitization.extract_bib_cli import main as bib_main
+            # Override sys.argv for the subcommand
+            import sys
+            orig_argv = sys.argv
+            sys.argv = ["extract_bib_cli", args.input_file]
+            if args.verbose:
+                sys.argv.append("-v")
+            if args.chars:
+                sys.argv.extend(["--chars", str(args.chars)])
+            if args.lines:
+                sys.argv.extend(["--lines", str(args.lines)])
+            try:
+                return bib_main()
+            finally:
+                sys.argv = orig_argv
+
+        elif args.command == "toc":
+            from psychrag.sanitization.extract_toc_cli import main as toc_main
+            import sys
+            orig_argv = sys.argv
+            sys.argv = ["extract_toc_cli", args.input_file]
+            if args.verbose:
+                sys.argv.append("-v")
+            if args.chars:
+                sys.argv.extend(["--chars", str(args.chars)])
+            if args.lines:
+                sys.argv.extend(["--lines", str(args.lines)])
+            try:
+                return toc_main()
+            finally:
+                sys.argv = orig_argv
 
         elif args.command == "sanitize":
             from .sanitize_commands import run_sanitize

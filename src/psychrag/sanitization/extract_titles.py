@@ -109,9 +109,14 @@ def extract_titles_to_file(
 
     # Determine output path
     if output_path is None:
-        output_path = input_path.with_suffix('.titles.md')
+        # Default to output folder in current working directory
+        output_dir = Path.cwd() / "output"
+        output_path = output_dir / f"{input_path.stem}.titles.md"
     else:
         output_path = Path(output_path)
+
+    # Ensure output directory exists
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Extract titles
     content = input_path.read_text(encoding='utf-8')

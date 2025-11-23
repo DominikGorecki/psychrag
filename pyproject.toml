@@ -15,6 +15,7 @@ dependencies = [
     "ebooklib",
     "beautifulsoup4",
     "markdownify",
+    "pymupdf",
 
     # Database
     "psycopg[binary]",

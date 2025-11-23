@@ -18,6 +18,14 @@ venv\Scripts\pip install -e .
 
 ## 1. Convert to Markdown
 
+### Option 1: Convert with single option
+
+* Run `python -m psychrag.conversions.conv_pdf2md input.pdf -o putput\<file>.md`
+* 
+
+
+### Option 1: Convert with style and hierarchy
+* Run `python -m psychrag.conversions.conv_pdf2md input.pdf -o output.md --compare -v`
 
 ## 2. Extract Bibliography and ToC
 
@@ -28,11 +36,23 @@ venv\Scripts\pip install -e .
 
 ## 3. Sanitization
 
-1. Extract titles:
-    a) Run `python -m psychrag.sanitization.extract_titles_cli <file.md>`
-    b) will generate `<file>.titles
 
-2. Suggest heading changes: `python -m psychrag.sanitization.suggest_heading_changes_cli <titles_file>`
+1. **Extract titles:** This step extracts the titles in the markdown to ensure there is a proper hierarchy. 
+    a) INPUT: Run `python -m psychrag.sanitization.extract_titles_cli <file.md>`
+    b) OUTPUT: Will generate `<file>.titles.md`
+
+
+2. **Suggest heading changes:** This step will use an LLM to try to determine  
+    a) INPUT: Run `python -m psychrag.sanitization.suggest_heading_changes_cli <file>.titles.md`
+    b) OUTPUT: will generate `<file>.title_changes.md`
+
+    Notes: A few things here--if thee ToC is not present in the DB, this will not run properly. Need to think of a better approach when the ToC is not present as well how to improve this process:
+    
+    * Pass in some content under each heading until next heading -- perhaps the first 100 words and the last 100 words
+    * Update prompt to specifically look for ToC based on the work title.
+
+
+
 
 ____________________________
 

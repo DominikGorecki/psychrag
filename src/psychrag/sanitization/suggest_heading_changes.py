@@ -172,6 +172,8 @@ def suggest_heading_changes(titles_file: str | Path) -> Path:
 
     # Build output content
     output_lines = [
+        relative_uri,
+        "",
         "# CHANGES TO HEADINGS",
         "```",
         *changes,
@@ -179,10 +181,11 @@ def suggest_heading_changes(titles_file: str | Path) -> Path:
     ]
     output_content = "\n".join(output_lines)
 
-    # Save to output file
-    output_path = titles_file.with_name(
-        titles_file.stem.replace('.titles', '') + '.title_changes.md'
-    )
+    # Save to output file - use output folder
+    output_dir = Path.cwd() / "output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    stem = titles_file.stem.replace('.titles', '')
+    output_path = output_dir / f"{stem}.title_changes.md"
     output_path.write_text(output_content, encoding='utf-8')
 
     return output_path
@@ -238,16 +241,20 @@ Each line shows: [line_number]: [current_heading]
 
 ## Output Format
 Return ONLY the changes in this exact format, one per line:
-[line_number]: [ACTION]
+[line_number] : [ACTION] : [title_text]
 
-Where ACTION is one of: NO_CHANGE, REMOVE, H1, H2, H3, H4
+Where:
+- ACTION is one of: NO_CHANGE, REMOVE, H1, H2, H3, H4
+- title_text is the correct title from the ToC (empty for REMOVE)
+- NO_CHANGE means the heading level is correct, but still include the authoritative title text
 
 Example:
-10: NO_CHANGE
-13: H1
-18: H1
-19: H2
-20: H3
+10 : NO_CHANGE : Introduction
+13 : H1 : Chapter 1: Getting Started
+18 : H1 : Methods
+19 : H2 : Data Collection
+20 : H3 : Survey Design
+25 : REMOVE :
 
 Provide the complete list of changes for ALL headings shown above."""
 
@@ -255,17 +262,20 @@ Provide the complete list of changes for ALL headings shown above."""
 def _parse_llm_response(response_text: str) -> list[str]:
     """Parse the LLM response to extract heading changes."""
 
-    # Look for lines matching the pattern: number: ACTION
-    pattern = re.compile(r'^\s*(\d+)\s*:\s*(NO_CHANGE|REMOVE|H[1-4])\s*$', re.MULTILINE)
-    matches = pattern.findall(response_text)
+    # Try to extract from a code block first if present
+    codeblock_match = re.search(r'```(?:\w*\n)?(.*?)```', response_text, re.DOTALL)
+    text_to_parse = codeblock_match.group(1) if codeblock_match else response_text
 
-    if not matches:
-        # Try to extract from a code block if present
-        codeblock_match = re.search(r'```(?:\w*\n)?(.*?)```', response_text, re.DOTALL)
-        if codeblock_match:
-            matches = pattern.findall(codeblock_match.group(1))
+    # Parse line by line for more reliable extraction
+    changes = []
+    pattern = re.compile(r'^\s*(\d+)\s*:\s*(NO_CHANGE|REMOVE|H[1-4])\s*:\s*(.*)$')
 
-    # Format as "line_number: ACTION"
-    changes = [f"{line_num}: {action}" for line_num, action in matches]
+    for line in text_to_parse.splitlines():
+        match = pattern.match(line)
+        if match:
+            line_num = match.group(1)
+            action = match.group(2)
+            title = match.group(3).strip()
+            changes.append(f"{line_num} : {action} : {title}")
 
     return changes

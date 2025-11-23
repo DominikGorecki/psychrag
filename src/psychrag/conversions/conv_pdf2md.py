@@ -2,14 +2,27 @@
 PDF to Markdown Converter using Docling.
 
 This module provides functionality to convert PDF files to Markdown format
-using the Docling library.
+using the Docling library with hierarchical heading detection.
 
 Example (as script):
     venv\\Scripts\\python -m psychrag.conversions.conv_pdf2md input.pdf -o output.md
+    venv\\Scripts\\python -m psychrag.conversions.conv_pdf2md input.pdf -o output.md --compare -v
 
 Example (as library):
     from psychrag.conversions import convert_pdf_to_markdown
+
+    # Basic conversion
     markdown_content = convert_pdf_to_markdown("input.pdf")
+
+    # Compare both heading detection approaches
+    style_md, hier_md = convert_pdf_to_markdown("input.pdf", compare=True)
+
+Options:
+    -o, --output      Output file path (default: stdout)
+    -v, --verbose     Print progress information
+    --ocr             Enable OCR for scanned PDFs
+    --no-hierarchical Disable hierarchical heading detection
+    --compare         Generate both style-based and hierarchical outputs
 """
 
 import argparse
@@ -31,8 +44,9 @@ def convert_pdf_to_markdown(
     output_path: Optional[str | Path] = None,
     verbose: bool = False,
     ocr: bool = False,
-    hierarchical: bool = True
-) -> str:
+    hierarchical: bool = True,
+    compare: bool = False
+) -> str | tuple[str, str]:
     """
     Convert a PDF file to Markdown format.
 
@@ -43,9 +57,10 @@ def convert_pdf_to_markdown(
         verbose: If True, print progress information.
         ocr: If True, enable OCR for scanned PDFs. Default False for text PDFs.
         hierarchical: If True, apply hierarchical heading detection. Default True.
+        compare: If True, generate both style-based and hierarchical outputs.
 
     Returns:
-        The converted Markdown content as a string.
+        The converted Markdown content as a string, or tuple of (style_md, hierarchical_md) if compare=True.
 
     Raises:
         FileNotFoundError: If the PDF file does not exist.
@@ -74,6 +89,65 @@ def convert_pdf_to_markdown(
             InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
         }
     )
+
+    # Handle compare mode - generate both outputs
+    if compare:
+        if verbose:
+            print("Compare mode: generating both style-based and hierarchical outputs...")
+
+        # First pass: style-based
+        result_style = converter.convert(str(pdf_path))
+        if verbose:
+            print("Generating style-based output...")
+
+        postprocessor = ResultPostprocessor(result_style, pdf_path)
+        headings = postprocessor.get_headers()
+        if headings:
+            from hierarchical.postprocessor import flatten_hierarchy_tree
+            from docling_core.types.doc.document import SectionHeaderItem
+            root = create_toc(headings)
+            flat_hierarchy = flatten_hierarchy_tree(root, 0)
+            by_ref = {el[0].doc_ref: el for el in flat_hierarchy}
+            for item, _ in result_style.document.iterate_items():
+                if item.self_ref in by_ref and isinstance(item, SectionHeaderItem):
+                    _, level = by_ref[item.self_ref]
+                    item.level = level
+
+        style_md = result_style.document.export_to_markdown()
+
+        # Second pass: hierarchical (TOC-based)
+        result_hier = converter.convert(str(pdf_path))
+        if verbose:
+            print("Generating hierarchical (TOC-based) output...")
+
+        postprocessor_hier = ResultPostprocessor(result_hier, pdf_path)
+        try:
+            postprocessor_hier.process()
+        except Exception as e:
+            if verbose:
+                print(f"Hierarchical processing failed: {e}, using style-based as fallback")
+
+        hier_md = result_hier.document.export_to_markdown()
+
+        # Write to output files if specified
+        if output_path:
+            output_path = Path(output_path)
+            stem = output_path.stem
+            parent = output_path.parent
+            parent.mkdir(parents=True, exist_ok=True)
+
+            style_path = parent / f"{stem}_style.md"
+            hier_path = parent / f"{stem}_hierarchical.md"
+
+            style_path.write_text(style_md, encoding="utf-8")
+            hier_path.write_text(hier_md, encoding="utf-8")
+
+            if verbose:
+                print(f"Style-based output written to: {style_path}")
+                print(f"Hierarchical output written to: {hier_path}")
+
+        return (style_md, hier_md)
+
     result = converter.convert(str(pdf_path))
 
     # Apply hierarchical post-processing for better heading structure
@@ -231,20 +305,34 @@ Examples:
         help="Disable hierarchical heading detection (use if conversion hangs)"
     )
 
+    parser.add_argument(
+        "--compare",
+        action="store_true",
+        help="Generate both style-based and hierarchical outputs for comparison"
+    )
+
     args = parser.parse_args()
 
     try:
-        markdown_content = convert_pdf_to_markdown(
+        result = convert_pdf_to_markdown(
             pdf_path=args.pdf_path,
             output_path=args.output,
             verbose=args.verbose,
             ocr=args.ocr,
-            hierarchical=not args.no_hierarchical
+            hierarchical=not args.no_hierarchical,
+            compare=args.compare
         )
 
         # Print to stdout if no output file specified
         if not args.output:
-            print(markdown_content)
+            if args.compare:
+                style_md, hier_md = result
+                print("=== STYLE-BASED OUTPUT ===")
+                print(style_md)
+                print("\n=== HIERARCHICAL OUTPUT ===")
+                print(hier_md)
+            else:
+                print(result)
 
         return 0
 
