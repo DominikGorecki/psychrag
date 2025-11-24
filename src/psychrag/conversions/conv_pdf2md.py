@@ -7,12 +7,16 @@ using the Docling library with hierarchical heading detection.
 Example (as script):
     venv\\Scripts\\python -m psychrag.conversions.conv_pdf2md input.pdf -o output.md
     venv\\Scripts\\python -m psychrag.conversions.conv_pdf2md input.pdf -o output.md --compare -v
+    venv\\Scripts\\python -m psychrag.conversions.conv_pdf2md input.pdf --no-gpu  # CPU only
 
 Example (as library):
     from psychrag.conversions import convert_pdf_to_markdown
 
-    # Basic conversion
+    # Basic conversion with GPU acceleration (default)
     markdown_content = convert_pdf_to_markdown("input.pdf")
+
+    # CPU-only conversion
+    markdown_content = convert_pdf_to_markdown("input.pdf", use_gpu=False)
 
     # Compare both heading detection approaches
     style_md, hier_md = convert_pdf_to_markdown("input.pdf", compare=True)
@@ -23,6 +27,7 @@ Options:
     --ocr             Enable OCR for scanned PDFs
     --no-hierarchical Disable hierarchical heading detection
     --compare         Generate both style-based and hierarchical outputs
+    --no-gpu          Disable GPU acceleration (CPU only)
 """
 
 import argparse
@@ -34,6 +39,7 @@ from typing import Optional
 from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.datamodel.base_models import InputFormat
+from docling.datamodel.accelerator_options import AcceleratorDevice, AcceleratorOptions
 from hierarchical.postprocessor import ResultPostprocessor
 from hierarchical.hierarchy_builder import create_toc
 from hierarchical.hierarchy_builder_metadata import HierarchyBuilderMetadata
@@ -45,7 +51,8 @@ def convert_pdf_to_markdown(
     verbose: bool = False,
     ocr: bool = False,
     hierarchical: bool = True,
-    compare: bool = False
+    compare: bool = False,
+    use_gpu: bool = True
 ) -> str | tuple[str, str]:
     """
     Convert a PDF file to Markdown format.
@@ -58,6 +65,7 @@ def convert_pdf_to_markdown(
         ocr: If True, enable OCR for scanned PDFs. Default False for text PDFs.
         hierarchical: If True, apply hierarchical heading detection. Default True.
         compare: If True, generate both style-based and hierarchical outputs.
+        use_gpu: If True, use GPU acceleration when available (auto-detects). Default True.
 
     Returns:
         The converted Markdown content as a string, or tuple of (style_md, hierarchical_md) if compare=True.
@@ -79,9 +87,23 @@ def convert_pdf_to_markdown(
         print(f"Converting: {pdf_path}")
         if ocr:
             print("OCR enabled for scanned content")
+        if use_gpu:
+            print("GPU acceleration enabled (auto-detect)")
 
-    # Configure PDF pipeline options
+    # Configure PDF pipeline options with GPU support and optimized batch sizes
     pipeline_options = PdfPipelineOptions(do_ocr=ocr)
+
+    if use_gpu:
+        # Configure accelerator options for GPU support (auto-detect GPU, fallback to CPU)
+        accelerator_options = AcceleratorOptions(
+            device=AcceleratorDevice.AUTO  # Auto-detect GPU, fallback to CPU
+        )
+        pipeline_options.accelerator_options = accelerator_options
+
+        # Optimize batch sizes for GPU processing
+        pipeline_options.ocr_batch_size = 64  # default: 4
+        pipeline_options.layout_batch_size = 64  # default: 4
+        pipeline_options.table_batch_size = 4
 
     # Initialize converter
     converter = DocumentConverter(
@@ -136,8 +158,8 @@ def convert_pdf_to_markdown(
             parent = output_path.parent
             parent.mkdir(parents=True, exist_ok=True)
 
-            style_path = parent / f"{stem}_style.md"
-            hier_path = parent / f"{stem}_hierarchical.md"
+            style_path = parent / f"{stem}.style.md"
+            hier_path = parent / f"{stem}.hier.md"
 
             style_path.write_text(style_md, encoding="utf-8")
             hier_path.write_text(hier_md, encoding="utf-8")
@@ -311,6 +333,12 @@ Examples:
         help="Generate both style-based and hierarchical outputs for comparison"
     )
 
+    parser.add_argument(
+        "--no-gpu",
+        action="store_true",
+        help="Disable GPU acceleration (use CPU only)"
+    )
+
     args = parser.parse_args()
 
     try:
@@ -320,7 +348,8 @@ Examples:
             verbose=args.verbose,
             ocr=args.ocr,
             hierarchical=not args.no_hierarchical,
-            compare=args.compare
+            compare=args.compare,
+            use_gpu=not args.no_gpu
         )
 
         # Print to stdout if no output file specified

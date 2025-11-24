@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""
+""" DEPRECATING
 Extract bibliographic info and TOC from a markdown file.
 
 Usage:

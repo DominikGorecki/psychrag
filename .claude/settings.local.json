@@ -1,18 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cmd /c \"dir /b /s c:\\code\\python\\pyschRAG\\venv\\Lib\\site-packages\\psychrag 2>nul || echo Not installed as package\")",
-      "Bash(cmd /c \"venv\\Scripts\\pip show psychrag\")",
-      "Bash(cmd /c \"venv\\Scripts\\python -c \"\"import psychrag; print(psychrag.__file__)\"\"\")",
-      "Bash(cmd /c \"if not exist c:\\code\\python\\pyschRAG\\migrations mkdir c:\\code\\python\\pyschRAG\\migrations\")",
-      "Bash(cmd /c \"venv\\Scripts\\python -c \"\"from psychrag.chunking.content_chunking import chunk_content; print(''Import successful'')\"\"\")",
-      "Bash(cmd /c \"venv\\Scripts\\python -c \"\"from psychrag.chunking.content_chunking import chunk_content; print(''Import successful'')\"\" 2>&1\")",
-      "Bash(venv\\Scripts\\python.exe:*)",
-      "Bash(c:codepythonpyschRAGvenvScriptspython.exe -c \"from psychrag.chunking.content_chunking import chunk_content; print(''Import successful'')\")",
-      "Bash(/c/code/python/pyschRAG/venv/Scripts/python.exe -c \"from psychrag.chunking.content_chunking import chunk_content; print(''Import successful'')\")",
-      "Bash(/c/code/python/pyschRAG/venv/Scripts/pip.exe install:*)",
-      "Bash(/c/code/python/pyschRAG/venv/Scripts/python.exe:*)",
-      "Bash(nul)"
+      "Bash(venv/Scripts/python.exe:*)"
     ],
     "deny": [],
     "ask": []

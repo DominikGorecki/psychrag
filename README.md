@@ -80,7 +80,7 @@ TODO: Make the output path configurable in .env file.
 
 ## 1. Convert to Markdown - From PDF
 
-* Conversion can take time depending on your setup
+* Conversion can take time depending on your setup--
 * For the output filename:
     * Keep the file simple--you'll need to reference it multiple times
     * Don't use spaces: `this file.md` should be `this_file.md`
@@ -99,13 +99,21 @@ OSS Examples to try:
 * This generates `<file>.md`
 
 
-### Option 1: Convert with style and hierarchy (recommended)
+### Option 2: Convert with style and hierarchy (recommended)
 * Run `python -m psychrag.conversions.conv_pdf2md raw\input.pdf -o output\<file>.md --compare -v`
 * This generates `<file>.style.md` and `<file>.hier.md`
 
+**Choose the better result**
+* AutomatedRun `python -m psychrag.conversions.style_v_hier__cli output\<file>.style.md output\<file>.hier.md -v` that runs heuristic to pick the better candidate
+* Manual: Scroll through both markdown files and manually choose the best one. Rename the `style` or `hier` to just `<file>.md`. Choose the file that better
+
 ## 2. Extract Bibliography and ToC
 
-1. First preview to ensure ToC is in Char Limit: `python -m psychrag.cli.drcli bib2db <file.md> --preview --lines 123`
+Now we need to update the DB to pull out the bibliography and  
+
+1. First preview to ensure ToC is in Char Limit: `python -m psychrag.chunking.extract_bib_cli <file>.md --preview --lines ###`
+
+`python -m psychrag.cli.drcli bib2db <file.md> --preview --lines 123`
 2. Then run without preview `python -m psychrag.cli.drcli bib2db <file.md> --lines 123`
 3. This will create a new entry into the DB with the Biblio and ToC
 

@@ -1,4 +1,8 @@
-"""Extract bibliographic information and table of contents from markdown."""
+""" DEPRECATING
+
+Extract bibliographic information and table of contents from markdown.
+
+"""
 
 from pydantic import BaseModel
 
