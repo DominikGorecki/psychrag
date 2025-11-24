@@ -37,12 +37,19 @@ from pathlib import Path
 from typing import Optional
 
 from docling.document_converter import DocumentConverter, PdfFormatOption
-from docling.datamodel.pipeline_options import PdfPipelineOptions
+from docling.datamodel.pipeline_options import ThreadedPdfPipelineOptions
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.accelerator_options import AcceleratorDevice, AcceleratorOptions
 from hierarchical.postprocessor import ResultPostprocessor
 from hierarchical.hierarchy_builder import create_toc
 from hierarchical.hierarchy_builder_metadata import HierarchyBuilderMetadata
+
+from .pdf_bookmarks2toc import extract_bookmarks_to_toc
+
+# Default batch sizes for GPU processing
+DEFAULT_LAYOUT_BATCH_SIZE = 16
+DEFAULT_OCR_BATCH_SIZE = 4
+DEFAULT_TABLE_BATCH_SIZE = 4
 
 
 def convert_pdf_to_markdown(
@@ -91,7 +98,7 @@ def convert_pdf_to_markdown(
             print("GPU acceleration enabled (auto-detect)")
 
     # Configure PDF pipeline options with GPU support and optimized batch sizes
-    pipeline_options = PdfPipelineOptions(do_ocr=ocr)
+    pipeline_options = ThreadedPdfPipelineOptions(do_ocr=ocr)
 
     if use_gpu:
         # Configure accelerator options for GPU support (auto-detect GPU, fallback to CPU)
@@ -100,10 +107,10 @@ def convert_pdf_to_markdown(
         )
         pipeline_options.accelerator_options = accelerator_options
 
-        # Optimize batch sizes for GPU processing
-        pipeline_options.ocr_batch_size = 64  # default: 4
-        pipeline_options.layout_batch_size = 64  # default: 4
-        pipeline_options.table_batch_size = 4
+        # Set batch sizes for GPU processing
+        pipeline_options.ocr_batch_size = DEFAULT_OCR_BATCH_SIZE
+        pipeline_options.layout_batch_size = DEFAULT_LAYOUT_BATCH_SIZE
+        pipeline_options.table_batch_size = DEFAULT_TABLE_BATCH_SIZE
 
     # Initialize converter
     converter = DocumentConverter(
@@ -160,9 +167,17 @@ def convert_pdf_to_markdown(
 
             style_path = parent / f"{stem}.style.md"
             hier_path = parent / f"{stem}.hier.md"
+            toc_path = parent / f"{stem}.toc_titles.md"
 
             style_path.write_text(style_md, encoding="utf-8")
             hier_path.write_text(hier_md, encoding="utf-8")
+
+            # Extract TOC from PDF bookmarks
+            try:
+                extract_bookmarks_to_toc(pdf_path, output_path=toc_path, verbose=verbose)
+            except Exception as e:
+                if verbose:
+                    print(f"Warning: Could not extract TOC: {e}")
 
             if verbose:
                 print(f"Style-based output written to: {style_path}")
@@ -271,6 +286,15 @@ def convert_pdf_to_markdown(
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(markdown_content, encoding="utf-8")
+
+        # Extract TOC from PDF bookmarks
+        toc_path = output_path.parent / f"{output_path.stem}.toc_titles.md"
+        try:
+            extract_bookmarks_to_toc(pdf_path, output_path=toc_path, verbose=verbose)
+        except Exception as e:
+            if verbose:
+                print(f"Warning: Could not extract TOC: {e}")
+
         if verbose:
             print(f"Output written to: {output_path}")
 

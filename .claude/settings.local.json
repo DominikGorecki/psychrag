@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(venv/Scripts/python.exe:*)"
+      "Bash(venv/Scripts/python.exe:*)",
+      "Bash(cmd /c \"dir /b output\\test*.md 2>nul\")",
+      "Bash(cmd /c \"dir /b output\\test.style.md output\\test.hier.md 2>nul\")"
     ],
     "deny": [],
     "ask": []

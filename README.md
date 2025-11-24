@@ -100,14 +100,38 @@ OSS Examples to try:
 
 
 ### Option 2: Convert with style and hierarchy (recommended)
-* Run `python -m psychrag.conversions.conv_pdf2md raw\input.pdf -o output\<file>.md --compare -v`
+Run:
+```
+python -m psychrag.conversions.conv_pdf2md raw\input.pdf -o output\<file>.md --compare -v`
+```
 * This generates `<file>.style.md` and `<file>.hier.md`
 
 **Choose the better result**
-* AutomatedRun `python -m psychrag.conversions.style_v_hier__cli output\<file>.style.md output\<file>.hier.md -v` that runs heuristic to pick the better candidate
+Automated Run runs heuristic to pick the better candidate
+```
+python -m psychrag.conversions.style_v_hier__cli output\<file>.style.md output\<file>.hier.md -v
+``` 
+
 * Manual: Scroll through both markdown files and manually choose the best one. Rename the `style` or `hier` to just `<file>.md`. Choose the file that better
 
-## 2. Extract Bibliography and ToC
+### Output of Option 1 or 2
+* At this point you should have:
+    * `<file>.md`
+    * `<file>.toc_titles.md` 
+
+* Check to see if the `<file>.toc_titles.md` looks like it corresponds to `<file>.md` -- sometimes it might be empty if or completely off depending on the pdf bookmarks. 
+
+## 2. Create new Work in DB
+Run
+```bash
+python -m psychrag.conversions.new_work__cli <markdown_file>
+```
+
+
+## 3. Extract ToC from MD **(optional)**
+
+** Skip step if `<file>.toc_titles.md` looks good, then we can skip this ste
+
 
 Now we need to update the DB to pull out the bibliography and  
 
