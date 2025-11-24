@@ -4,28 +4,104 @@ A Retrieval-Augmented Generation system for psychology literature.
 
 ## Setup
 
+### 1. Environment and Packages Install
+
+Activate setup and activate the environment (recommended):
+
 ```bash
 # Create and activate virtual environment
 python -m venv venv
 venv\Scripts\activate  # Windows
 # or: source venv/bin/activate  # Unix/Mac
+```
 
+Install the packages--this will take some time and requires ~2GB of space just for the install -- probably close to 15GB more when running and different models are downloaded on the fly. 
+
+```
 # Install package in development mode
 venv\Scripts\pip install -e .
 ```
 
+### 2. Settings (.env) File
+| Note: Currently only supporting gemini api. 
+
+Create a .env file in the root-folder where this file exists with the following template:
+```
+# PostgreSQL Connection Configuration
+# Admin credentials (for database/user creation)
+POSTGRES_ADMIN_USER=postgres
+POSTGRES_ADMIN_PASSWORD=postgres
+POSTGRES_HOST=127.0.0.1
+POSTGRES_PORT=5432
+
+# Application database
+POSTGRES_DB=psych_rag
+
+# Application user (will be created by init_db)
+POSTGRES_APP_USER=psych_rag_app_user
+POSTGRES_APP_PASSWORD=psych_rag_secure_password
+
+# LLM Provider Configuration
+# Only Gemini currently supported
+LLM_PROVIDER=gemini
+
+# OpenAI -- currently not supported -- feel free to skip
+LLM_OPENAI_API_KEY=
+LLM_OPENAI_LIGHT_MODEL=gpt-4.1-mini
+LLM_OPENAI_FULL_MODEL=gpt-4o
+
+# Gemini -- currently required
+LLM_GOOGLE_API_KEY=[YOUR API KEY]
+# Gemini fast/light model -- feel free to adjust:
+LLM_GEMINI_LIGHT_MODEL=gemini-flash-latest 
+# Gemini full/thinking model -- feel free to adjust:
+LLM_GEMINI_FULL_MODEL=gemini-2.5-pro
+```
+
+TODO: Add support to OpenAI as a provider. In the future, others. 
+
+### 3. Initiate the Database and Filesystem
+
+Use the `init_db` module to initiate the DB:
+
+```bash
+python -m psychrag.data.init_db -v
+```
+
+Add an `output` folder to the rood of the repo.
+
+```bash
+mkdir output
+```
+
+TODO: Make the output path configurable in .env file. 
+
 # Adding new Work (Asset) To DB
 
-## 1. Convert to Markdown
+## 1. Convert to Markdown - From PDF
+
+* Conversion can take time depending on your setup
+* For the output filename:
+    * Keep the file simple--you'll need to reference it multiple times
+    * Don't use spaces: `this file.md` should be `this_file.md`
+    * Don't use special chars, etc. -- I didn't test this, plus keep it simple.
+    * Don't worry about keeping meta information in the title -- the bibliography of the work will be pulled into the DB. As long as you just know the filename during the ingestion process--after it won't matter. 
+    * **Don't delete any files from the `output` folder manually**
+
+
+OSS Examples to try:
+* https://en.wikibooks.org/wiki/Cognitive_Psychology_and_Cognitive_Neuroscience (pdf link)
+
 
 ### Option 1: Convert with single option
 
-* Run `python -m psychrag.conversions.conv_pdf2md input.pdf -o putput\<file>.md`
-* 
+* Run `python -m psychrag.conversions.conv_pdf2md raw\input.pdf -o output\<file>.md`
+* This generates `<file>.md`
 
 
-### Option 1: Convert with style and hierarchy
-* Run `python -m psychrag.conversions.conv_pdf2md input.pdf -o output.md --compare -v`
+### Option 1: Convert with style and hierarchy (recommended)
+* Run `python -m psychrag.conversions.conv_pdf2md raw\input.pdf -o output\<file>.md --compare -v`
+* This generates `<file>.style.md` and `<file>.hier.md`
 
 ## 2. Extract Bibliography and ToC
 

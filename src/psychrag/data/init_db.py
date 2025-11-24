@@ -114,9 +114,18 @@ def enable_pgvector_extension(verbose: bool = False) -> None:
     if verbose:
         print("Enabling pgvector extension...")
 
-    with engine.connect() as conn:
+    # Need admin privileges to create extensions
+    db_name = os.getenv("POSTGRES_DB", "psych_rag")
+    db_url = (
+        f"postgresql+psycopg://{os.getenv('POSTGRES_ADMIN_USER', 'postgres')}:"
+        f"{os.getenv('POSTGRES_ADMIN_PASSWORD', 'postgres')}"
+        f"@{os.getenv('POSTGRES_HOST', '127.0.0.1')}:"
+        f"{os.getenv('POSTGRES_PORT', '5432')}/{db_name}"
+    )
+    admin_engine = create_engine(db_url, isolation_level="AUTOCOMMIT")
+
+    with admin_engine.connect() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        conn.commit()
 
     if verbose:
         print("pgvector extension enabled")
