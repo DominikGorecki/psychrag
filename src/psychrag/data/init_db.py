@@ -22,7 +22,7 @@ from sqlalchemy.exc import ProgrammingError
 from .database import Base, engine, get_admin_database_url
 
 # Import all models to register them with Base
-from .models import Chunk, Work  # noqa: F401
+from .models import Chunk, Query, Work  # noqa: F401
 
 
 def create_database_and_user(verbose: bool = False) -> None:
@@ -153,6 +153,16 @@ def create_vector_indexes(verbose: bool = False) -> None:
         conn.execute(text("""
             CREATE INDEX IF NOT EXISTS ix_chunks_embedding_hnsw
             ON chunks USING hnsw (embedding vector_cosine_ops)
+        """))
+
+        # Create HNSW indexes for queries table embeddings
+        conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS ix_queries_embedding_original_hnsw
+            ON queries USING hnsw (embedding_original vector_cosine_ops)
+        """))
+        conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS ix_queries_embedding_hyde_hnsw
+            ON queries USING hnsw (embedding_hyde vector_cosine_ops)
         """))
         conn.commit()
 
