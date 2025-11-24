@@ -170,6 +170,56 @@ def create_vector_indexes(verbose: bool = False) -> None:
         print("Vector indexes created successfully")
 
 
+def create_fulltext_search(verbose: bool = False) -> None:
+    """
+    Create full-text search infrastructure for chunks.
+
+    This adds tsvector column, GIN index, and auto-update trigger.
+
+    Args:
+        verbose: If True, print progress information.
+    """
+    if verbose:
+        print("Creating full-text search infrastructure...")
+
+    with engine.connect() as conn:
+        # Add tsvector column
+        conn.execute(text("""
+            ALTER TABLE chunks ADD COLUMN IF NOT EXISTS content_tsvector tsvector
+        """))
+
+        # Create GIN index for full-text search
+        conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS ix_chunks_content_tsvector_gin
+            ON chunks USING gin (content_tsvector)
+        """))
+
+        # Create trigger function
+        conn.execute(text("""
+            CREATE OR REPLACE FUNCTION chunks_content_tsvector_trigger()
+            RETURNS trigger AS $$
+            BEGIN
+                NEW.content_tsvector := to_tsvector('english', COALESCE(NEW.content, ''));
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql
+        """))
+
+        # Create trigger (drop first to avoid duplicates)
+        conn.execute(text("DROP TRIGGER IF EXISTS tsvector_update ON chunks"))
+        conn.execute(text("""
+            CREATE TRIGGER tsvector_update
+            BEFORE INSERT OR UPDATE OF content ON chunks
+            FOR EACH ROW
+            EXECUTE FUNCTION chunks_content_tsvector_trigger()
+        """))
+
+        conn.commit()
+
+    if verbose:
+        print("Full-text search infrastructure created successfully")
+
+
 def init_database(verbose: bool = False) -> None:
     """
     Initialize the database: create database, user, tables, and indexes.
@@ -181,6 +231,7 @@ def init_database(verbose: bool = False) -> None:
     enable_pgvector_extension(verbose=verbose)
     create_tables(verbose=verbose)
     create_vector_indexes(verbose=verbose)
+    create_fulltext_search(verbose=verbose)
 
     if verbose:
         print("Database initialization complete")
