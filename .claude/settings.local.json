@@ -11,7 +11,8 @@
       "Bash(c:codepythonpyschRAGvenvScriptspython.exe -c \"from psychrag.chunking.content_chunking import chunk_content; print(''Import successful'')\")",
       "Bash(/c/code/python/pyschRAG/venv/Scripts/python.exe -c \"from psychrag.chunking.content_chunking import chunk_content; print(''Import successful'')\")",
       "Bash(/c/code/python/pyschRAG/venv/Scripts/pip.exe install:*)",
-      "Bash(/c/code/python/pyschRAG/venv/Scripts/python.exe:*)"
+      "Bash(/c/code/python/pyschRAG/venv/Scripts/python.exe:*)",
+      "Bash(nul)"
     ],
     "deny": [],
     "ask": []

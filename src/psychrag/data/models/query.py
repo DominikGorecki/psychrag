@@ -31,6 +31,7 @@ class Query(Base):
         embedding_hyde: Vector embedding for HyDE answer.
         vector_status: Vectorization status (no_vec, to_vec, vec, vec_err).
         retrieved_context: JSON array of retrieved chunks with metadata and scores.
+        clean_retrieval_context: JSON array of consolidated chunks after grouping.
         created_at: Timestamp when record was created.
         updated_at: Timestamp when record was last updated.
     """
@@ -56,6 +57,7 @@ class Query(Base):
         index=True
     )
     retrieved_context: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    clean_retrieval_context: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
