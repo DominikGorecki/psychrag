@@ -1,4 +1,4 @@
-"""
+"""DEPRECATE
 CLI for suggesting heading hierarchy changes based on TOC titles.
 
 Usage:

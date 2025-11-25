@@ -1,4 +1,4 @@
-"""
+"""DEPRECATE
 Suggest heading hierarchy changes based on TOC titles.
 
 This module uses AI to match document headings with authoritative TOC titles

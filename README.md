@@ -147,7 +147,10 @@ This step is not optional--the `<file>.titles.md` is used in many different area
 python -m psychrag.sanitization.extract_titles_cli <work-id-number>
 ```
 
-### Suggest Heading Changes (optional)
+### Replace Text
+**TODO:** Write this and update the method--should be set so that it handles multiple pass-through cycles and the csv should record what has been completed and the pass-through completed. Handle case of ` /uniF____ ` and then ` /uniF___` (note the white spacing)
+
+### Suggest Heading Changes (optional but recommended)
 
 **Suggest heading changes:** This step will use an LLM to try to determine the best possible hierarchy for our markdown document. The hierarchy is important because it will improve chunking and context. 
 
@@ -161,17 +164,19 @@ python -m psychrag.sanitization.suggest_heading_changes_cli <work id>
 python -m psychrag.sanitization.suggest_heading_changes_cli <work id> --full-llm
 ```
 
-### Run Through
+**Output:** `<file>.title_changes.md` -- a list of title changes
 
-    a) INPUT: Run `python -m psychrag.sanitization.suggest_heading_changes_cli <file>.titles.md`
-    b) OUTPUT: will generate `<file>.title_changes.md`
+### Apply Heading Changes
 
-    Notes: A few things here--if thee ToC is not present in the DB, this will not run properly. Need to think of a better approach when the ToC is not present as well how to improve this process:
-    
-    * Pass in some content under each heading until next heading -- perhaps the first 100 words and the last 100 words
-    * Update prompt to specifically look for ToC based on the work title.
+Compare `<file>.titles.md` to the newly generated `<file>.title_changes.md` and do a spot check to ensure that the changes are welcome and appropriate.
 
+If the suggestions seem reasonable and appropriate, you can apply them:
+```bash
+python -m psychrag.sanitization.apply_title_changes_cli 
+```
 ## 4. Chunking
+Chunking divides out the sanitized document into chunks that are searchable. It does this in multiple steps -- higher level chunks (i.e. chapters) and then 
+
 1. Suggest vectorization: `python -m psychrag.chunking.suggested_chunks_cli <work>.md`
 
 2. Chunk Headings into DB: `python -m psychrag.chunking.chunk_headings_cli 4 -v`
@@ -186,71 +191,6 @@ python -m psychrag.sanitization.suggest_heading_changes_cli <work id> --full-llm
 
 ____________________________
 
-# Tools
-
-### conv_epub2md - EPUB to Markdown Converter
-
-Converts EPUB files to Markdown format using Docling.
-
-#### As a Script
-
-```bash
-# Output to stdout
-venv\Scripts\python -m psychrag.conversions.conv_epub2md book.epub
-
-# Output to file
-venv\Scripts\python -m psychrag.conversions.conv_epub2md book.epub -o output.md
-
-# Verbose mode
-venv\Scripts\python -m psychrag.conversions.conv_epub2md book.epub -o output.md -v
-```
-
-#### As a Library
-
-```python
-from psychrag.conversions import convert_epub_to_markdown
-
-# Get markdown as string
-markdown_content = convert_epub_to_markdown("book.epub")
-
-# Save to file
-convert_epub_to_markdown("book.epub", output_path="output.md")
-
-# With verbose output
-markdown_content = convert_epub_to_markdown("book.epub", verbose=True)
-```
-
-### conv_pdf2md - PDF to Markdown Converter
-
-Converts PDF files to Markdown format using Docling.
-
-#### As a Script
-
-```bash
-# Output to stdout
-venv\Scripts\python -m psychrag.conversions.conv_pdf2md document.pdf
-
-# Output to file
-venv\Scripts\python -m psychrag.conversions.conv_pdf2md document.pdf -o output.md
-
-# Verbose mode
-venv\Scripts\python -m psychrag.conversions.conv_pdf2md document.pdf -o output.md -v
-```
-
-#### As a Library
-
-```python
-from psychrag.conversions import convert_pdf_to_markdown
-
-# Get markdown as string
-markdown_content = convert_pdf_to_markdown("document.pdf")
-
-# Save to file
-convert_pdf_to_markdown("document.pdf", output_path="output.md")
-
-# With verbose output
-markdown_content = convert_pdf_to_markdown("document.pdf", verbose=True)
-```
 
 ## Testing
 
