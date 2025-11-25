@@ -46,6 +46,10 @@ dependencies = [
 
     # Utilities
     "pyperclip",
+
+    # API
+    "fastapi[standard]",
+    "uvicorn[standard]",
 ]
 
 [project.optional-dependencies]

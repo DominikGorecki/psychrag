@@ -212,21 +212,78 @@ python -m psychrag.chunking.content_chunking_cli <work id> -v
 
 ## 5. Vectorizing
 
+Run:
 ```bash
  python -m psychrag.vectorization.vect_chunks_cli <work_id> -v 
 ```
+________________________________________________________
 
 
+# Running RAG
 
-____________________________
+## Retrieval
+
+### 1. Query Expansion
+Expand query with multi-query expansion (MQE) and hypothetical document embeddings (HyDE). This will add an entry into the the DB with these new queries along with the original. 
+
+**Note**: Full LLM is used
+
+Run:
+```bash
+python -m psychrag.retrieval.query_expansion_cli "What is working memory?" -v
+```
+
+### 2. Vectorize Query (query embeddings)
+
+this will be saved to the DB
+
+Run:
+```bash
+python -m psychrag.retrieval.query_embeddings_cli <query id> -v
+```
+
+### 3. Retrieval
+
+Pulls out the relevant chunks based on vector embeddings and dense retrieval--saves the output to the DB for augmentation.
+
+Run:
+```bash
+python -m psychrag.retrieval.retrieve_cli <query id> -v
+```
+## Augmentation and Generation
+
+Some can categorize this under retrieval, but this step includes:
+1. consolidation 
+2. augmentation and generation
+
+### 1. Consolidation - Grouping retrieved chunks
+
+Consolidates retrieved chunks stored in the DB by grouping under parents and merging adjacent chunks. It makes the context much cleaner and keeps relevant items together. 
+
+Run:
+```bash
+python -m psychrag.augmentation.consolidate_context_cli <query id> -v
+```
+________________________________________________________
+
+### 2. Augmentation and Generation
+
+Run: 
+```bash
+python -m psychrag.augmentation.augment_cli --query-id <query_id>
+```
+________________________________________________________
+________________________________________________________
 
 
-## Testing
+# Testing
 
 ```bash
 venv\Scripts\pytest
 ```
-# TODO:
+
+# Other Stuff
+## TODO:
 * Add corpus to `work`: psychology, philosophy, medicine, chemistry, etc.
 * Add URL prop to `work`
 * Semantic Chunking 
