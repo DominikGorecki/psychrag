@@ -14,6 +14,7 @@ Examples:
 
 Functions:
     suggest_heading_changes(titles_file) - Analyze titles and suggest hierarchy changes
+    suggest_heading_changes_from_work(work_id, source_key, use_full_model, force, verbose) - Analyze from Work by ID
 """
 
 import json
@@ -22,9 +23,10 @@ from datetime import datetime
 from pathlib import Path
 
 from psychrag.ai import create_langchain_chat, ModelTier
-from psychrag.data.database import SessionLocal
+from psychrag.data.database import SessionLocal, get_session
 from psychrag.data.models import Work
 from psychrag.utils import compute_file_hash
+from .extract_titles import HashMismatchError
 
 # Directory for LLM logs
 LLM_LOGS_DIR = Path("llm_logs")
@@ -210,53 +212,166 @@ def _build_prompt(title: str, authors: str, toc: list, titles_codeblock: str) ->
     return f"""You are an expert at analyzing document structure and markdown formatting.
 
 ## Task
-Analyze the headings from a markdown document and suggest the correct heading levels based on the document's table of contents and proper hierarchical structure.
+Analyze the headings from a markdown document and assign the correct heading levels so that:
+- The overall structure is consistent with the document's table of contents (ToC)
+- The hierarchy is as informative as possible for chunking and context
+- No meaningful heading information from the current document is lost
 
 ## Document Information
 - **Title:** {title}
 - **Author(s):** {authors}
 
-## Table of Contents from Database
+## Table of Contents from Database (authoritative high-level structure)
+Use this ToC as the primary guide for:
+- Overall ordering of sections
+- Canonical wording of titles when possible
+- The *relative* depth of major parts/chapters/sections
+
 {toc_text}
 
 ## Current Headings in Document
 Each line shows: [line_number]: [current_heading]
 ```
+
 {titles_codeblock}
+
 ```
 
 ## Heading Hierarchy Rules
-- **H1 (#)**: Main chapters or major sections (from ToC top-level items)
-- **H2 (##)**: Sections within chapters
+Treat markdown heading levels as a strict outline hierarchy:
+
+- **H1 (#)**: Main parts, chapters, or major top-level sections  
+  - Usually mapped from top-level ToC entries
+- **H2 (##)**: Sections within a part/chapter
 - **H3 (###)**: Subsections
-- **H4 (####)**: Sub-subsections
-- **REMOVE**: Items that should not be headings (e.g., decorative text, page numbers, running headers)
-- **NO_CHANGE**: Headings that are already correct
+- **H4 (####)**: Sub-subsections (use for additional nesting; do not go deeper than H4)
+- **REMOVE**: Only for non-semantic items that clearly are *not* headings  
+  (e.g., page numbers, running headers/footers, repeated book title on every page, copyright notices)
+- **NO_CHANGE**: Heading level is already correct, but you may still normalize the title text
+
+The hierarchy must be *nested and consistent*:
+- Do not jump levels in a way that breaks outline logic (avoid H1 → H4 with no H2/H3 in between unless structure clearly demands it)
+- Preserve the reading order of the original headings; do not reorder anything
+
+## ToC vs Current Headings (VERY IMPORTANT)
+The ToC from the database may be *shallower* (fewer levels) than the actual document headings. Handle this as follows:
+
+1. **ToC as anchor, headings add detail**
+   - Use the ToC to determine:
+     - Which headings are major (H1) vs subordinate (H2–H4)
+     - The canonical wording of titles where there is a clear match
+   - Use the current headings to *refine and deepen* the structure under those ToC entries.
+
+2. **Do NOT discard real structure just because ToC is shallow**
+   - If the ToC only has chapter-level entries but the document headings clearly contain sections/subsections:
+     - Map the chapter to **H1**
+     - Map its internal headings to **H2/H3/H4** while preserving their relative nesting.
+   - Do **not** REMOVE a heading solely because it is missing in the ToC.
+
+3. **Relative hierarchy preservation**
+   - When aligning to the ToC, preserve the *relative* nesting of headings:
+     - Example rule: if for a group of headings the original levels are (H2, H3, H4) and you determine that the first one should actually be H1 (because it matches a top-level ToC entry), then the group should become (H1, H2, H3).
+   - More generally:
+     - If you “promote” or “demote” one heading to align with the ToC, apply the same offset to its direct descendants so that the internal structure under it stays the same.
+
+4. **Matching titles**
+   - If a heading clearly corresponds to a ToC entry:
+     - Use the ToC title text as the authoritative `title_text` (fixing capitalization, punctuation, numbering if needed).
+   - If there is no clear ToC match:
+     - Keep the best, cleaned-up version of the current heading text as `title_text`, and assign a level (H1–H4) based on context.
+
+5. **Special sections**
+   - Common structural sections like “Foreword”, “Preface”, “Introduction”, “Conclusion”, “Appendix”, “References”, “Bibliography”, “Glossary”, “Index” should usually be kept as headings (often H1 or H2) unless they are clearly decorative repetitions.
 
 ## Instructions
-1. Use your knowledge of this work (if you recognize it) to understand its proper structure
-2. Search the web for information about this work's structure if helpful
-3. Compare the ToC from the database with the current headings
-4. For each line number in the headings, determine the correct action
+1. Use your knowledge of this work (if you recognize it) to understand its typical structure.
+2. If helpful, search the web for information about this specific work's structure (e.g., canonical chapter layout).
+3. Compare the ToC from the database with the current headings:
+   - Use text similarity, numbering patterns (e.g., “1.”, “1.1”), and ordering to align them.
+4. For **each line number** in the headings list:
+   - Decide whether to assign H1, H2, H3, H4, NO_CHANGE, or REMOVE.
+   - When in doubt between flattening or preserving additional structure, prefer preserving a *richer* and *consistent* hierarchy (i.e., more granularity, not less).
+5. Do **not** suggest removing lower-level headings that are missing from the ToC. Instead:
+   - Keep them, assign the best-fitting level (H2–H4), and maintain their relative position and nesting under the closest higher-level ToC-aligned parent.
 
 ## Output Format
-Return ONLY the changes in this exact format, one per line:
+Return **only** the mapping in the following format, one line **per heading line**:
+
 [line_number] : [ACTION] : [title_text]
 
 Where:
-- ACTION is one of: NO_CHANGE, REMOVE, H1, H2, H3, H4
-- title_text is the correct title from the ToC (empty for REMOVE)
-- NO_CHANGE means the heading level is correct, but still include the authoritative title text
+- `ACTION` is one of: `NO_CHANGE`, `REMOVE`, `H1`, `H2`, `H3`, `H4`
+- `title_text` is:
+  - The canonical title from the ToC, when there is a clear match, or
+  - A cleaned-up version of the current heading text, when there is no ToC match
+  - Empty only for `REMOVE`
 
-Example:
-10 : NO_CHANGE : Introduction
-13 : H1 : Chapter 1: Getting Started
-18 : H1 : Methods
-19 : H2 : Data Collection
-20 : H3 : Survey Design
+Notes:
+- Even for `NO_CHANGE`, still provide the authoritative `title_text` (which may normalize spacing/capitalization/numbering).
+- Do **not** output anything other than these lines.
+
+### Example
+10 : NO_CHANGE : Introduction  
+13 : H1 : Chapter 1: Getting Started  
+18 : H1 : Methods  
+19 : H2 : Data Collection  
+20 : H3 : Survey Design  
 25 : REMOVE :
 
-Provide the complete list of changes for ALL headings shown above."""
+Provide the complete list of mappings for **all** headings shown above."""
+
+#     return f"""You are an expert at analyzing document structure and markdown formatting.
+
+# ## Task
+# Analyze the headings from a markdown document and suggest the correct heading levels based on the document's table of contents and proper hierarchical structure.
+
+# ## Document Information
+# - **Title:** {title}
+# - **Author(s):** {authors}
+
+# ## Table of Contents from Database
+# {toc_text}
+
+# ## Current Headings in Document
+# Each line shows: [line_number]: [current_heading]
+# ```
+# {titles_codeblock}
+# ```
+
+# ## Heading Hierarchy Rules
+# - **H1 (#)**: Main chapters or major sections (from ToC top-level items)
+# - **H2 (##)**: Sections within chapters
+# - **H3 (###)**: Subsections
+# - **H4 (####)**: Sub-subsections
+# - **REMOVE**: Items that should not be headings (e.g., decorative text, page numbers, running headers)
+# - **NO_CHANGE**: Headings that are already correct
+
+# ## Instructions
+# 1. Use your knowledge of this work (if you recognize it) to understand its proper structure
+# 2. Search the web for information about this work's structure if helpful
+# 3. Compare the ToC from the database with the current headings
+# 4. For each line number in the headings, determine the correct action
+# 5. Don't suggest that any missing lower-level headings in the ToC to be removed from current headings just make sure they keep their relative hierarchy:
+#     * If for a section H2,H3,H4, the titles matches to H1,H2 respectively then the result should be H1,H2,H3
+
+# ## Output Format
+# Return ONLY the changes in this exact format, one per line:
+# [line_number] : [ACTION] : [title_text]
+
+# Where:
+# - ACTION is one of: NO_CHANGE, REMOVE, H1, H2, H3, H4
+# - title_text is the correct title from the ToC (empty for REMOVE)
+# - NO_CHANGE means the heading level is correct, but still include the authoritative title text
+
+# Example:
+# 10 : NO_CHANGE : Introduction
+# 13 : H1 : Chapter 1: Getting Started
+# 18 : H1 : Methods
+# 19 : H2 : Data Collection
+# 20 : H3 : Survey Design
+# 25 : REMOVE :
+
+# Provide the complete list of changes for ALL headings shown above."""
 
 
 def _parse_llm_response(response_text: str) -> list[str]:
@@ -279,3 +394,233 @@ def _parse_llm_response(response_text: str) -> list[str]:
             changes.append(f"{line_num} : {action} : {title}")
 
     return changes
+
+
+def suggest_heading_changes_from_work(
+    work_id: int,
+    source_key: str,
+    use_full_model: bool = False,
+    force: bool = False,
+    verbose: bool = False
+) -> Path:
+    """Suggest heading changes for a work's markdown file using AI and update the database.
+
+    Args:
+        work_id: Database ID of the work.
+        source_key: Key in the files JSON ("original_markdown" or "sanitized").
+        use_full_model: If True, use ModelTier.FULL instead of ModelTier.LIGHT.
+        force: If True, skip hash validation and proceed anyway.
+        verbose: If True, print progress messages.
+
+    Returns:
+        Path to the created title_changes file.
+
+    Raises:
+        ValueError: If work_id not found, source_key invalid, or files not in database.
+        HashMismatchError: If file hashes don't match stored hashes (unless force=True).
+        FileNotFoundError: If files referenced in database don't exist on disk.
+    """
+    # Load work from database
+    with get_session() as session:
+        work = session.query(Work).filter(Work.id == work_id).first()
+
+        if not work:
+            raise ValueError(f"Work with ID {work_id} not found in database")
+
+        if not work.files:
+            raise ValueError(f"Work {work_id} has no files metadata")
+
+        # Validate source_key
+        if source_key not in ["original_markdown", "sanitized"]:
+            raise ValueError(
+                f"Invalid source_key: {source_key}. "
+                f"Must be 'original_markdown' or 'sanitized'"
+            )
+
+        # Determine titles key based on source
+        if source_key == "original_markdown":
+            titles_key = "titles"
+            output_key = "title_changes"
+        else:  # sanitized
+            titles_key = "sanitized_titles"
+            output_key = "sanitized_title_changes"
+
+        # Validate both files exist in metadata
+        if source_key not in work.files:
+            raise ValueError(
+                f"Work {work_id} does not have '{source_key}' in files metadata"
+            )
+
+        if titles_key not in work.files:
+            raise ValueError(
+                f"Work {work_id} does not have '{titles_key}' in files metadata. "
+                f"Run extract_titles_from_work first."
+            )
+
+        # Get file info
+        markdown_info = work.files[source_key]
+        markdown_path = Path(markdown_info["path"])
+        markdown_stored_hash = markdown_info["hash"]
+
+        titles_info = work.files[titles_key]
+        titles_path = Path(titles_info["path"])
+        titles_stored_hash = titles_info["hash"]
+
+        if verbose:
+            print(f"Analyzing markdown: {markdown_path}")
+            print(f"Using titles from: {titles_path}")
+
+        # Validate both files exist on disk
+        if not markdown_path.exists():
+            raise FileNotFoundError(
+                f"Markdown file not found on disk: {markdown_path}\n"
+                f"Referenced in work {work_id}, key '{source_key}'"
+            )
+
+        if not titles_path.exists():
+            raise FileNotFoundError(
+                f"Titles file not found on disk: {titles_path}\n"
+                f"Referenced in work {work_id}, key '{titles_key}'"
+            )
+
+        # Compute current hashes and validate
+        markdown_current_hash = compute_file_hash(markdown_path)
+        titles_current_hash = compute_file_hash(titles_path)
+
+        markdown_mismatch = markdown_current_hash != markdown_stored_hash
+        titles_mismatch = titles_current_hash != titles_stored_hash
+
+        if (markdown_mismatch or titles_mismatch) and not force:
+            # Build detailed error message
+            errors = []
+            if markdown_mismatch:
+                errors.append(
+                    f"Markdown file ({source_key}):\n"
+                    f"  Stored:  {markdown_stored_hash}\n"
+                    f"  Current: {markdown_current_hash}"
+                )
+            if titles_mismatch:
+                errors.append(
+                    f"Titles file ({titles_key}):\n"
+                    f"  Stored:  {titles_stored_hash}\n"
+                    f"  Current: {titles_current_hash}"
+                )
+            error_msg = "File hash mismatch detected:\n" + "\n".join(errors)
+            # Reuse HashMismatchError but customize message
+            raise HashMismatchError(
+                stored_hash=f"{markdown_stored_hash[:16]}... / {titles_stored_hash[:16]}...",
+                current_hash=f"{markdown_current_hash[:16]}... / {titles_current_hash[:16]}..."
+            )
+
+        if force and (markdown_mismatch or titles_mismatch):
+            if verbose:
+                print("WARNING: Hash mismatch detected, proceeding with --force")
+                if markdown_mismatch:
+                    print(f"  Markdown hash changed")
+                if titles_mismatch:
+                    print(f"  Titles hash changed")
+
+        # Read titles file content
+        titles_content = titles_path.read_text(encoding='utf-8')
+
+        # Extract the titles codeblock
+        codeblock_match = re.search(r'```\n(.*?)\n```', titles_content, re.DOTALL)
+        if not codeblock_match:
+            raise ValueError(f"No titles codeblock found in: {titles_path}")
+
+        titles_codeblock = codeblock_match.group(1)
+
+        # Get metadata from work
+        title = work.title or "Unknown Title"
+        authors = work.authors or "Unknown Author"
+        toc = work.toc or []
+
+        if verbose:
+            print(f"Document: {title}")
+            print(f"Authors: {authors}")
+            print(f"TOC entries: {len(toc)}")
+
+        # Build the LLM prompt
+        prompt = _build_prompt(title, authors, toc, titles_codeblock)
+
+        # Call LLM with appropriate tier
+        tier = ModelTier.FULL if use_full_model else ModelTier.LIGHT
+
+        if verbose:
+            print(f"Calling LLM (tier: {'FULL' if use_full_model else 'LIGHT'})...")
+
+        langchain_stack = create_langchain_chat(
+            settings=None,
+            tier=tier,
+            search=True,
+            temperature=0.2
+        )
+        chat = langchain_stack.chat
+
+        response = chat.invoke(prompt)
+        response_text = _extract_text_from_response(response.content)
+
+        # Log the interaction
+        _log_llm_interaction(prompt, response_text)
+
+        if verbose:
+            print("LLM response received")
+
+        # Parse the LLM response to extract changes
+        changes = _parse_llm_response(response_text)
+
+        # Calculate relative path from markdown to titles
+        try:
+            relative_uri = markdown_path.relative_to(titles_path.parent)
+            relative_uri_str = f"./{relative_uri.as_posix()}"
+        except ValueError:
+            # Files are on different drives or can't be made relative
+            relative_uri_str = markdown_path.as_posix()
+
+        # Build output content
+        output_lines = [
+            relative_uri_str,
+            "",
+            "# CHANGES TO HEADINGS",
+            "```",
+            *changes,
+            "```"
+        ]
+        output_content = "\n".join(output_lines)
+
+        # Determine output path based on source
+        if source_key == "original_markdown":
+            # <file>.md -> <file>.title_changes.md
+            output_path = markdown_path.parent / f"{markdown_path.stem}.title_changes.md"
+        else:  # sanitized
+            # <file>.sanitized.md -> <file>.sanitized.title_changes.md
+            output_path = markdown_path.parent / f"{markdown_path.stem}.title_changes.md"
+
+        # Ensure output directory exists
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Write output file
+        output_path.write_text(output_content, encoding='utf-8')
+
+        if verbose:
+            print(f"Title changes saved to: {output_path}")
+
+        # Compute hash of new file
+        output_hash = compute_file_hash(output_path)
+
+        # Update work's files metadata
+        # Need to create a new dict to trigger SQLAlchemy's change detection for JSON columns
+        updated_files = dict(work.files) if work.files else {}
+        updated_files[output_key] = {
+            "path": str(output_path.resolve()),
+            "hash": output_hash
+        }
+        work.files = updated_files
+
+        session.commit()
+        session.refresh(work)
+
+        if verbose:
+            print(f"Updated work {work_id} with '{output_key}' file metadata")
+
+    return output_path

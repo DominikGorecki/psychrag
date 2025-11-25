@@ -149,7 +149,20 @@ python -m psychrag.sanitization.extract_titles_cli <work-id-number>
 
 ### Suggest Heading Changes (optional)
 
-2. **Suggest heading changes:** This step will use an LLM to try to determine  
+**Suggest heading changes:** This step will use an LLM to try to determine the best possible hierarchy for our markdown document. The hierarchy is important because it will improve chunking and context. 
+
+**Run LIGHT Model**
+```bash
+python -m psychrag.sanitization.suggest_heading_changes_cli <work id>
+```
+
+**Run FULL model**
+```bash
+python -m psychrag.sanitization.suggest_heading_changes_cli <work id> --full-llm
+```
+
+### Run Through
+
     a) INPUT: Run `python -m psychrag.sanitization.suggest_heading_changes_cli <file>.titles.md`
     b) OUTPUT: will generate `<file>.title_changes.md`
 
@@ -244,3 +257,8 @@ markdown_content = convert_pdf_to_markdown("document.pdf", verbose=True)
 ```bash
 venv\Scripts\pytest
 ```
+# TODO:
+* Add corpus to `work`: psychology, philosophy, medicine, chemistry, etc.
+* Add URL prop to `work`
+* Semantic Chunking 
+* Lock Document -- simplify cleaning

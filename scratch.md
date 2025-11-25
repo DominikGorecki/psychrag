@@ -335,4 +335,3 @@ Work object should keep track of all the files and their hashes in one JSON colu
 * sanitized: `<file>.sanitized.md`  -- the sanitized version of `<file>.md` that has proper hierarchy and text 
 * sanitized_titles: `<file>.sanitized.titles.md` - titles pulled from `<file>.sanitized.md`
 * vec_suggestions: `<file>.sanitized.vec_sugg.md` - suggested titles to vectorize
-
