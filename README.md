@@ -101,14 +101,14 @@ OSS Examples to try:
 
 ### Option 2: Convert with style and hierarchy (recommended)
 Run:
-```
+```bash
 python -m psychrag.conversions.conv_pdf2md raw\input.pdf -o output\<file>.md --compare -v`
 ```
 * This generates `<file>.style.md` and `<file>.hier.md`
 
 **Choose the better result**
 Automated Run runs heuristic to pick the better candidate
-```
+```bash
 python -m psychrag.conversions.style_v_hier__cli output\<file>.style.md output\<file>.hier.md -v
 ``` 
 
@@ -139,12 +139,12 @@ python -m psychrag.conversions.new_work__cli <markdown_file>
 
 Now that we have the new work saved in the DB--going forward well be working with the work id of the row to continue the conversion. The file locations associated with this work saved in the DB. 
 
-### Extract Titles 
+### Extract Titles (required)
 
 This step is not optional--the `<file>.titles.md` is used in many different areas including the necessary vectorization suggestion steps. It will also be used as a sanity test in the UI. Run:
 
 ```bash
-python -m psychrag.sanitization.extract_titles_cli <work-id-number>
+python -m psychrag.sanitization.extract_titles_cli <work-id-number> -v
 ```
 
 ### Replace Text
@@ -161,7 +161,7 @@ python -m psychrag.sanitization.suggest_heading_changes_cli <work id>
 
 **Run FULL model**
 ```bash
-python -m psychrag.sanitization.suggest_heading_changes_cli <work id> --full-llm
+python -m psychrag.sanitization.suggest_heading_changes_cli <work id> --full-llm -v
 ```
 
 **Output:** `<file>.title_changes.md` -- a list of title changes
@@ -179,7 +179,7 @@ Compare `<file>.titles.md` to the newly generated `<file>.title_changes.md` and 
 
 If the suggestions seem reasonable and appropriate, you can apply them:
 ```bash
-python -m psychrag.sanitization.apply_title_changes_cli 
+python -m psychrag.sanitization.apply_title_changes_cli <work id> -v
 ```
 ## 4. Chunking
 
@@ -189,10 +189,10 @@ Chunking divides out the sanitized document into chunks that are searchable. It 
 
 This runs an LLM to call that tries to determine what headings to vectorize. Run:
 ```bash
-python -m psychrag.chunking.suggested_chunks_cli <work_id> --full-llm
+python -m psychrag.chunking.suggested_chunks_cli <work_id> --full-llm -v
 ```
 
-If `--ful-llm` is not present, it will run the light model. It's recommended to run full. This is an important step. 
+If `--full-llm` is not present, it will run the light model. It's recommended to run full. This is an important step. 
 
 ### Chunk Headings into DB (required)
 This pulls in the the top headings into the DB so that it can be used for the augmentation piece. These won't be vectorized for semantic search but are needed for grouping, etc. 
@@ -207,19 +207,8 @@ python -m psychrag.chunking.chunk_headings_cli <work id> -v
 
 Run:
 ```bash
-python -m psychrag.chunking.content_chunking_cli 3 -v
+python -m psychrag.chunking.content_chunking_cli <work id> -v
 ```
-
-## 5. Vectorization
-
-
----------------------------------------------
-
-1. Suggest vectorization: `python -m psychrag.chunking.suggested_chunks_cli <work>.md`
-
-2. Chunk Headings into DB: `python -m psychrag.chunking.chunk_headings_cli 4 -v`
-
-3. Chunk Content into DB: `python -m psychrag.chunking.content_chunking_cli 4 -v`
 
 ## 5. Vectorizing
 
