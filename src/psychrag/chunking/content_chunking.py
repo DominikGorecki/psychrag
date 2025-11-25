@@ -15,6 +15,9 @@ Examples:
     from psychrag.chunking.content_chunking import chunk_content
     num_chunks = chunk_content(1)
     print(f"Created {num_chunks} chunks")
+
+Raises:
+    HashMismatchError: If file hashes don't match stored values.
 """
 
 import re
@@ -25,7 +28,8 @@ import spacy
 
 from psychrag.data.database import get_session
 from psychrag.data.models import Chunk, Work
-from psychrag.utils import compute_file_hash
+from psychrag.sanitization.extract_titles import HashMismatchError
+from psychrag.utils.file_utils import compute_file_hash
 
 
 # Load spaCy model for sentence tokenization
@@ -262,13 +266,19 @@ def _create_paragraph_chunks(
     headings: list[tuple[int, int, str]],
     heading_hierarchy: dict[int, list[str]]
 ) -> list[dict]:
-    """Create chunks from paragraphs with overlap strategy.
+    """Create chunks from paragraphs, combining short paragraphs under same heading.
+
+    Paragraphs under the same heading are combined until reaching TARGET_WORDS
+    or MAX_WORDS. A new chunk is only created when:
+    - Adding the next paragraph would exceed MAX_WORDS
+    - We hit a new heading
+    - We finish all paragraphs
 
     Returns:
         List of chunk dictionaries with keys:
         - content: Full chunk text with breadcrumb
-        - start_line: Paragraph start line
-        - end_line: Paragraph end line
+        - start_line: First paragraph start line
+        - end_line: Last paragraph end line
         - heading_line: Line number of heading (for parent lookup)
         - level: Heading level (e.g., 2 for H2)
         - vector_status: 'to_vec'
@@ -296,113 +306,123 @@ def _create_paragraph_chunks(
 
         breadcrumb_text = _format_breadcrumb(breadcrumb)
         breadcrumb_words = _count_words(breadcrumb_text) if breadcrumb_text else 0
+        available_words = MAX_WORDS - breadcrumb_words
 
-        # Track overlap sentences for next chunk
+        # Accumulator for combining paragraphs
+        current_sentences = []
+        current_start_line = None
+        current_end_line = None
+
+        # Track overlap sentences for continuity between chunks
         overlap_sentences = []
-        is_first_in_heading = True
+
+        def flush_chunk():
+            """Create a chunk from accumulated sentences."""
+            nonlocal current_sentences, current_start_line, current_end_line, overlap_sentences
+
+            if not current_sentences or current_start_line is None:
+                # Nothing to flush, or only overlap sentences (no actual paragraph content yet)
+                current_sentences = []
+                current_start_line = None
+                current_end_line = None
+                return
+
+            chunk_text = ' '.join(current_sentences)
+            content = f"{breadcrumb_text}\n{chunk_text}" if breadcrumb_text else chunk_text
+
+            chunks.append({
+                'content': content,
+                'start_line': current_start_line,
+                'end_line': current_end_line,
+                'heading_line': h_line,
+                'level': level,
+                'vector_status': 'to_vec'
+            })
+
+            # Set overlap for next chunk
+            overlap_sentences = current_sentences[-MAX_OVERLAP_SENTENCES:] if len(current_sentences) >= MIN_OVERLAP_SENTENCES else current_sentences[:]
+
+            # Reset accumulator
+            current_sentences = []
+            current_start_line = None
+            current_end_line = None
 
         for para_idx, (para_start, para_end, para_text) in enumerate(paras):
             sentences = _get_sentences(para_text)
             if not sentences:
                 continue
 
-            # Calculate available words for content
-            available_words = MAX_WORDS - breadcrumb_words
-
-            # Check if paragraph fits in one chunk
             para_words = _count_words(para_text)
 
-            if para_words <= available_words:
-                # Paragraph fits - check if we should combine with previous overlap
-                chunk_sentences = []
+            # If this is first content in a new chunk, add overlap from previous
+            if not current_sentences and overlap_sentences:
+                current_sentences.extend(overlap_sentences)
 
-                # Add overlap from previous chunk (if not first in heading)
-                if not is_first_in_heading and overlap_sentences:
-                    chunk_sentences.extend(overlap_sentences)
+            # Check if adding this paragraph would exceed MAX_WORDS
+            test_sentences = current_sentences + sentences
+            test_words = _count_words(' '.join(test_sentences))
 
-                chunk_sentences.extend(sentences)
-                chunk_text = ' '.join(chunk_sentences)
+            if test_words <= available_words:
+                # Paragraph fits - add to current chunk
+                current_sentences.extend(sentences)
+                if current_start_line is None:
+                    current_start_line = para_start
+                current_end_line = para_end
 
-                # Check total words
-                total_words = _count_words(chunk_text) + breadcrumb_words
+                # If we've reached TARGET_WORDS and there are more paragraphs, flush
+                current_words = _count_words(' '.join(current_sentences))
+                if current_words >= TARGET_WORDS and para_idx < len(paras) - 1:
+                    flush_chunk()
 
-                if total_words <= MAX_WORDS:
-                    # Create chunk
-                    content = f"{breadcrumb_text}\n{chunk_text}" if breadcrumb_text else chunk_text
-                    chunks.append({
-                        'content': content,
-                        'start_line': para_start,
-                        'end_line': para_end,
-                        'heading_line': h_line,
-                        'level': level,
-                        'vector_status': 'to_vec'
-                    })
+            elif para_words <= available_words:
+                # Paragraph doesn't fit with current, but fits on its own
+                # Flush current chunk first
+                flush_chunk()
 
-                    # Set overlap for next chunk
-                    overlap_sentences = sentences[-MAX_OVERLAP_SENTENCES:] if len(sentences) >= MIN_OVERLAP_SENTENCES else sentences
-                else:
-                    # Too big with overlap - create without overlap
-                    content = f"{breadcrumb_text}\n{para_text}" if breadcrumb_text else para_text
-                    chunks.append({
-                        'content': content,
-                        'start_line': para_start,
-                        'end_line': para_end,
-                        'heading_line': h_line,
-                        'level': level,
-                        'vector_status': 'to_vec'
-                    })
-                    overlap_sentences = sentences[-MAX_OVERLAP_SENTENCES:] if len(sentences) >= MIN_OVERLAP_SENTENCES else sentences
+                # Start new chunk with overlap + this paragraph
+                if overlap_sentences:
+                    current_sentences.extend(overlap_sentences)
+                current_sentences.extend(sentences)
+                current_start_line = para_start
+                current_end_line = para_end
+
             else:
-                # Paragraph too long - need to split
-                current_chunk_sentences = []
+                # Paragraph too long - need to split it
+                # First flush any accumulated content
+                flush_chunk()
 
-                # Add overlap from previous (if not first)
-                if not is_first_in_heading and overlap_sentences:
-                    current_chunk_sentences.extend(overlap_sentences)
+                # Add overlap to start
+                if overlap_sentences:
+                    current_sentences.extend(overlap_sentences)
+                    current_start_line = para_start
 
                 for sent in sentences:
-                    test_sentences = current_chunk_sentences + [sent]
-                    test_text = ' '.join(test_sentences)
-                    test_words = _count_words(test_text) + breadcrumb_words
+                    test_sents = current_sentences + [sent]
+                    test_words = _count_words(' '.join(test_sents))
 
-                    if test_words <= MAX_WORDS:
-                        current_chunk_sentences.append(sent)
+                    if test_words <= available_words:
+                        current_sentences.append(sent)
+                        if current_start_line is None:
+                            current_start_line = para_start
+                        current_end_line = para_end
                     else:
-                        # Flush current chunk
-                        if current_chunk_sentences:
-                            chunk_text = ' '.join(current_chunk_sentences)
-                            content = f"{breadcrumb_text}\n{chunk_text}" if breadcrumb_text else chunk_text
-                            chunks.append({
-                                'content': content,
-                                'start_line': para_start,
-                                'end_line': para_end,
-                                'heading_line': h_line,
-                                'level': level,
-                                'vector_status': 'to_vec'
-                            })
+                        # Flush and start new chunk with overlap
+                        if current_sentences:
+                            # Use para_start/para_end since we're splitting within paragraph
+                            if current_start_line is None:
+                                current_start_line = para_start
+                            current_end_line = para_end
+                            flush_chunk()
 
-                            # Overlap for next chunk within same paragraph
-                            overlap_count = min(PARAGRAPH_BREAK_OVERLAP, len(current_chunk_sentences))
-                            current_chunk_sentences = current_chunk_sentences[-overlap_count:] + [sent]
-                        else:
-                            # Single sentence too long - just add it
-                            current_chunk_sentences = [sent]
+                        # Start new chunk with overlap + this sentence
+                        if overlap_sentences:
+                            current_sentences.extend(overlap_sentences)
+                        current_sentences.append(sent)
+                        current_start_line = para_start
+                        current_end_line = para_end
 
-                # Final chunk from paragraph
-                if current_chunk_sentences:
-                    chunk_text = ' '.join(current_chunk_sentences)
-                    content = f"{breadcrumb_text}\n{chunk_text}" if breadcrumb_text else chunk_text
-                    chunks.append({
-                        'content': content,
-                        'start_line': para_start,
-                        'end_line': para_end,
-                        'heading_line': h_line,
-                        'level': level,
-                        'vector_status': 'to_vec'
-                    })
-                    overlap_sentences = current_chunk_sentences[-MAX_OVERLAP_SENTENCES:] if len(current_chunk_sentences) >= MIN_OVERLAP_SENTENCES else current_chunk_sentences
-
-            is_first_in_heading = False
+        # Flush any remaining content for this heading
+        flush_chunk()
 
     return chunks
 
@@ -470,42 +490,57 @@ def chunk_content(work_id: int, verbose: bool = False) -> int:
         Number of chunks created.
 
     Raises:
-        ValueError: If work not found or files missing.
+        ValueError: If work not found or required files missing from database.
+        HashMismatchError: If file hashes don't match stored values.
+        FileNotFoundError: If files referenced in database don't exist on disk.
     """
     with get_session() as session:
-        # Get work and validate
+        # Step 1: Get work and validate files metadata exists
         work = session.query(Work).filter(Work.id == work_id).first()
         if not work:
             raise ValueError(f"Work with ID {work_id} not found")
 
-        if not work.markdown_path:
-            raise ValueError(f"Work {work_id} has no markdown_path")
+        if not work.files:
+            raise ValueError(f"Work {work_id} has no files metadata")
 
-        markdown_path = Path(work.markdown_path)
-        if not markdown_path.exists():
-            raise ValueError(f"Markdown file not found: {markdown_path}")
-
-        # Verify it's a sanitized file
-        if not markdown_path.name.endswith('.sanitized.md'):
-            raise ValueError(f"Expected sanitized markdown file (*.sanitized.md), got: {markdown_path.name}")
-
-        # Verify content hash (use file-based hash to match how it was stored)
-        content_hash = compute_file_hash(markdown_path)
-
-        if work.content_hash and work.content_hash != content_hash:
+        # Step 2: Lookup sanitized file from files JSON
+        if "sanitized" not in work.files:
             raise ValueError(
-                f"Content hash mismatch for work {work_id}. "
-                f"Expected: {work.content_hash}, Got: {content_hash}"
+                f"Work {work_id} does not have 'sanitized' in files metadata. "
+                f"Run: venv\\Scripts\\python -m psychrag.sanitization.apply_title_changes_cli {work_id}"
             )
 
-        # Read content for parsing
-        content = markdown_path.read_text(encoding='utf-8')
+        sanitized_info = work.files["sanitized"]
+        sanitized_path = Path(sanitized_info["path"])
+        sanitized_stored_hash = sanitized_info["hash"]
 
         if verbose:
             print(f"Processing work {work_id}: {work.title}")
-            print(f"Markdown: {markdown_path}")
+            print(f"Sanitized markdown: {sanitized_path}")
 
-        # Parse markdown structure
+        # Step 3: Validate file exists on disk
+        if not sanitized_path.exists():
+            raise FileNotFoundError(
+                f"Sanitized file not found on disk: {sanitized_path}\n"
+                f"Referenced in work {work_id}, key 'sanitized'"
+            )
+
+        # Step 4: Validate hash
+        sanitized_current_hash = compute_file_hash(sanitized_path)
+
+        if verbose:
+            print(f"Validating sanitized hash: ", end="")
+        if sanitized_current_hash != sanitized_stored_hash:
+            if verbose:
+                print("MISMATCH")
+            raise HashMismatchError(sanitized_stored_hash, sanitized_current_hash)
+        if verbose:
+            print("OK")
+
+        # Step 5: Read content for parsing
+        content = sanitized_path.read_text(encoding='utf-8')
+
+        # Step 6: Parse markdown structure
         structure = _parse_markdown_structure(content)
         headings = structure['headings']
         heading_hierarchy = _build_heading_hierarchy(headings)
@@ -514,7 +549,7 @@ def chunk_content(work_id: int, verbose: bool = False) -> int:
             print(f"Found {len(headings)} headings, {len(structure['paragraphs'])} paragraphs, "
                   f"{len(structure['tables'])} tables, {len(structure['figures'])} figures")
 
-        # Create chunks
+        # Step 7: Create chunks
         all_chunks = []
 
         # Paragraph chunks
@@ -539,7 +574,7 @@ def chunk_content(work_id: int, verbose: bool = False) -> int:
             print(f"Created {len(para_chunks)} paragraph chunks, "
                   f"{len(table_chunks)} table chunks, {len(figure_chunks)} figure chunks")
 
-        # Get existing heading chunks for parent lookup
+        # Step 8: Get existing heading chunks for parent lookup
         heading_chunks = session.query(Chunk).filter(
             Chunk.work_id == work_id,
             Chunk.level.in_(['H1', 'H2', 'H3', 'H4', 'H5'])
@@ -548,7 +583,7 @@ def chunk_content(work_id: int, verbose: bool = False) -> int:
         # Map start_line to chunk id
         heading_chunk_map = {chunk.start_line: chunk.id for chunk in heading_chunks}
 
-        # Save chunks to database
+        # Step 9: Save chunks to database
         chunks_created = 0
         missing_parents = 0
 

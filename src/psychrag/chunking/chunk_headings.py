@@ -12,6 +12,9 @@ Examples:
     from psychrag.chunking.chunk_headings import chunk_headings
     num_chunks = chunk_headings(1)
     print(f"Created {num_chunks} chunks")
+
+Raises:
+    HashMismatchError: If file hashes don't match stored values (line numbers must match).
 """
 
 import re
@@ -19,13 +22,15 @@ from pathlib import Path
 
 from psychrag.data.database import get_session
 from psychrag.data.models import Chunk, Work
+from psychrag.sanitization.extract_titles import HashMismatchError
+from psychrag.utils.file_utils import compute_file_hash
 
 
 def _parse_suggestions(suggestions_path: Path) -> dict[int, str]:
     """Parse vectorization suggestions file.
 
     Args:
-        suggestions_path: Path to the .vectorize_suggestions.md file.
+        suggestions_path: Path to the vec_suggestions file (.vec_sugg.md).
 
     Returns:
         Dictionary mapping line numbers to SKIP/VECTORIZE decisions.
@@ -125,33 +130,83 @@ def chunk_headings(work_id: int, verbose: bool = False) -> int:
         Number of chunks created.
 
     Raises:
-        ValueError: If work not found or files missing.
+        ValueError: If work not found or required files missing from database.
+        HashMismatchError: If file hashes don't match stored values.
+        FileNotFoundError: If files referenced in database don't exist on disk.
     """
     with get_session() as session:
-        # Step 1: Get work and markdown path
+        # Step 1: Get work and validate files metadata exists
         work = session.query(Work).filter(Work.id == work_id).first()
         if not work:
             raise ValueError(f"Work with ID {work_id} not found")
 
-        if not work.markdown_path:
-            raise ValueError(f"Work {work_id} has no markdown_path")
+        if not work.files:
+            raise ValueError(f"Work {work_id} has no files metadata")
 
-        markdown_path = Path(work.markdown_path)
-        if not markdown_path.exists():
-            raise ValueError(f"Markdown file not found: {markdown_path}")
+        # Step 2: Lookup sanitized file from files JSON
+        if "sanitized" not in work.files:
+            raise ValueError(
+                f"Work {work_id} does not have 'sanitized' in files metadata. "
+                f"Run: venv\\Scripts\\python -m psychrag.sanitization.apply_title_changes_cli {work_id}"
+            )
 
-        # Step 2: Determine suggestions file path
-        suggestions_path = markdown_path.with_suffix('.vectorize_suggestions.md')
-        if not suggestions_path.exists():
-            raise ValueError(f"Suggestions file not found: {suggestions_path}")
+        sanitized_info = work.files["sanitized"]
+        sanitized_path = Path(sanitized_info["path"])
+        sanitized_stored_hash = sanitized_info["hash"]
+
+        # Step 3: Lookup vec_suggestions file from files JSON
+        if "vec_suggestions" not in work.files:
+            raise ValueError(
+                f"Work {work_id} does not have 'vec_suggestions' in files metadata. "
+                f"Run: venv\\Scripts\\python -m psychrag.chunking.suggested_chunks_cli {work_id}"
+            )
+
+        vec_suggestions_info = work.files["vec_suggestions"]
+        suggestions_path = Path(vec_suggestions_info["path"])
+        suggestions_stored_hash = vec_suggestions_info["hash"]
 
         if verbose:
             print(f"Processing work {work_id}: {work.title}")
-            print(f"Markdown: {markdown_path}")
-            print(f"Suggestions: {suggestions_path}")
+            print(f"Sanitized markdown: {sanitized_path}")
+            print(f"Vec suggestions: {suggestions_path}")
 
-        # Step 3: Load and parse files
-        content = markdown_path.read_text(encoding='utf-8')
+        # Step 4: Validate files exist on disk
+        if not sanitized_path.exists():
+            raise FileNotFoundError(
+                f"Sanitized file not found on disk: {sanitized_path}\n"
+                f"Referenced in work {work_id}, key 'sanitized'"
+            )
+
+        if not suggestions_path.exists():
+            raise FileNotFoundError(
+                f"Vec suggestions file not found on disk: {suggestions_path}\n"
+                f"Referenced in work {work_id}, key 'vec_suggestions'"
+            )
+
+        # Step 5: Validate hashes - critical for line number matching
+        sanitized_current_hash = compute_file_hash(sanitized_path)
+        suggestions_current_hash = compute_file_hash(suggestions_path)
+
+        if verbose:
+            print(f"Validating sanitized hash: ", end="")
+        if sanitized_current_hash != sanitized_stored_hash:
+            if verbose:
+                print("MISMATCH")
+            raise HashMismatchError(sanitized_stored_hash, sanitized_current_hash)
+        if verbose:
+            print("OK")
+
+        if verbose:
+            print(f"Validating vec_suggestions hash: ", end="")
+        if suggestions_current_hash != suggestions_stored_hash:
+            if verbose:
+                print("MISMATCH")
+            raise HashMismatchError(suggestions_stored_hash, suggestions_current_hash)
+        if verbose:
+            print("OK")
+
+        # Step 6: Load and parse files
+        content = sanitized_path.read_text(encoding='utf-8')
         lines = content.splitlines()
         total_lines = len(lines)
 
@@ -162,14 +217,14 @@ def chunk_headings(work_id: int, verbose: bool = False) -> int:
         if verbose:
             print(f"Found {len(headings)} headings, {sum(1 for d in decisions.values() if d == 'VECTORIZE')} to vectorize")
 
-        # Step 4: Filter to only VECTORIZE headings
+        # Step 7: Filter to only VECTORIZE headings
         to_vectorize = [
             (line_num, level, start, end)
             for line_num, level, start, end in ranges
             if decisions.get(line_num) == 'VECTORIZE'
         ]
 
-        # Step 5: Create chunks in order, tracking IDs by start_line
+        # Step 8: Create chunks in order, tracking IDs by start_line
         chunk_id_map: dict[int, int] = {}  # start_line -> chunk.id
         chunks_created = 0
 

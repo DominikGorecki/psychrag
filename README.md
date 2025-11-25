@@ -194,7 +194,23 @@ python -m psychrag.chunking.suggested_chunks_cli <work_id> --full-llm
 
 If `--ful-llm` is not present, it will run the light model. It's recommended to run full. This is an important step. 
 
-### Chunk Headings into DB
+### Chunk Headings into DB (required)
+This pulls in the the top headings into the DB so that it can be used for the augmentation piece. These won't be vectorized for semantic search but are needed for grouping, etc. 
+
+Run:
+
+```bash
+python -m psychrag.chunking.chunk_headings_cli <work id> -v
+```
+
+### Chunk Content for Vectorization
+
+Run:
+```bash
+python -m psychrag.chunking.content_chunking_cli 3 -v
+```
+
+## 5. 
 
 ---------------------------------------------
 
