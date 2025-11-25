@@ -95,6 +95,16 @@ def show_config(config: AppConfig) -> None:
     print(format_table(llm_headers, llm_rows))
     print()
 
+    # Paths configuration
+    print("Paths Configuration:")
+    paths_headers = ["Setting", "Value"]
+    paths_rows = [
+        ["Input Directory", config.paths.input_dir],
+        ["Output Directory", config.paths.output_dir],
+    ]
+    print(format_table(paths_headers, paths_rows))
+    print()
+
 
 def set_config_value(args: argparse.Namespace) -> int:
     """Set configuration values and save."""
@@ -127,6 +137,20 @@ def set_config_value(args: argparse.Namespace) -> int:
             config.llm.models.gemini.light = args.gemini_light
         if args.gemini_full:
             config.llm.models.gemini.full = args.gemini_full
+
+        # Path settings
+        if args.input_dir:
+            input_path = Path(args.input_dir)
+            if not input_path.is_absolute():
+                print(f"Error: input_dir must be an absolute path, got: {args.input_dir}", file=sys.stderr)
+                return 1
+            config.paths.input_dir = str(input_path)
+        if args.output_dir:
+            output_path = Path(args.output_dir)
+            if not output_path.is_absolute():
+                print(f"Error: output_dir must be an absolute path, got: {args.output_dir}", file=sys.stderr)
+                return 1
+            config.paths.output_dir = str(output_path)
 
         # Save configuration
         save_config(config)
@@ -173,11 +197,13 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s show                                    # Display current config
-  %(prog)s set --provider openai                   # Change LLM provider
-  %(prog)s set --openai-light gpt-4o-mini          # Change OpenAI light model
-  %(prog)s set --db-host localhost --db-port 5433  # Change database settings
-  %(prog)s validate                                # Validate config file
+  %(prog)s show                                      # Display current config
+  %(prog)s set --provider openai                     # Change LLM provider
+  %(prog)s set --openai-light gpt-4o-mini            # Change OpenAI light model
+  %(prog)s set --db-host localhost --db-port 5433    # Change database settings
+  %(prog)s set --input-dir C:\\data\\input           # Set input directory (absolute path)
+  %(prog)s set --output-dir C:\\data\\output         # Set output directory (absolute path)
+  %(prog)s validate                                  # Validate config file
         """
     )
 
@@ -202,6 +228,10 @@ Examples:
     set_parser.add_argument("--openai-full", type=str, help="OpenAI full model name")
     set_parser.add_argument("--gemini-light", type=str, help="Gemini light model name")
     set_parser.add_argument("--gemini-full", type=str, help="Gemini full model name")
+
+    # Path settings
+    set_parser.add_argument("--input-dir", type=str, help="Absolute path to input directory")
+    set_parser.add_argument("--output-dir", type=str, help="Absolute path to output directory")
 
     # validate command
     subparsers.add_parser("validate", help="Validate configuration file")

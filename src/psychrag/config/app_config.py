@@ -52,11 +52,36 @@ class LLMConfig(BaseModel):
     models: LLMModelsConfig = Field(default_factory=LLMModelsConfig)
 
 
+class PathsConfig(BaseModel):
+    """File system paths configuration."""
+
+    input_dir: str = Field(
+        default="C:\\code\\python\\psychRAG-test\\input",
+        description="Absolute path to input directory"
+    )
+    output_dir: str = Field(
+        default="C:\\code\\python\\psychRAG-test\\output",
+        description="Absolute path to output directory"
+    )
+
+    def validate_paths_absolute(self) -> None:
+        """Validate that all paths are absolute.
+
+        Raises:
+            ValueError: If any path is relative
+        """
+        if not Path(self.input_dir).is_absolute():
+            raise ValueError(f"input_dir must be an absolute path, got: {self.input_dir}")
+        if not Path(self.output_dir).is_absolute():
+            raise ValueError(f"output_dir must be an absolute path, got: {self.output_dir}")
+
+
 class AppConfig(BaseModel):
     """Root application configuration."""
 
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
+    paths: PathsConfig = Field(default_factory=PathsConfig)
 
 
 # Singleton instance

@@ -7,6 +7,8 @@ Endpoints:
     PUT  /settings/database      - Update database configuration
     GET  /settings/llm           - Get LLM configuration
     PUT  /settings/llm           - Update LLM configuration
+    GET  /settings/paths         - Get paths configuration
+    PUT  /settings/paths         - Update paths configuration
 """
 
 from fastapi import APIRouter, HTTPException, status
@@ -20,6 +22,8 @@ from psychrag_api.schemas.settings import (
     LLMConfigUpdateRequest,
     ModelConfigSchema,
     LLMModelsConfigSchema,
+    PathsConfigSchema,
+    PathsConfigUpdateRequest,
 )
 
 router = APIRouter()
@@ -47,6 +51,10 @@ def _config_to_schema(config: AppConfig) -> AppConfigSchema:
                     full=config.llm.models.gemini.full,
                 ),
             ),
+        ),
+        paths=PathsConfigSchema(
+            input_dir=config.paths.input_dir,
+            output_dir=config.paths.output_dir,
         ),
     )
 
@@ -206,6 +214,76 @@ async def update_llm_settings(request: LLMConfigUpdateRequest) -> LLMConfigSchem
                 ),
             ),
         )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update configuration: {e}",
+        )
+
+
+@router.get(
+    "/paths",
+    response_model=PathsConfigSchema,
+    summary="Get paths settings",
+    description="Retrieve file system paths configuration.",
+)
+async def get_paths_settings() -> PathsConfigSchema:
+    """Get paths configuration."""
+    try:
+        config = load_config()
+        return PathsConfigSchema(
+            input_dir=config.paths.input_dir,
+            output_dir=config.paths.output_dir,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load configuration: {e}",
+        )
+
+
+@router.put(
+    "/paths",
+    response_model=PathsConfigSchema,
+    summary="Update paths settings",
+    description="Update file system paths configuration. Only provided fields will be updated.",
+)
+async def update_paths_settings(
+    request: PathsConfigUpdateRequest,
+) -> PathsConfigSchema:
+    """Update paths configuration."""
+    try:
+        from pathlib import Path
+        
+        config = load_config(force_reload=True)
+
+        # Update only provided fields with validation
+        if request.input_dir is not None:
+            input_path = Path(request.input_dir)
+            if not input_path.is_absolute():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"input_dir must be an absolute path, got: {request.input_dir}",
+                )
+            config.paths.input_dir = request.input_dir
+            
+        if request.output_dir is not None:
+            output_path = Path(request.output_dir)
+            if not output_path.is_absolute():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"output_dir must be an absolute path, got: {request.output_dir}",
+                )
+            config.paths.output_dir = request.output_dir
+
+        save_config(config)
+
+        return PathsConfigSchema(
+            input_dir=config.paths.input_dir,
+            output_dir=config.paths.output_dir,
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

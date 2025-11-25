@@ -34,9 +34,15 @@ interface DatabaseConfig {
   app_user: string;
 }
 
+interface PathsConfig {
+  input_dir: string;
+  output_dir: string;
+}
+
 interface AppConfig {
   database: DatabaseConfig;
   llm: LLMConfig;
+  paths: PathsConfig;
 }
 
 export default function SettingsPage() {
@@ -49,6 +55,7 @@ export default function SettingsPage() {
   // Form state for editing
   const [dbForm, setDbForm] = useState<DatabaseConfig | null>(null);
   const [llmForm, setLlmForm] = useState<LLMConfig | null>(null);
+  const [pathsForm, setPathsForm] = useState<PathsConfig | null>(null);
 
   // Fetch settings on mount
   useEffect(() => {
@@ -67,6 +74,7 @@ export default function SettingsPage() {
       setConfig(data);
       setDbForm(data.database);
       setLlmForm(data.llm);
+      setPathsForm(data.paths);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load settings");
     } finally {
@@ -122,6 +130,48 @@ export default function SettingsPage() {
       setConfig((prev) => prev ? { ...prev, llm: data } : null);
       setLlmForm(data);
       setSaveSuccess("llm");
+      setTimeout(() => setSaveSuccess(null), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const savePathsSettings = async () => {
+    if (!pathsForm) return;
+    
+    // Frontend validation for absolute paths
+    const isAbsoluteWindows = (path: string) => /^[A-Za-z]:\\/.test(path);
+    const isAbsoluteUnix = (path: string) => path.startsWith('/');
+    const isAbsolute = (path: string) => isAbsoluteWindows(path) || isAbsoluteUnix(path);
+    
+    if (!isAbsolute(pathsForm.input_dir)) {
+      setError("Input directory must be an absolute path (e.g., C:\\path\\to\\input or /path/to/input)");
+      return;
+    }
+    
+    if (!isAbsolute(pathsForm.output_dir)) {
+      setError("Output directory must be an absolute path (e.g., C:\\path\\to\\output or /path/to/output)");
+      return;
+    }
+    
+    try {
+      setSaving(true);
+      setSaveSuccess(null);
+      const response = await fetch(`${API_BASE_URL}/settings/paths`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pathsForm),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to save: ${response.statusText}`);
+      }
+      const data: PathsConfig = await response.json();
+      setConfig((prev) => prev ? { ...prev, paths: data } : null);
+      setPathsForm(data);
+      setSaveSuccess("paths");
       setTimeout(() => setSaveSuccess(null), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
@@ -197,6 +247,7 @@ export default function SettingsPage() {
         <TabsList>
           <TabsTrigger value="models">Models</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
+          <TabsTrigger value="paths">Paths</TabsTrigger>
         </TabsList>
 
         {/* Models Tab */}
@@ -405,6 +456,58 @@ export default function SettingsPage() {
                       {saving ? (
                         <Loader2Icon className="h-4 w-4 animate-spin mr-2" />
                       ) : saveSuccess === "database" ? (
+                        <CheckCircleIcon className="h-4 w-4 mr-2 text-emerald-500" />
+                      ) : null}
+                      Save Changes
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Paths Tab */}
+        <TabsContent value="paths" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>File System Paths</CardTitle>
+              <CardDescription>
+                Configure input and output directory paths. Must be absolute paths.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {pathsForm && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="paths-input">Input Directory</Label>
+                    <Input
+                      id="paths-input"
+                      value={pathsForm.input_dir}
+                      onChange={(e) => setPathsForm({ ...pathsForm, input_dir: e.target.value })}
+                      placeholder="C:\code\python\psychRAG-test\input"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Absolute path to the input directory (e.g., C:\path\to\input or /path/to/input)
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="paths-output">Output Directory</Label>
+                    <Input
+                      id="paths-output"
+                      value={pathsForm.output_dir}
+                      onChange={(e) => setPathsForm({ ...pathsForm, output_dir: e.target.value })}
+                      placeholder="C:\code\python\psychRAG-test\output"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Absolute path to the output directory (e.g., C:\path\to\output or /path/to/output)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button onClick={savePathsSettings} disabled={saving}>
+                      {saving ? (
+                        <Loader2Icon className="h-4 w-4 animate-spin mr-2" />
+                      ) : saveSuccess === "paths" ? (
                         <CheckCircleIcon className="h-4 w-4 mr-2 text-emerald-500" />
                       ) : null}
                       Save Changes

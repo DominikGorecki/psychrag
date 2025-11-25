@@ -72,6 +72,24 @@ class LLMConfigUpdateRequest(BaseModel):
 
 
 # ============================================================================
+# Paths Configuration Schemas
+# ============================================================================
+
+class PathsConfigSchema(BaseModel):
+    """File system paths configuration settings."""
+
+    input_dir: str = Field(description="Absolute path to input directory")
+    output_dir: str = Field(description="Absolute path to output directory")
+
+
+class PathsConfigUpdateRequest(BaseModel):
+    """Request to update paths configuration."""
+
+    input_dir: str | None = Field(default=None, description="Absolute path to input directory")
+    output_dir: str | None = Field(default=None, description="Absolute path to output directory")
+
+
+# ============================================================================
 # Full Configuration Schemas
 # ============================================================================
 
@@ -80,6 +98,7 @@ class AppConfigSchema(BaseModel):
 
     database: DatabaseConfigSchema
     llm: LLMConfigSchema
+    paths: PathsConfigSchema
 
 
 # ============================================================================

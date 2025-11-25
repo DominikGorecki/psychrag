@@ -39,6 +39,9 @@ export default function InitPage() {
   const [healthError, setHealthError] = useState<string | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
 
+  const [initLoading, setInitLoading] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
+
   // Check if required DB settings are present
   const hasRequiredDbSettings = dbSettings && 
     dbSettings.db_name && 
@@ -92,8 +95,29 @@ export default function InitPage() {
   };
 
   const handleInitialize = async () => {
-    // TODO: Call init database endpoint
-    console.log("Initialize database");
+    try {
+      setInitLoading(true);
+      setInitError(null);
+      
+      const response = await fetch(`${API_BASE_URL}/init/database`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reset: false }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Initialization failed: ${response.statusText}`);
+      }
+      
+      // Refresh health checks after successful initialization
+      await fetchHealthChecks();
+      
+    } catch (err) {
+      setInitError(err instanceof Error ? err.message : "Failed to initialize database");
+    } finally {
+      setInitLoading(false);
+    }
   };
 
   if (loading) {
@@ -219,13 +243,26 @@ export default function InitPage() {
 
             {/* Show "Initialize" only if connection fails */}
             {hasRequiredDbSettings && healthResults && !healthResults.connection_ok && (
-              <Button 
-                className="w-full" 
-                variant="default"
-                onClick={handleInitialize}
-              >
-                Initialize Database
-              </Button>
+              <div className="space-y-2">
+                <Button 
+                  className="w-full cursor-pointer" 
+                  variant="default"
+                  onClick={handleInitialize}
+                  disabled={initLoading}
+                >
+                  {initLoading ? (
+                    <>
+                      <Loader2Icon className="h-4 w-4 animate-spin mr-2" />
+                      Initializing Database...
+                    </>
+                  ) : (
+                    "Initialize Database"
+                  )}
+                </Button>
+                {initError && (
+                  <p className="text-sm text-destructive px-1">{initError}</p>
+                )}
+              </div>
             )}
 
             {/* Show "Check Connections" button */}

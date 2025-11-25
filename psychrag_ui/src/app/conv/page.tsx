@@ -99,8 +99,8 @@ export default function ConversionPage() {
         {/* Right Panel - Converted Files (Not in DB) */}
         <Card>
           <CardHeader>
-            <CardTitle>Pending Review</CardTitle>
-            <CardDescription>Converted files awaiting database entry.</CardDescription>
+            <CardTitle>Pending Completion</CardTitle>
+            <CardDescription>Converted files awaiting conversion completion.</CardDescription>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[400px] pr-4">

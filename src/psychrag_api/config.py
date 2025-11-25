@@ -1,16 +1,19 @@
 """
 API Configuration settings.
 
-Uses pydantic-settings for environment variable support.
+Uses pydantic-settings for environment variables and JSON config for paths.
 """
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from psychrag.config import load_config
+
 
 class APISettings(BaseSettings):
-    """API configuration loaded from environment variables."""
+    """API configuration loaded from environment variables and JSON config."""
 
     model_config = SettingsConfigDict(
         env_prefix="PSYCHRAG_API_",
@@ -41,12 +44,54 @@ Currently no authentication required (development mode).
 
     # Server settings
     debug: bool = False
-    
+
     # CORS settings
     cors_origins: list[str] = ["*"]
     cors_allow_credentials: bool = True
     cors_allow_methods: list[str] = ["*"]
     cors_allow_headers: list[str] = ["*"]
+
+    @property
+    def input_dir(self) -> Path:
+        """Get input directory path from JSON config.
+
+        Returns:
+            Absolute Path object for input directory
+
+        Raises:
+            ValueError: If path is not absolute or doesn't exist
+        """
+        app_config = load_config()
+        input_path = Path(app_config.paths.input_dir)
+
+        if not input_path.is_absolute():
+            raise ValueError(f"input_dir must be an absolute path, got: {input_path}")
+
+        if not input_path.exists():
+            raise ValueError(f"input_dir does not exist: {input_path}")
+
+        return input_path
+
+    @property
+    def output_dir(self) -> Path:
+        """Get output directory path from JSON config.
+
+        Returns:
+            Absolute Path object for output directory
+
+        Raises:
+            ValueError: If path is not absolute or doesn't exist
+        """
+        app_config = load_config()
+        output_path = Path(app_config.paths.output_dir)
+
+        if not output_path.is_absolute():
+            raise ValueError(f"output_dir must be an absolute path, got: {output_path}")
+
+        if not output_path.exists():
+            raise ValueError(f"output_dir does not exist: {output_path}")
+
+        return output_path
 
 
 @lru_cache
