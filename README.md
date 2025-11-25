@@ -194,6 +194,7 @@ python -m psychrag.chunking.suggested_chunks_cli <work_id> --full-llm
 
 If `--ful-llm` is not present, it will run the light model. It's recommended to run full. This is an important step. 
 
+### Chunk Headings into DB
 
 ---------------------------------------------
 
