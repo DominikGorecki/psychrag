@@ -3,6 +3,8 @@
 This module uses AI to analyze markdown headings and suggest corrections
 based on the table of contents stored in the database.
 
+Uses lazy imports to avoid loading heavy AI dependencies until actually needed.
+
 Usage:
     from psychrag.sanitization import suggest_heading_changes
     output_path = suggest_heading_changes("path/to/document.titles.md")
@@ -17,12 +19,13 @@ Functions:
     suggest_heading_changes_from_work(work_id, source_key, use_full_model, force, verbose) - Analyze from Work by ID
 """
 
+from __future__ import annotations
+
 import json
 import re
 from datetime import datetime
 from pathlib import Path
 
-from psychrag.ai import create_langchain_chat, ModelTier
 from psychrag.data.database import SessionLocal, get_session
 from psychrag.data.models import Work
 from psychrag.utils import compute_file_hash
@@ -153,6 +156,9 @@ def suggest_heading_changes(titles_file: str | Path) -> Path:
 
     # Build the LLM prompt
     prompt = _build_prompt(title, authors, toc, titles_codeblock)
+
+    # Lazy import - only load AI module when LLM is needed
+    from psychrag.ai import create_langchain_chat, ModelTier
 
     # Call LLM with web search enabled
     langchain_stack = create_langchain_chat(
@@ -542,6 +548,9 @@ def suggest_heading_changes_from_work(
 
         # Build the LLM prompt
         prompt = _build_prompt(title, authors, toc, titles_codeblock)
+
+        # Lazy import - only load AI module when LLM is needed
+        from psychrag.ai import create_langchain_chat, ModelTier
 
         # Call LLM with appropriate tier
         tier = ModelTier.FULL if use_full_model else ModelTier.LIGHT

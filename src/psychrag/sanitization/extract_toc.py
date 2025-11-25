@@ -4,6 +4,8 @@ Extract table of contents from markdown files.
 This module provides functionality to extract table of contents
 with heading hierarchy from markdown documents using LLM.
 
+Uses lazy imports to avoid loading heavy AI dependencies until actually needed.
+
 Example (as library):
     from psychrag.sanitization.extract_toc import extract_table_of_contents
 
@@ -11,13 +13,18 @@ Example (as library):
     toc = extract_table_of_contents("document.md")
 """
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
-from psychrag.ai import create_langchain_chat, LLMSettings, ModelTier
-from psychrag.chunking.bib_extractor import EXTRACT_CHARS
+if TYPE_CHECKING:
+    from psychrag.ai import LLMSettings, ModelTier
+
+# Default number of characters to extract
+EXTRACT_CHARS = 1000
 
 
 class TOCEntry(BaseModel):
@@ -37,8 +44,8 @@ def extract_table_of_contents(
     markdown_path: str | Path,
     chars: int | None = None,
     lines: int | None = None,
-    settings: LLMSettings | None = None,
-    tier: ModelTier = ModelTier.LIGHT,
+    settings: "LLMSettings | None" = None,
+    tier: "ModelTier | None" = None,
 ) -> TableOfContents:
     """
     Extract table of contents from a markdown file.
@@ -75,6 +82,12 @@ def extract_table_of_contents(
         if chars is None:
             chars = EXTRACT_CHARS
         text_sample = markdown_text[:chars]
+
+    # Lazy import - only load AI module when LLM is needed
+    from psychrag.ai import create_langchain_chat, ModelTier as MT
+
+    if tier is None:
+        tier = MT.LIGHT
 
     # Create LangChain chat model
     langchain_stack = create_langchain_chat(settings, tier=tier, search=False)

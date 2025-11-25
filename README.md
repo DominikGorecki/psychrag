@@ -210,7 +210,8 @@ Run:
 python -m psychrag.chunking.content_chunking_cli 3 -v
 ```
 
-## 5. 
+## 5. Vectorization
+
 
 ---------------------------------------------
 
@@ -221,8 +222,10 @@ python -m psychrag.chunking.content_chunking_cli 3 -v
 3. Chunk Content into DB: `python -m psychrag.chunking.content_chunking_cli 4 -v`
 
 ## 5. Vectorizing
-1. python -m psychrag.vectorization.vect_chunks_cli <work_id> 
 
+```bash
+ python -m psychrag.vectorization.vect_chunks_cli <work_id> -v 
+```
 
 
 

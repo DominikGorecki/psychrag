@@ -2,11 +2,17 @@
 
 Extract bibliographic information and table of contents from markdown.
 
+Uses lazy imports to avoid loading heavy AI dependencies until actually needed.
 """
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
-from psychrag.ai import create_langchain_chat, LLMSettings, ModelTier
+if TYPE_CHECKING:
+    from psychrag.ai import LLMSettings, ModelTier
 
 # Configurable setting for how many characters to extract from the beginning
 EXTRACT_CHARS = 1000
@@ -47,8 +53,8 @@ def extract_metadata(
     markdown_text: str,
     chars: int | None = None,
     lines: int | None = None,
-    settings: LLMSettings | None = None,
-    tier: ModelTier = ModelTier.LIGHT,
+    settings: "LLMSettings | None" = None,
+    tier: "ModelTier | None" = None,
 ) -> ExtractedMetadata:
     """
     Extract bibliographic info and table of contents from markdown text.
@@ -58,11 +64,17 @@ def extract_metadata(
         chars: Number of characters to extract from the beginning (default: EXTRACT_CHARS)
         lines: Number of lines to extract from the beginning (overrides chars if specified)
         settings: Optional LLM settings, will create default if not provided
-        tier: Model tier to use (LIGHT or FULL)
+        tier: Model tier to use (LIGHT or FULL, default: LIGHT)
 
     Returns:
         ExtractedMetadata with bibliographic info and table of contents
     """
+    # Lazy import - only load AI module when this function is called
+    from psychrag.ai import create_langchain_chat, ModelTier as MT
+
+    if tier is None:
+        tier = MT.LIGHT
+
     # Determine text sample based on lines or chars
     if lines is not None:
         text_lines = markdown_text.split('\n')

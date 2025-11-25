@@ -4,6 +4,8 @@ This module uses an LLM to process entire markdown documents and extract
 bibliographic information, generate proper heading hierarchy, and create
 a table of contents.
 
+Uses lazy imports to avoid loading heavy AI dependencies until actually needed.
+
 Usage:
     from psychrag.chunking.llm_processor import process_with_llm
     result = process_with_llm("path/to/document.md")
@@ -16,13 +18,18 @@ Examples:
     result = process_with_llm("large_book.md", force=True)
 """
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
-from psychrag.ai import create_langchain_chat, LLMSettings, ModelTier
 from psychrag.data.database import SessionLocal
+
+if TYPE_CHECKING:
+    from psychrag.ai import LLMSettings, ModelTier
 from psychrag.data.models import Work
 from psychrag.utils import compute_file_hash, set_file_readonly
 
@@ -112,8 +119,8 @@ def process_with_llm(
     input_file: str | Path,
     force: bool = False,
     verbose: bool = False,
-    settings: LLMSettings | None = None,
-    tier: ModelTier = ModelTier.FULL,
+    settings: "LLMSettings | None" = None,
+    tier: "ModelTier | None" = None,
 ) -> LLMProcessResult:
     """
     Process a markdown document using LLM for bibliography, TOC, and sanitization.
@@ -160,6 +167,12 @@ def process_with_llm(
         print("Sending document to LLM...")
 
     prompt = _build_prompt(content)
+
+    # Lazy import - only load AI module when LLM is needed
+    from psychrag.ai import create_langchain_chat, ModelTier as MT
+
+    if tier is None:
+        tier = MT.FULL
 
     langchain_stack = create_langchain_chat(
         settings=settings,

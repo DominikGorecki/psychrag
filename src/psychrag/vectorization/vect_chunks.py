@@ -3,6 +3,8 @@
 This module creates vector embeddings for chunks in the database
 that are marked for vectorization (vector_status='to_vec').
 
+Uses lazy imports to avoid loading heavy AI dependencies until actually needed.
+
 Usage:
     from psychrag.vectorization.vect_chunks import vectorize_chunks
     result = vectorize_chunks(work_id=1, limit=10, verbose=True)
@@ -14,9 +16,11 @@ Examples:
     print(f"Vectorized {result['success']} chunks")
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
-from psychrag.ai.llm_factory import create_embeddings
+# Database imports are lightweight - keep them
 from psychrag.data.database import get_session
 from psychrag.data.models import Chunk, Work
 
@@ -105,6 +109,9 @@ def vectorize_chunks(
                 failed=0,
                 errors=[]
             )
+
+        # Lazy import - only load AI module when actually creating embeddings
+        from psychrag.ai.llm_factory import create_embeddings
 
         # Create embeddings model
         embeddings_model = create_embeddings()

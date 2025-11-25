@@ -4,6 +4,8 @@ This module analyzes markdown document headings and uses an LLM to determine
 which sections contain valuable content worth vectorizing versus sections
 like table of contents, indexes, and references that should be skipped.
 
+Uses lazy imports to avoid loading heavy AI dependencies until actually needed.
+
 Usage:
     from psychrag.chunking.suggested_chunks import suggest_chunks_from_work
     output_path = suggest_chunks_from_work(work_id=1)
@@ -24,12 +26,14 @@ Exceptions:
     HashMismatchError - Raised when file hashes don't match database
 """
 
+from __future__ import annotations
+
 import re
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING
 
-from psychrag.ai import create_langchain_chat, ModelTier
-from psychrag.chunking.bib_extractor import BibliographicInfo
+if TYPE_CHECKING:
+    from psychrag.chunking.bib_extractor import BibliographicInfo
 from psychrag.data.database import get_session
 from psychrag.data.models.work import Work
 from psychrag.sanitization.extract_titles import extract_titles_to_file, extract_titles_from_work, HashMismatchError
@@ -310,7 +314,7 @@ def _apply_hierarchy_rules(
 
 def suggest_chunks(
     input_path: str | Path,
-    bib_info: BibliographicInfo | None = None,
+    bib_info: "BibliographicInfo | None" = None,
     verbose: bool = False
 ) -> Path:
     """Analyze document headings and suggest which sections to vectorize.
@@ -360,6 +364,9 @@ def suggest_chunks(
         print("Analyzing headings with LLM...")
 
     prompt = _build_prompt(titles_block, bib_info)
+
+    # Lazy import - only load AI module when LLM is needed
+    from psychrag.ai import create_langchain_chat, ModelTier
 
     langchain_stack = create_langchain_chat(
         settings=None,
@@ -523,6 +530,9 @@ def suggest_chunks_from_work(
         # Build bibliographic info from work record
         bib_info = None
         if work.title or work.authors:
+            # Lazy import - only load BibliographicInfo when needed
+            from psychrag.chunking.bib_extractor import BibliographicInfo
+
             bib_parts = {}
             if work.title:
                 bib_parts['title'] = work.title
@@ -548,6 +558,9 @@ def suggest_chunks_from_work(
             print("Analyzing headings with LLM...")
 
         prompt = _build_prompt(titles_block, bib_info)
+
+        # Lazy import - only load AI module when LLM is needed
+        from psychrag.ai import create_langchain_chat, ModelTier
 
         tier = ModelTier.FULL if use_full_model else ModelTier.LIGHT
 

@@ -1,12 +1,18 @@
-"""Factory functions for creating PydanticAI and LangChain instances."""
+"""Factory functions for creating PydanticAI and LangChain instances.
+
+Uses lazy imports to avoid loading heavy ML libraries until actually needed.
+"""
+
+from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
-from langchain_core.language_models import BaseChatModel
-from langchain_core.embeddings import Embeddings
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from pydantic_ai import Agent
+# Lazy imports - only import heavy libraries when functions are called
+if TYPE_CHECKING:
+    from langchain_core.language_models import BaseChatModel
+    from langchain_core.embeddings import Embeddings
+    from pydantic_ai import Agent
 
 from .config import LLMProvider, LLMSettings, ModelTier
 
@@ -15,14 +21,14 @@ from .config import LLMProvider, LLMSettings, ModelTier
 class PydanticAIStack:
     """Container for PydanticAI Agent."""
 
-    agent: Agent
+    agent: "Agent"
 
 
 @dataclass
 class LangChainStack:
     """Container for LangChain ChatModel."""
 
-    chat: BaseChatModel
+    chat: "BaseChatModel"
 
 
 @dataclass
@@ -44,6 +50,9 @@ def create_pydantic_agent(
         settings: LLM settings with provider and API keys
         tier: Model tier to use (LIGHT or FULL)
     """
+    # Lazy import - only load pydantic_ai when this function is called
+    from pydantic_ai import Agent
+
     model_name = settings.get_model(tier)
 
     if settings.provider == LLMProvider.OPENAI:
@@ -80,6 +89,9 @@ def create_langchain_chat(
     model_name = settings.get_model(tier)
 
     if settings.provider == LLMProvider.OPENAI:
+        # Lazy import - only load langchain_openai when needed
+        from langchain_openai import ChatOpenAI
+
         chat = ChatOpenAI(
             model=model_name,
             api_key=settings.openai_api_key,
@@ -91,6 +103,9 @@ def create_langchain_chat(
             # Web search for OpenAI would be implemented via function calling
             pass
     elif settings.provider == LLMProvider.GEMINI:
+        # Lazy import - only load langchain_google_genai when needed
+        from langchain_google_genai import ChatGoogleGenerativeAI
+
         # Note: Google Search grounding requires specific API setup
         # For now, search parameter is ignored for Gemini
         # Future: implement via google.generativeai native API
@@ -107,7 +122,7 @@ def create_langchain_chat(
 
 def create_embeddings(
     settings: LLMSettings | None = None,
-) -> Embeddings:
+) -> "Embeddings":
     """Create an Embeddings model based on the configured provider.
 
     Args:
@@ -120,11 +135,17 @@ def create_embeddings(
         settings = LLMSettings()
 
     if settings.provider == LLMProvider.OPENAI:
+        # Lazy import - only load langchain_openai when needed
+        from langchain_openai import OpenAIEmbeddings
+
         return OpenAIEmbeddings(
             model="text-embedding-3-small",
             api_key=settings.openai_api_key,
         )
     elif settings.provider == LLMProvider.GEMINI:
+        # Lazy import - only load langchain_google_genai when needed
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
         return GoogleGenerativeAIEmbeddings(
             model="models/text-embedding-004",
             google_api_key=settings.google_api_key,

@@ -4,16 +4,18 @@ Query expansion using Multi-Query Expansion (MQE) and HyDE.
 This module expands user queries for better RAG retrieval by generating
 alternative queries, hypothetical document answers, and extracting intent/entities.
 
+Uses lazy imports to avoid loading heavy AI dependencies until actually needed.
+
 Usage:
     from psychrag.retrieval.query_expansion import expand_query
     result = expand_query("What is working memory?", n=3)
 """
 
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass
 
-from psychrag.ai.config import ModelTier
-from psychrag.ai.llm_factory import create_langchain_chat
 from psychrag.data.database import get_session
 from psychrag.data.models import Query
 
@@ -51,6 +53,10 @@ def expand_query(
     if verbose:
         print(f"Expanding query: {query}")
         print(f"Generating {n} alternative queries...")
+
+    # Lazy import - only load AI module when LLM is needed
+    from psychrag.ai.config import ModelTier
+    from psychrag.ai.llm_factory import create_langchain_chat
 
     # Create LangChain chat with FULL model
     langchain_stack = create_langchain_chat(tier=ModelTier.FULL)

@@ -4,15 +4,18 @@ Vectorize query embeddings for retrieval.
 This module creates vector embeddings for Query objects in the database
 that are marked for vectorization (vector_status='to_vec').
 
+Uses lazy imports to avoid loading heavy AI dependencies until actually needed.
+
 Usage:
     from psychrag.retrieval.query_embeddings import vectorize_query, vectorize_all_queries
     result = vectorize_query(query_id=1, verbose=True)
     result = vectorize_all_queries(verbose=True)
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
-from psychrag.ai.llm_factory import create_embeddings
 from psychrag.data.database import get_session
 from psychrag.data.models import Query
 
@@ -103,6 +106,9 @@ def vectorize_query(
             print(f"  Generating {total_embeddings} embeddings: {original_count} original, {mqe_count} MQE, {hyde_count} HyDE")
 
         try:
+            # Lazy import - only load AI module when embeddings are needed
+            from psychrag.ai.llm_factory import create_embeddings
+
             # Create embeddings model and generate embeddings in one batch
             embeddings_model = create_embeddings()
             embeddings = embeddings_model.embed_documents(texts_to_embed)

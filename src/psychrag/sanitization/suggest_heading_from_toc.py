@@ -4,18 +4,20 @@ Suggest heading hierarchy changes based on TOC titles.
 This module uses AI to match document headings with authoritative TOC titles
 and suggest corrections for both heading levels and title text.
 
+Uses lazy imports to avoid loading heavy AI dependencies until actually needed.
+
 Usage:
     from psychrag.sanitization.suggest_heading_from_toc import suggest_heading_from_toc
 
     changes = suggest_heading_from_toc("book.titles.md", "book.toc_titles.md")
 """
 
+from __future__ import annotations
+
 import json
 import re
 from datetime import datetime
 from pathlib import Path
-
-from psychrag.ai import create_langchain_chat, ModelTier
 
 # Directory for LLM logs
 LLM_LOGS_DIR = Path("llm_logs")
@@ -120,6 +122,9 @@ def suggest_heading_from_toc(
 
     # Build the LLM prompt
     prompt = _build_prompt(titles_codeblock, toc_entries)
+
+    # Lazy import - only load AI module when LLM is needed
+    from psychrag.ai import create_langchain_chat, ModelTier
 
     # Call LLM with FULL tier
     langchain_stack = create_langchain_chat(
