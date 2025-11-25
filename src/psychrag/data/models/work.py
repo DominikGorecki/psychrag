@@ -31,6 +31,17 @@ class Work(Base):
         markdown_path: Path to the converted markdown file.
         work_type: Type of work (book, article, chapter, etc.).
         toc: Table of contents as JSON array of {level, title} entries.
+        files: JSON object tracking all processing pipeline files with their paths and hashes.
+               Structure: {"original_file": {"path": "...", "hash": "..."},
+                          "hier_markdown": {"path": "...", "hash": "..."},
+                          "style_markdown": {"path": "...", "hash": "..."},
+                          "original_markdown": {"path": "...", "hash": "..."},
+                          "toc_titles": {"path": "...", "hash": "..."},
+                          "titles": {"path": "...", "hash": "..."},
+                          "san_mapping": {"path": "...", "hash": "..."},
+                          "sanitized": {"path": "...", "hash": "..."},
+                          "sanitized_titles": {"path": "...", "hash": "..."},
+                          "vec_suggestions": {"path": "...", "hash": "..."}}
         content_hash: SHA-256 hash of source content for deduplication.
         created_at: Timestamp when record was created.
         updated_at: Timestamp when record was last updated.
@@ -50,6 +61,7 @@ class Work(Base):
     markdown_path: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     work_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
     toc: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    files: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     content_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

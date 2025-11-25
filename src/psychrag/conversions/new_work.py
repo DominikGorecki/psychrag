@@ -87,6 +87,37 @@ def create_new_work(
     # Compute content hash
     content_hash = compute_file_hash(markdown_path)
 
+    # Discover and track all related files with their hashes
+    files_metadata = {}
+    stem = markdown_path.stem
+
+    # Define file discovery rules
+    file_specs = [
+        ("original_file", [".pdf", ".epub", ".html"]),  # Check in order, use first found
+        ("hier_markdown", [".hier.md"]),
+        ("style_markdown", [".style.md"]),
+        ("original_markdown", [".md"]),
+        ("toc_titles", [".toc_titles.md"]),
+        ("titles", [".titles.md"]),
+        ("san_mapping", [".san_mapping.csv"]),
+        ("sanitized", [".sanitized.md"]),
+        ("sanitized_titles", [".sanitized.titles.md"]),
+        ("vec_suggestions", [".sanitized.vec_sugg.md"]),
+    ]
+
+    # Discover files
+    for field_name, extensions in file_specs:
+        for ext in extensions:
+            file_path = markdown_path.parent / f"{stem}{ext}"
+            if file_path.exists() and file_path.is_file():
+                # Compute hash and store absolute path
+                file_hash = compute_file_hash(file_path)
+                files_metadata[field_name] = {
+                    "path": str(file_path.resolve()),
+                    "hash": file_hash
+                }
+                break  # Use first match for this field
+
     # Check for TOC file and parse if present
     toc_path = markdown_path.parent / f"{markdown_path.stem}.toc_titles.md"
     toc_data = None
@@ -126,7 +157,8 @@ def create_new_work(
         isbn=isbn,
         abstract=edition,  # Store edition in abstract field as per your instruction
         content_hash=content_hash,
-        toc=toc_data
+        toc=toc_data,
+        files=files_metadata if files_metadata else None
     )
 
     # Insert into database

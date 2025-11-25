@@ -120,35 +120,34 @@ python -m psychrag.conversions.style_v_hier__cli output\<file>.style.md output\<
     * `<file>.toc_titles.md` 
 
 * Check to see if the `<file>.toc_titles.md` looks like it corresponds to `<file>.md` -- sometimes it might be empty if or completely off depending on the pdf bookmarks. Remove the file if it doesn't look right. 
+* **Note**: The `toc_titles` that gets fed into the `toc` column in th `works` table is currently only used to help improve the hierarchy of the markdown if the conversion doesn't do a good job. Both aren't necessary for any other purpose. 
 
-## 2. Create new Work in DB
-Run
+### 2. Create new Work in DB
+This will add ask the user to input the bibliographic information and pull in the `<file>.toc_titles.md` into the `toc` in the DB:
+
 ```bash
 python -m psychrag.conversions.new_work__cli <markdown_file>
 ```
 
-
-## 3. Extract ToC from MD **(optional)**
-
+### 3. Extract ToC from MD **(optional)**
+| TODO: Update this section
 ** Skip step if `<file>.toc_titles.md` looks good, then we can skip this ste
 
-
-Now we need to update the DB to pull out the bibliography and  
-
-1. First preview to ensure ToC is in Char Limit: `python -m psychrag.chunking.extract_bib_cli <file>.md --preview --lines ###`
-
-`python -m psychrag.cli.drcli bib2db <file.md> --preview --lines 123`
-2. Then run without preview `python -m psychrag.cli.drcli bib2db <file.md> --lines 123`
-3. This will create a new entry into the DB with the Biblio and ToC
-
+--------------------------------------------
 
 ## 3. Sanitization
 
+Now that we have the new work saved in the DB--going forward well be working with the workd id of the row to continue the conversion. The file locations associated with this work saved in the DB. 
 
-1. **Extract titles:** This step extracts the titles in the markdown to ensure there is a proper hierarchy. 
-    a) INPUT: Run `python -m psychrag.sanitization.extract_titles_cli <file.md>`
-    b) OUTPUT: Will generate `<file>.titles.md`
+### Extract Titles 
 
+This step is not optional--the `<file>.titles.md` is used in many different areas including the necessary vectorization suggestion steps. It will also be used as a sanity test in the UI. Run:
+
+```bash
+python -m psychrag.sanitization.extract_titles_cli <work-id-number>
+```
+
+### Suggest Heading Changes (optional)
 
 2. **Suggest heading changes:** This step will use an LLM to try to determine  
     a) INPUT: Run `python -m psychrag.sanitization.suggest_heading_changes_cli <file>.titles.md`

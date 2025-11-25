@@ -183,6 +183,8 @@ Optional fields:
         print(f"  Markdown: {work.markdown_path}")
         if work.toc:
             print(f"  TOC Entries: {len(work.toc)}")
+        if work.files:
+            print(f"  Files Discovered: {len(work.files)}")
         print(f"  Hash: {work.content_hash[:16]}...")
 
         return 0
