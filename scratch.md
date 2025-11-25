@@ -320,3 +320,14 @@ I'm getting a lot of content hash mismatches when running content chunking. A fe
 In the `src\psychrag\conversions` path let's create a new library and cli called `pdf_bookmarks2toc.py` and  `pdf_bookmarks2toc_cli.py` that uses docling to extract the table of contents (without links or pages) into a `<file>_toc_titles.md`. Essentially I want to use the bookmarks to try to generate titles so if possible, return then as a hierarchy -- high level bookmarks as H1 and sub-marks to that sections H2, then H3, and so on. 
 
 #
+
+
+---------------
+
+Work object should keep track of all the files and their hashes in one JSON column:
+* original_pdf: `<file>.pdf`
+* hier_markdown: `<file>.hier.md` (hierarchically parsed PDF)
+* style_markdown: `<file>.style.md` (style parsed PDF)
+* original_markdown: `<file>.md>`
+* toc_titles: `<file>.toc_titles.md` 
+* 

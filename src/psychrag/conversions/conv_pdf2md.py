@@ -5,32 +5,43 @@ This module provides functionality to convert PDF files to Markdown format
 using the Docling library with hierarchical heading detection.
 
 Example (as script):
-    venv\\Scripts\\python -m psychrag.conversions.conv_pdf2md input.pdf -o output.md
-    venv\\Scripts\\python -m psychrag.conversions.conv_pdf2md input.pdf -o output.md --compare -v
-    venv\\Scripts\\python -m psychrag.conversions.conv_pdf2md input.pdf --no-gpu  # CPU only
+    # Default: compare mode (generates .style.md and .hier.md)
+    venv\\Scripts\\python -m psychrag.conversions.conv_pdf2md input.pdf -o output/doc.md
+
+    # Force style-based single output
+    venv\\Scripts\\python -m psychrag.conversions.conv_pdf2md input.pdf -o output/doc.md --style-ver
+
+    # Force hierarchical single output
+    venv\\Scripts\\python -m psychrag.conversions.conv_pdf2md input.pdf -o output/doc.md --hier-ver
+
+    # CPU only
+    venv\\Scripts\\python -m psychrag.conversions.conv_pdf2md input.pdf -o output/doc.md --no-gpu
 
 Example (as library):
     from psychrag.conversions import convert_pdf_to_markdown
 
-    # Basic conversion with GPU acceleration (default)
-    markdown_content = convert_pdf_to_markdown("input.pdf")
+    # Default: compare mode (returns tuple of both versions)
+    style_md, hier_md = convert_pdf_to_markdown("input.pdf", output_path="output/doc.md")
 
-    # CPU-only conversion
-    markdown_content = convert_pdf_to_markdown("input.pdf", use_gpu=False)
+    # Single output: style-based
+    markdown = convert_pdf_to_markdown("input.pdf", output_path="output/doc.md", compare=False, hierarchical=False)
 
-    # Compare both heading detection approaches
-    style_md, hier_md = convert_pdf_to_markdown("input.pdf", compare=True)
+    # Single output: hierarchical
+    markdown = convert_pdf_to_markdown("input.pdf", output_path="output/doc.md", compare=False, hierarchical=True)
 
 Options:
     -o, --output      Output file path (default: stdout)
     -v, --verbose     Print progress information
     --ocr             Enable OCR for scanned PDFs
-    --no-hierarchical Disable hierarchical heading detection
-    --compare         Generate both style-based and hierarchical outputs
+    --style-ver       Force style-based single output
+    --hier-ver        Force hierarchical single output
     --no-gpu          Disable GPU acceleration (CPU only)
+
+Note: The source PDF is always copied to the output directory as <file>.pdf
 """
 
 import argparse
+import shutil
 import sys
 import threading
 from pathlib import Path
@@ -52,13 +63,50 @@ DEFAULT_OCR_BATCH_SIZE = 4
 DEFAULT_TABLE_BATCH_SIZE = 4
 
 
+def _copy_pdf_to_output(
+    pdf_path: Path,
+    output_path: Path,
+    verbose: bool = False
+) -> Path:
+    """
+    Copy PDF to output directory with same stem as output file.
+
+    Args:
+        pdf_path: Source PDF path.
+        output_path: Output markdown path (used to determine destination).
+        verbose: If True, print copy information.
+
+    Returns:
+        Path to the copied PDF file.
+
+    Raises:
+        FileExistsError: If destination PDF already exists.
+    """
+    dest_pdf = output_path.parent / f"{output_path.stem}.pdf"
+
+    # Check if PDF already exists at destination
+    if dest_pdf.exists():
+        raise FileExistsError(
+            f"PDF already exists: {dest_pdf}\n"
+            f"Remove the existing PDF before running conversion."
+        )
+
+    # Copy PDF to output directory
+    shutil.copy2(pdf_path, dest_pdf)
+
+    if verbose:
+        print(f"Copied PDF to: {dest_pdf}")
+
+    return dest_pdf
+
+
 def convert_pdf_to_markdown(
     pdf_path: str | Path,
     output_path: Optional[str | Path] = None,
     verbose: bool = False,
     ocr: bool = False,
     hierarchical: bool = True,
-    compare: bool = False,
+    compare: bool = True,
     use_gpu: bool = True
 ) -> str | tuple[str, str]:
     """
@@ -67,19 +115,23 @@ def convert_pdf_to_markdown(
     Args:
         pdf_path: Path to the input PDF file.
         output_path: Optional path for the output Markdown file.
-                    If provided, the markdown will be written to this file.
+                    If provided, the markdown will be written to this file and the source PDF
+                    will be copied to the same directory as <file>.pdf.
         verbose: If True, print progress information.
         ocr: If True, enable OCR for scanned PDFs. Default False for text PDFs.
         hierarchical: If True, apply hierarchical heading detection. Default True.
-        compare: If True, generate both style-based and hierarchical outputs.
+        compare: If True (default), generate both style-based and hierarchical outputs
+                as <file>.style.md and <file>.hier.md.
         use_gpu: If True, use GPU acceleration when available (auto-detects). Default True.
 
     Returns:
-        The converted Markdown content as a string, or tuple of (style_md, hierarchical_md) if compare=True.
+        If compare=True: tuple of (style_md, hierarchical_md) strings.
+        If compare=False: single markdown content string.
 
     Raises:
         FileNotFoundError: If the PDF file does not exist.
         ValueError: If the file is not a PDF file.
+        FileExistsError: If destination PDF already exists (must be removed first).
     """
     pdf_path = Path(pdf_path)
 
@@ -164,6 +216,9 @@ def convert_pdf_to_markdown(
             stem = output_path.stem
             parent = output_path.parent
             parent.mkdir(parents=True, exist_ok=True)
+
+            # Copy PDF first (before writing any files)
+            _copy_pdf_to_output(pdf_path, output_path, verbose)
 
             style_path = parent / f"{stem}.style.md"
             hier_path = parent / f"{stem}.hier.md"
@@ -285,6 +340,10 @@ def convert_pdf_to_markdown(
     if output_path:
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Copy PDF first (before writing any files)
+        _copy_pdf_to_output(pdf_path, output_path, verbose)
+
         output_path.write_text(markdown_content, encoding="utf-8")
 
         # Extract TOC from PDF bookmarks
@@ -346,15 +405,15 @@ Examples:
     )
 
     parser.add_argument(
-        "--no-hierarchical",
+        "--style-ver",
         action="store_true",
-        help="Disable hierarchical heading detection (use if conversion hangs)"
+        help="Force style-based output only (single <file>.md)"
     )
 
     parser.add_argument(
-        "--compare",
+        "--hier-ver",
         action="store_true",
-        help="Generate both style-based and hierarchical outputs for comparison"
+        help="Force hierarchical output only (single <file>.md)"
     )
 
     parser.add_argument(
@@ -366,19 +425,38 @@ Examples:
     args = parser.parse_args()
 
     try:
+        # Validate conflicting flags
+        if args.style_ver and args.hier_ver:
+            print("Error: Cannot specify both --style-ver and --hier-ver", file=sys.stderr)
+            return 1
+
+        # Determine mode based on flags
+        if args.style_ver:
+            # Style-based single output
+            compare = False
+            hierarchical = False
+        elif args.hier_ver:
+            # Hierarchical single output
+            compare = False
+            hierarchical = True
+        else:
+            # Default: compare mode (both outputs)
+            compare = True
+            hierarchical = True
+
         result = convert_pdf_to_markdown(
             pdf_path=args.pdf_path,
             output_path=args.output,
             verbose=args.verbose,
             ocr=args.ocr,
-            hierarchical=not args.no_hierarchical,
-            compare=args.compare,
+            hierarchical=hierarchical,
+            compare=compare,
             use_gpu=not args.no_gpu
         )
 
         # Print to stdout if no output file specified
         if not args.output:
-            if args.compare:
+            if compare:
                 style_md, hier_md = result
                 print("=== STYLE-BASED OUTPUT ===")
                 print(style_md)

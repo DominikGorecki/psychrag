@@ -67,6 +67,9 @@ def create_new_work(
         DuplicateWorkError: If a work with the same content hash already exists.
         ValueError: If validation fails.
     """
+    # Convert to absolute path
+    markdown_path = markdown_path.resolve()
+
     # Validate markdown file exists
     if not markdown_path.exists():
         raise FileNotFoundError(f"Markdown file not found: {markdown_path}")

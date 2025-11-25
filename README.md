@@ -78,7 +78,7 @@ TODO: Make the output path configurable in .env file.
 
 # Adding new Work (Asset) To DB
 
-## 1. Convert to Markdown - From PDF
+## 1. CONVERSION -- Convert to Markdown - From PDF
 
 * Conversion can take time depending on your setup--
 * For the output filename:
@@ -119,7 +119,7 @@ python -m psychrag.conversions.style_v_hier__cli output\<file>.style.md output\<
     * `<file>.md`
     * `<file>.toc_titles.md` 
 
-* Check to see if the `<file>.toc_titles.md` looks like it corresponds to `<file>.md` -- sometimes it might be empty if or completely off depending on the pdf bookmarks. 
+* Check to see if the `<file>.toc_titles.md` looks like it corresponds to `<file>.md` -- sometimes it might be empty if or completely off depending on the pdf bookmarks. Remove the file if it doesn't look right. 
 
 ## 2. Create new Work in DB
 Run
