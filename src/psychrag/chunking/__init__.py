@@ -9,7 +9,7 @@ from .bib_extractor import (
     TOCEntry,
 )
 from .chunk_headings import chunk_headings
-from .suggested_chunks import suggest_chunks
+from .suggested_chunks import suggest_chunks, suggest_chunks_from_work
 
 __all__ = [
     "BibliographicInfo",
@@ -18,6 +18,7 @@ __all__ = [
     "EXTRACT_CHARS",
     "extract_metadata",
     "suggest_chunks",
+    "suggest_chunks_from_work",
     "TableOfContents",
     "TOCEntry",
 ]

@@ -137,7 +137,7 @@ python -m psychrag.conversions.new_work__cli <markdown_file>
 
 ## 3. Sanitization
 
-Now that we have the new work saved in the DB--going forward well be working with the workd id of the row to continue the conversion. The file locations associated with this work saved in the DB. 
+Now that we have the new work saved in the DB--going forward well be working with the work id of the row to continue the conversion. The file locations associated with this work saved in the DB. 
 
 ### Extract Titles 
 
@@ -166,6 +166,13 @@ python -m psychrag.sanitization.suggest_heading_changes_cli <work id> --full-llm
 
 **Output:** `<file>.title_changes.md` -- a list of title changes
 
+
+    Notes: A few things here--if thee ToC is not present in the DB, this will not run properly. Need to think of a better approach when the ToC is not present as well how to improve this process:
+    
+    * Pass in some content under each heading until next heading -- perhaps the first 100 words and the last 100 words
+    * Update prompt to specifically look for ToC based on the work title.
+
+
 ### Apply Heading Changes
 
 Compare `<file>.titles.md` to the newly generated `<file>.title_changes.md` and do a spot check to ensure that the changes are welcome and appropriate.
@@ -175,7 +182,20 @@ If the suggestions seem reasonable and appropriate, you can apply them:
 python -m psychrag.sanitization.apply_title_changes_cli 
 ```
 ## 4. Chunking
-Chunking divides out the sanitized document into chunks that are searchable. It does this in multiple steps -- higher level chunks (i.e. chapters) and then 
+
+Chunking divides out the sanitized document into chunks that are searchable. It does this in multiple steps -- higher level chunks (i.e. chapters) and then into semantic searchable chunks to be vectorized. 
+
+### Suggest Headings to Vectorize (required)
+
+This runs an LLM to call that tries to determine what headings to vectorize. Run:
+```bash
+python -m psychrag.chunking.suggested_chunks_cli <work_id> --full-llm
+```
+
+If `--ful-llm` is not present, it will run the light model. It's recommended to run full. This is an important step. 
+
+
+---------------------------------------------
 
 1. Suggest vectorization: `python -m psychrag.chunking.suggested_chunks_cli <work>.md`
 
