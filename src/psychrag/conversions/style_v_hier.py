@@ -16,6 +16,7 @@ Example:
 """
 
 import re
+import shutil
 import statistics
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -490,15 +491,18 @@ def compare_and_select(
 
 def rename_files(winner: Path, loser: Path, verbose: bool = False) -> None:
     """
-    Rename files based on comparison results.
+    Copy winning file to <file>.md.
 
-    Winner is renamed to <file>.md.
-    Loser is renamed to <file>.(style|hier).md.OLD.
+    The winner is copied (not renamed) to <file>.md.
+    Both .style.md and .hier.md files remain untouched.
 
     Args:
         winner: Path to the winning markdown file.
-        loser: Path to the losing markdown file.
-        verbose: If True, print renaming actions.
+        loser: Path to the losing markdown file (unused but kept for compatibility).
+        verbose: If True, print copy actions.
+
+    Raises:
+        FileExistsError: If <file>.md already exists.
     """
     # Determine base name from winner
     # winner is either <file>.style.md or <file>.hier.md
@@ -510,18 +514,17 @@ def rename_files(winner: Path, loser: Path, verbose: bool = False) -> None:
     else:
         base_stem = stem
 
-    # Target paths
+    # Target path
     final_path = winner.parent / f"{base_stem}.md"
-    loser_backup = Path(str(loser) + ".OLD")
 
-    # Rename loser first (to avoid conflicts)
-    if loser.exists():
-        loser.rename(loser_backup)
-        if verbose:
-            print(f"Renamed loser: {loser.name} -> {loser_backup.name}")
+    # Check if target already exists
+    if final_path.exists():
+        raise FileExistsError(
+            f"Output file already exists: {final_path}\n"
+            f"Remove the existing file before running comparison."
+        )
 
-    # Rename winner
-    if winner.exists():
-        winner.rename(final_path)
-        if verbose:
-            print(f"Renamed winner: {winner.name} -> {final_path.name}")
+    # Copy winner to final path
+    shutil.copy2(winner, final_path)
+    if verbose:
+        print(f"Copied winner: {winner.name} -> {final_path.name}")

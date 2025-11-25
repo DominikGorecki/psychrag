@@ -325,9 +325,14 @@ In the `src\psychrag\conversions` path let's create a new library and cli called
 ---------------
 
 Work object should keep track of all the files and their hashes in one JSON column:
-* original_pdf: `<file>.pdf`
-* hier_markdown: `<file>.hier.md` (hierarchically parsed PDF)
-* style_markdown: `<file>.style.md` (style parsed PDF)
-* original_markdown: `<file>.md>`
-* toc_titles: `<file>.toc_titles.md` 
-* 
+* original_file: `<file>.pdf|.epub|.html` -- can be any format that the original came in
+* hier_markdown: `<file>.hier.md` -- hierarchically parsed PDF
+* style_markdown: `<file>.style.md` -- style parsed PDF
+* original_markdown: `<file>.md>` -- the markdown file converted from the original
+* toc_titles: `<file>.toc_titles.md` -- generated pdf conversion and other methods
+* titles: `<file>.titles.md` -- the titles file based on `<file>.md` 
+* san_mapping: `<file>.san_mapping.csv` -- the mappings for text for sanitization
+* sanitized: `<file>.sanitized.md`  -- the sanitized version of `<file>.md` that has proper hierarchy and text 
+* sanitized_titles: `<file>.sanitized.titles.md` - titles pulled from `<file>.sanitized.md`
+* vec_suggestions: `<file>.sanitized.vec_sugg.md` - suggested titles to vectorize
+

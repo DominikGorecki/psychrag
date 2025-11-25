@@ -8,10 +8,8 @@ This module + CLI compares two markdown conversions of the same source:
 and then:
 
 * Chooses the **better structured** markdown file based on the heuristic below
-* Renames the **winner** to: `<file>.md`
-* Renames the **loser** to: `<file>.(style|hier).md.OLD` (appends `.OLD`)
-
-Old files can be cleaned up later.
+* Copies the **winner** to: `<file>.md`
+* Leaves both `.style.md` and `.hier.md` files untouched for reference
 
 ---
 
@@ -194,21 +192,19 @@ If final scores are within a small epsilon:
 
 ---
 
-## 6. File renaming behavior
+## 6. File copying behavior
 
-Once the “better” candidate is chosen:
+Once the "better" candidate is chosen:
 
 * **Winner**
 
-  * Renamed to: `<file>.md`
-* **Loser**
+  * Copied to: `<file>.md`
+* **Original files**
 
-  * Renamed to:
+  * Both `<file>.style.md` and `<file>.hier.md` remain untouched
+  * Can be manually deleted later if desired
 
-    * `<file>.style.md.OLD` if the style version lost
-    * `<file>.hier.md.OLD`   if the hier version lost
-
-This preserves both versions but clearly marks the one you should treat as canonical.
+**Important**: If `<file>.md` already exists, the tool will raise an error and refuse to overwrite it. The user must manually remove the existing file first.
 
 ---
 

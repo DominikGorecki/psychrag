@@ -44,8 +44,8 @@ This tool analyzes both files and selects the one with:
   - Even distribution of major sections
   - Fewer structural problems
 
-The winner is renamed to <file>.md
-The loser is renamed to <file>.(style|hier).md.OLD
+The winner is copied to <file>.md
+Both original files (.style.md and .hier.md) remain untouched
         """
     )
 
@@ -70,7 +70,7 @@ The loser is renamed to <file>.(style|hier).md.OLD
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Show results without renaming files"
+        help="Show results without copying the winner to <file>.md"
     )
 
     # Optional configuration overrides
@@ -170,14 +170,24 @@ The loser is renamed to <file>.(style|hier).md.OLD
 
         loser = hier_path if winner == style_path else style_path
 
-        # Rename files unless dry-run
+        # Determine output filename
+        stem = winner.stem
+        if stem.endswith('.style'):
+            base_stem = stem[:-6]
+        elif stem.endswith('.hier'):
+            base_stem = stem[:-5]
+        else:
+            base_stem = stem
+        output_name = f"{base_stem}.md"
+
+        # Copy winner unless dry-run
         if args.dry_run:
-            print(f"\nDry run - would rename:")
-            print(f"  Winner: {winner.name} -> {winner.stem[:-6] if '.style' in winner.stem else winner.stem[:-5]}.md")
-            print(f"  Loser:  {loser.name} -> {loser.name}.OLD")
+            print(f"\nDry run - would copy:")
+            print(f"  Winner: {winner.name} -> {output_name}")
+            print(f"  Original files remain untouched")
         else:
             rename_files(winner, loser, verbose=args.verbose or True)
-            print(f"\nFiles renamed successfully.")
+            print(f"\nWinner copied successfully to {output_name}")
 
         return 0
 
