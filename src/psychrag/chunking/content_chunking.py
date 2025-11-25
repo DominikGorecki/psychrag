@@ -583,21 +583,24 @@ def chunk_content(work_id: int, verbose: bool = False) -> int:
         # Map start_line to chunk id
         heading_chunk_map = {chunk.start_line: chunk.id for chunk in heading_chunks}
 
-        # Step 9: Save chunks to database
+        # Step 9: Save chunks to database (only those with parent heading chunks)
         chunks_created = 0
-        missing_parents = 0
+        skipped_no_parent = 0
 
         for chunk_data in all_chunks:
-            # Find parent_id
+            # Find parent_id from heading chunk
             parent_id = None
             heading_line = chunk_data.get('heading_line')
 
             if heading_line:
                 parent_id = heading_chunk_map.get(heading_line)
-                if parent_id is None:
-                    missing_parents += 1
-                    if verbose:
-                        print(f"  Warning: No parent chunk found for heading at line {heading_line}")
+
+            # Skip chunks without a parent heading chunk
+            if parent_id is None:
+                skipped_no_parent += 1
+                if verbose:
+                    print(f"  Skipping chunk at lines {chunk_data['start_line']}-{chunk_data['end_line']}: no parent heading chunk")
+                continue
 
             # Create chunk
             level = chunk_data['level']
@@ -628,7 +631,7 @@ def chunk_content(work_id: int, verbose: bool = False) -> int:
 
         if verbose:
             print(f"\nTotal: {chunks_created} chunks created for work {work_id}")
-            if missing_parents:
-                print(f"Warning: {missing_parents} chunks have no parent (heading chunk not found)")
+            if skipped_no_parent:
+                print(f"Skipped: {skipped_no_parent} chunks had no parent heading chunk")
 
         return chunks_created
