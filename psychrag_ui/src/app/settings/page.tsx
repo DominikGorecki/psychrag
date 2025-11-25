@@ -1,12 +1,185 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircleIcon, Loader2Icon } from "lucide-react";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+// Types matching API schemas
+interface ModelConfig {
+  light: string;
+  full: string;
+}
+
+interface LLMModelsConfig {
+  openai: ModelConfig;
+  gemini: ModelConfig;
+}
+
+interface LLMConfig {
+  provider: "openai" | "gemini";
+  models: LLMModelsConfig;
+}
+
+interface DatabaseConfig {
+  admin_user: string;
+  host: string;
+  port: number;
+  db_name: string;
+  app_user: string;
+}
+
+interface AppConfig {
+  database: DatabaseConfig;
+  llm: LLMConfig;
+}
 
 export default function SettingsPage() {
+  const [config, setConfig] = useState<AppConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+
+  // Form state for editing
+  const [dbForm, setDbForm] = useState<DatabaseConfig | null>(null);
+  const [llmForm, setLlmForm] = useState<LLMConfig | null>(null);
+
+  // Fetch settings on mount
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`${API_BASE_URL}/settings/`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch settings: ${response.statusText}`);
+      }
+      const data: AppConfig = await response.json();
+      setConfig(data);
+      setDbForm(data.database);
+      setLlmForm(data.llm);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load settings");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveDbSettings = async () => {
+    if (!dbForm) return;
+    try {
+      setSaving(true);
+      setSaveSuccess(null);
+      const response = await fetch(`${API_BASE_URL}/settings/database`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dbForm),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to save: ${response.statusText}`);
+      }
+      const data: DatabaseConfig = await response.json();
+      setConfig((prev) => prev ? { ...prev, database: data } : null);
+      setDbForm(data);
+      setSaveSuccess("database");
+      setTimeout(() => setSaveSuccess(null), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveLlmSettings = async () => {
+    if (!llmForm) return;
+    try {
+      setSaving(true);
+      setSaveSuccess(null);
+      const response = await fetch(`${API_BASE_URL}/settings/llm`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: llmForm.provider,
+          openai_light: llmForm.models.openai.light,
+          openai_full: llmForm.models.openai.full,
+          gemini_light: llmForm.models.gemini.light,
+          gemini_full: llmForm.models.gemini.full,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to save: ${response.statusText}`);
+      }
+      const data: LLMConfig = await response.json();
+      setConfig((prev) => prev ? { ...prev, llm: data } : null);
+      setLlmForm(data);
+      setSaveSuccess("llm");
+      setTimeout(() => setSaveSuccess(null), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setActiveProvider = (provider: "openai" | "gemini") => {
+    if (!llmForm) return;
+    setLlmForm({ ...llmForm, provider });
+  };
+
+  const updateModelConfig = (
+    provider: "openai" | "gemini",
+    field: "light" | "full",
+    value: string
+  ) => {
+    if (!llmForm) return;
+    setLlmForm({
+      ...llmForm,
+      models: {
+        ...llmForm.models,
+        [provider]: {
+          ...llmForm.models[provider],
+          [field]: value,
+        },
+      },
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error && !config) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
+          <p className="text-muted-foreground">Manage configuration and preferences.</p>
+        </div>
+        <Card className="border-destructive">
+          <CardContent className="pt-6">
+            <p className="text-destructive">{error}</p>
+            <Button onClick={fetchSettings} className="mt-4">
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -14,41 +187,231 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">Manage configuration and preferences.</p>
       </div>
 
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm">
+          {error}
+        </div>
+      )}
+
       <Tabs defaultValue="models" className="w-full">
         <TabsList>
           <TabsTrigger value="models">Models</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
-          <TabsTrigger value="processing">Processing</TabsTrigger>
         </TabsList>
-        
+
+        {/* Models Tab */}
         <TabsContent value="models" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Model Configuration</CardTitle>
-              <CardDescription>Configure LLM and Embedding models.</CardDescription>
+              <CardTitle>LLM Configuration</CardTitle>
+              <CardDescription>
+                Configure language model providers. Click a provider tab to view/edit its models, 
+                or click "Set Active" to switch the active provider.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="embedding-model">Embedding Model</Label>
-                <Input id="embedding-model" defaultValue="text-embedding-3-small" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="llm-model">LLM Model</Label>
-                <Input id="llm-model" defaultValue="gpt-4o" />
-              </div>
-              <Button>Save Changes</Button>
+            <CardContent>
+              {llmForm && (
+                <Tabs defaultValue={llmForm.provider} className="w-full">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="gemini" className="gap-2">
+                      Gemini
+                      {llmForm.provider === "gemini" && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 font-medium">
+                          active
+                        </span>
+                      )}
+                    </TabsTrigger>
+                    <TabsTrigger value="openai" className="gap-2">
+                      OpenAI
+                      {llmForm.provider === "openai" && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 font-medium">
+                          active
+                        </span>
+                      )}
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Gemini Tab */}
+                  <TabsContent value="gemini" className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="gemini-light">Light Model (Fast)</Label>
+                        <Input
+                          id="gemini-light"
+                          value={llmForm.models.gemini.light}
+                          onChange={(e) => updateModelConfig("gemini", "light", e.target.value)}
+                          placeholder="e.g., gemini-flash-latest"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Used for quick, simple tasks
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="gemini-full">Full Model (Complex)</Label>
+                        <Input
+                          id="gemini-full"
+                          value={llmForm.models.gemini.full}
+                          onChange={(e) => updateModelConfig("gemini", "full", e.target.value)}
+                          placeholder="e.g., gemini-2.5-pro"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Used for complex reasoning tasks
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 pt-2">
+                      {llmForm.provider !== "gemini" && (
+                        <Button
+                          variant="outline"
+                          onClick={() => setActiveProvider("gemini")}
+                        >
+                          Set as Active Provider
+                        </Button>
+                      )}
+                      <Button onClick={saveLlmSettings} disabled={saving}>
+                        {saving ? (
+                          <Loader2Icon className="h-4 w-4 animate-spin mr-2" />
+                        ) : saveSuccess === "llm" ? (
+                          <CheckCircleIcon className="h-4 w-4 mr-2 text-emerald-500" />
+                        ) : null}
+                        Save Changes
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  {/* OpenAI Tab */}
+                  <TabsContent value="openai" className="space-y-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="openai-light">Light Model (Fast)</Label>
+                        <Input
+                          id="openai-light"
+                          value={llmForm.models.openai.light}
+                          onChange={(e) => updateModelConfig("openai", "light", e.target.value)}
+                          placeholder="e.g., gpt-4o-mini"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Used for quick, simple tasks
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="openai-full">Full Model (Complex)</Label>
+                        <Input
+                          id="openai-full"
+                          value={llmForm.models.openai.full}
+                          onChange={(e) => updateModelConfig("openai", "full", e.target.value)}
+                          placeholder="e.g., gpt-4o"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Used for complex reasoning tasks
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 pt-2">
+                      {llmForm.provider !== "openai" && (
+                        <Button
+                          variant="outline"
+                          onClick={() => setActiveProvider("openai")}
+                        >
+                          Set as Active Provider
+                        </Button>
+                      )}
+                      <Button onClick={saveLlmSettings} disabled={saving}>
+                        {saving ? (
+                          <Loader2Icon className="h-4 w-4 animate-spin mr-2" />
+                        ) : saveSuccess === "llm" ? (
+                          <CheckCircleIcon className="h-4 w-4 mr-2 text-emerald-500" />
+                        ) : null}
+                        Save Changes
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
-        
+
+        {/* Database Tab */}
         <TabsContent value="database" className="mt-4">
           <Card>
             <CardHeader>
               <CardTitle>Database Settings</CardTitle>
-              <CardDescription>Connection details.</CardDescription>
+              <CardDescription>
+                PostgreSQL connection configuration. Changes are saved to psychrag.config.json.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Configured via environment variables.</p>
+            <CardContent className="space-y-4">
+              {dbForm && (
+                <>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="db-host">Host</Label>
+                      <Input
+                        id="db-host"
+                        value={dbForm.host}
+                        onChange={(e) => setDbForm({ ...dbForm, host: e.target.value })}
+                        placeholder="127.0.0.1"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="db-port">Port</Label>
+                      <Input
+                        id="db-port"
+                        type="number"
+                        value={dbForm.port}
+                        onChange={(e) => setDbForm({ ...dbForm, port: parseInt(e.target.value) || 5432 })}
+                        placeholder="5432"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="db-name">Database Name</Label>
+                    <Input
+                      id="db-name"
+                      value={dbForm.db_name}
+                      onChange={(e) => setDbForm({ ...dbForm, db_name: e.target.value })}
+                      placeholder="psych_rag"
+                    />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="db-admin-user">Admin User</Label>
+                      <Input
+                        id="db-admin-user"
+                        value={dbForm.admin_user}
+                        onChange={(e) => setDbForm({ ...dbForm, admin_user: e.target.value })}
+                        placeholder="postgres"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Used for database/user creation
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="db-app-user">Application User</Label>
+                      <Input
+                        id="db-app-user"
+                        value={dbForm.app_user}
+                        onChange={(e) => setDbForm({ ...dbForm, app_user: e.target.value })}
+                        placeholder="psych_rag_app_user"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Used by the application at runtime
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button onClick={saveDbSettings} disabled={saving}>
+                      {saving ? (
+                        <Loader2Icon className="h-4 w-4 animate-spin mr-2" />
+                      ) : saveSuccess === "database" ? (
+                        <CheckCircleIcon className="h-4 w-4 mr-2 text-emerald-500" />
+                      ) : null}
+                      Save Changes
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -56,4 +419,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

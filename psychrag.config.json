@@ -1,0 +1,22 @@
+{
+  "database": {
+    "admin_user": "postgres",
+    "host": "127.0.0.1",
+    "port": 5432,
+    "db_name": "psych_rag_test",
+    "app_user": "psych_rag_app_user_test"
+  },
+  "llm": {
+    "provider": "gemini",
+    "models": {
+      "openai": {
+        "light": "gpt-4o-mini",
+        "full": "gpt-4o"
+      },
+      "gemini": {
+        "light": "gemini-flash-latest",
+        "full": "gemini-2.5-pro"
+      }
+    }
+  }
+}

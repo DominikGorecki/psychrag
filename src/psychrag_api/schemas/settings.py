@@ -1,11 +1,90 @@
 """
 Pydantic schemas for Settings router.
+
+These schemas mirror the structure in psychrag.config.app_config
+for API serialization.
 """
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+
+# ============================================================================
+# Database Configuration Schemas
+# ============================================================================
+
+class DatabaseConfigSchema(BaseModel):
+    """Database configuration settings."""
+
+    admin_user: str = Field(description="PostgreSQL admin username")
+    host: str = Field(description="Database host")
+    port: int = Field(description="Database port")
+    db_name: str = Field(description="Application database name")
+    app_user: str = Field(description="Application user name")
+
+
+class DatabaseConfigUpdateRequest(BaseModel):
+    """Request to update database configuration."""
+
+    admin_user: str | None = Field(default=None, description="PostgreSQL admin username")
+    host: str | None = Field(default=None, description="Database host")
+    port: int | None = Field(default=None, description="Database port")
+    db_name: str | None = Field(default=None, description="Application database name")
+    app_user: str | None = Field(default=None, description="Application user name")
+
+
+# ============================================================================
+# LLM Configuration Schemas
+# ============================================================================
+
+class ModelConfigSchema(BaseModel):
+    """Model configuration for a specific provider."""
+
+    light: str = Field(description="Light/fast model name")
+    full: str = Field(description="Full/complex model name")
+
+
+class LLMModelsConfigSchema(BaseModel):
+    """LLM models configuration for all providers."""
+
+    openai: ModelConfigSchema
+    gemini: ModelConfigSchema
+
+
+class LLMConfigSchema(BaseModel):
+    """LLM configuration settings."""
+
+    provider: Literal["openai", "gemini"] = Field(description="Active LLM provider")
+    models: LLMModelsConfigSchema
+
+
+class LLMConfigUpdateRequest(BaseModel):
+    """Request to update LLM configuration."""
+
+    provider: Literal["openai", "gemini"] | None = Field(
+        default=None, description="Active LLM provider"
+    )
+    openai_light: str | None = Field(default=None, description="OpenAI light model")
+    openai_full: str | None = Field(default=None, description="OpenAI full model")
+    gemini_light: str | None = Field(default=None, description="Gemini light model")
+    gemini_full: str | None = Field(default=None, description="Gemini full model")
+
+
+# ============================================================================
+# Full Configuration Schemas
+# ============================================================================
+
+class AppConfigSchema(BaseModel):
+    """Root application configuration response."""
+
+    database: DatabaseConfigSchema
+    llm: LLMConfigSchema
+
+
+# ============================================================================
+# Legacy Schemas (kept for backwards compatibility)
+# ============================================================================
 
 class SettingResponse(BaseModel):
     """Response for a single setting."""
@@ -26,15 +105,6 @@ class SettingResponse(BaseModel):
         example="The embedding model used for vectorization",
     )
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "key": "embedding_model",
-                "value": "text-embedding-3-small",
-                "description": "The embedding model used for vectorization",
-            }
-        }
-
 
 class AllSettingsResponse(BaseModel):
     """Response containing all settings."""
@@ -42,25 +112,7 @@ class AllSettingsResponse(BaseModel):
     settings: dict[str, Any] = Field(
         ...,
         description="Dictionary of all settings",
-        example={
-            "embedding_model": "text-embedding-3-small",
-            "llm_model": "gpt-4o",
-            "chunk_size": 512,
-        },
     )
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "settings": {
-                    "embedding_model": "text-embedding-3-small",
-                    "llm_model": "gpt-4o",
-                    "chunk_size": 512,
-                    "chunk_overlap": 50,
-                    "rerank_enabled": True,
-                }
-            }
-        }
 
 
 class SettingUpdateRequest(BaseModel):
@@ -71,23 +123,3 @@ class SettingUpdateRequest(BaseModel):
         description="New value for the setting",
         example=1024,
     )
-
-    class Config:
-        json_schema_extra = {
-            "examples": [
-                {
-                    "summary": "Update chunk size",
-                    "value": {"value": 1024},
-                },
-                {
-                    "summary": "Update model",
-                    "value": {"value": "gpt-4o-mini"},
-                },
-                {
-                    "summary": "Update boolean",
-                    "value": {"value": True},
-                },
-            ]
-        }
-
-

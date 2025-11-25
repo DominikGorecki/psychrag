@@ -22,43 +22,81 @@ Install the packages--this will take some time and requires ~2GB of space just f
 venv\Scripts\pip install -e .
 ```
 
-### 2. Settings (.env) File
-| Note: Currently only supporting gemini api. 
+### 2. Configuration
 
-Create a .env file in the root-folder where this file exists with the following template:
+| Note: Currently supporting both Gemini and OpenAI APIs.
+
+#### Configuration Files
+
+PsychRAG uses two configuration files:
+
+1. **`psychrag.config.json`** - Non-secret settings (database, LLM models, paths)
+2. **`.env`** - Secrets only (API keys, passwords)
+
+#### A. Application Configuration (psychrag.config.json)
+
+The `psychrag.config.json` file in the project root contains all non-secret configuration settings. A default file is provided with the repository.
+
+**View current configuration:**
+```bash
+python -m psychrag.config.app_config_cli show
 ```
-# PostgreSQL Connection Configuration
-# Admin credentials (for database/user creation)
-POSTGRES_ADMIN_USER=postgres
+
+**Modify configuration:**
+```bash
+# Change LLM provider
+python -m psychrag.config.app_config_cli set --provider openai
+
+# Change model names
+python -m psychrag.config.app_config_cli set --gemini-light gemini-2.0-flash-exp
+
+# Change database settings
+python -m psychrag.config.app_config_cli set --db-host localhost --db-port 5433
+```
+
+**Default configuration:**
+```json
+{
+  "database": {
+    "admin_user": "postgres",
+    "host": "127.0.0.1",
+    "port": 5432,
+    "db_name": "psych_rag_test",
+    "app_user": "psych_rag_app_user_test"
+  },
+  "llm": {
+    "provider": "gemini",
+    "models": {
+      "openai": {
+        "light": "gpt-4o-mini",
+        "full": "gpt-4o"
+      },
+      "gemini": {
+        "light": "gemini-flash-latest",
+        "full": "gemini-2.5-pro"
+      }
+    }
+  }
+}
+```
+
+You can edit this file directly or use the CLI commands above.
+
+#### B. Secrets Configuration (.env)
+
+Create a `.env` file in the root folder for secrets (API keys and passwords):
+
+```bash
+# PostgreSQL Passwords
 POSTGRES_ADMIN_PASSWORD=postgres
-POSTGRES_HOST=127.0.0.1
-POSTGRES_PORT=5432
-
-# Application database
-POSTGRES_DB=psych_rag
-
-# Application user (will be created by init_db)
-POSTGRES_APP_USER=psych_rag_app_user
 POSTGRES_APP_PASSWORD=psych_rag_secure_password
 
-# LLM Provider Configuration
-# Only Gemini currently supported
-LLM_PROVIDER=gemini
-
-# OpenAI -- currently not supported -- feel free to skip
-LLM_OPENAI_API_KEY=
-LLM_OPENAI_LIGHT_MODEL=gpt-4.1-mini
-LLM_OPENAI_FULL_MODEL=gpt-4o
-
-# Gemini -- currently required
-LLM_GOOGLE_API_KEY=[YOUR API KEY]
-# Gemini fast/light model -- feel free to adjust:
-LLM_GEMINI_LIGHT_MODEL=gemini-flash-latest 
-# Gemini full/thinking model -- feel free to adjust:
-LLM_GEMINI_FULL_MODEL=gemini-2.5-pro
+# LLM API Keys
+LLM_OPENAI_API_KEY=[YOUR OPENAI API KEY]
+LLM_GOOGLE_API_KEY=[YOUR GOOGLE API KEY]
 ```
 
-TODO: Add support to OpenAI as a provider. In the future, others. 
+**Important:** Only passwords and API keys go in `.env`. All other settings are in `psychrag.config.json`. 
 
 ### 3. Initiate the Database and Filesystem
 
@@ -68,13 +106,11 @@ Use the `init_db` module to initiate the DB:
 python -m psychrag.data.init_db -v
 ```
 
-Add an `output` folder to the rood of the repo.
+Add an `output` folder to the root of the repo.
 
 ```bash
 mkdir output
-```
-
-TODO: Make the output path configurable in .env file. 
+``` 
 
 # Adding new Work (Asset) To DB
 

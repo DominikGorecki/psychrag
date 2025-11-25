@@ -1,7 +1,8 @@
 """
 Database initialization script.
 
-This module creates the database, application user, and all tables.
+Database configuration (host, port, users) loaded from psychrag.config.json.
+Passwords (secrets) loaded from .env file.
 
 Example (as script):
     venv\\Scripts\\python -m psychrag.data.init_db
@@ -19,6 +20,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import ProgrammingError
 
+from psychrag.config import load_config
 from .database import Base, engine, get_admin_database_url
 
 # Import all models to register them with Base
@@ -34,8 +36,11 @@ def create_database_and_user(verbose: bool = False) -> None:
     """
     load_dotenv()
 
-    db_name = os.getenv("POSTGRES_DB", "psych_rag")
-    app_user = os.getenv("POSTGRES_APP_USER", "psych_rag_app_user")
+    # Load config from JSON
+    db_config = load_config().database
+
+    db_name = db_config.db_name
+    app_user = db_config.app_user
     app_password = os.getenv("POSTGRES_APP_PASSWORD", "psych_rag_secure_password")
 
     admin_url = get_admin_database_url()
@@ -78,10 +83,10 @@ def create_database_and_user(verbose: bool = False) -> None:
 
     # Grant privileges (connect to the specific database)
     db_url = (
-        f"postgresql+psycopg://{os.getenv('POSTGRES_ADMIN_USER', 'postgres')}:"
+        f"postgresql+psycopg://{db_config.admin_user}:"
         f"{os.getenv('POSTGRES_ADMIN_PASSWORD', 'postgres')}"
-        f"@{os.getenv('POSTGRES_HOST', '127.0.0.1')}:"
-        f"{os.getenv('POSTGRES_PORT', '5432')}/{db_name}"
+        f"@{db_config.host}:"
+        f"{db_config.port}/{db_name}"
     )
     db_engine = create_engine(db_url, isolation_level="AUTOCOMMIT")
 
@@ -115,12 +120,13 @@ def enable_pgvector_extension(verbose: bool = False) -> None:
         print("Enabling pgvector extension...")
 
     # Need admin privileges to create extensions
-    db_name = os.getenv("POSTGRES_DB", "psych_rag")
+    db_config = load_config().database
+    db_name = db_config.db_name
     db_url = (
-        f"postgresql+psycopg://{os.getenv('POSTGRES_ADMIN_USER', 'postgres')}:"
+        f"postgresql+psycopg://{db_config.admin_user}:"
         f"{os.getenv('POSTGRES_ADMIN_PASSWORD', 'postgres')}"
-        f"@{os.getenv('POSTGRES_HOST', '127.0.0.1')}:"
-        f"{os.getenv('POSTGRES_PORT', '5432')}/{db_name}"
+        f"@{db_config.host}:"
+        f"{db_config.port}/{db_name}"
     )
     admin_engine = create_engine(db_url, isolation_level="AUTOCOMMIT")
 

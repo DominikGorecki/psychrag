@@ -1,9 +1,15 @@
-"""Configuration for LLM providers using Pydantic Settings."""
+"""Configuration for LLM providers.
+
+Provider and model settings are loaded from psychrag.config.json.
+API keys (secrets) are loaded from .env file.
+"""
 
 from enum import Enum
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from psychrag.config import load_config
 
 
 def _find_env_file() -> Path | None:
@@ -35,19 +41,15 @@ class ModelTier(str, Enum):
 
 
 class LLMSettings(BaseSettings):
-    """LLM provider configuration loaded from .env file."""
+    """LLM provider configuration.
 
-    provider: LLMProvider = LLMProvider.GEMINI
+    Provider and model names are loaded from psychrag.config.json.
+    API keys (secrets) are loaded from .env file.
+    """
 
-    # OpenAI
+    # API Keys from .env (secrets)
     openai_api_key: str | None = None
-    openai_light_model: str = "gpt-4.1-mini"
-    openai_full_model: str = "gpt-4o"
-
-    # Gemini
     google_api_key: str | None = None
-    gemini_light_model: str = "gemini-flash-latest"
-    gemini_full_model: str = "gemini-2.5-pro"
 
     model_config = SettingsConfigDict(
         env_prefix="LLM_",
@@ -57,11 +59,34 @@ class LLMSettings(BaseSettings):
         extra="ignore",
     )
 
+    @property
+    def provider(self) -> LLMProvider:
+        """Get the active LLM provider from JSON config."""
+        app_config = load_config()
+        return LLMProvider(app_config.llm.provider)
+
     def get_model(self, tier: ModelTier = ModelTier.LIGHT) -> str:
-        """Get the model name for the current provider and tier."""
+        """Get the model name for the current provider and tier.
+
+        Args:
+            tier: Model tier (LIGHT or FULL)
+
+        Returns:
+            Model name string
+        """
+        app_config = load_config()
+
         if self.provider == LLMProvider.OPENAI:
-            return self.openai_light_model if tier == ModelTier.LIGHT else self.openai_full_model
+            return (
+                app_config.llm.models.openai.light
+                if tier == ModelTier.LIGHT
+                else app_config.llm.models.openai.full
+            )
         elif self.provider == LLMProvider.GEMINI:
-            return self.gemini_light_model if tier == ModelTier.LIGHT else "gemini-2.5-pro" #self.gemini_full_model
+            return (
+                app_config.llm.models.gemini.light
+                if tier == ModelTier.LIGHT
+                else app_config.llm.models.gemini.full
+            )
         else:
             raise ValueError(f"Unsupported provider: {self.provider}")

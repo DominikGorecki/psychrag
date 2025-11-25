@@ -2,139 +2,212 @@
 Settings Router - Configuration and settings management.
 
 Endpoints:
-    GET  /settings/         - Get all current settings
-    GET  /settings/{key}    - Get a specific setting
-    PUT  /settings/{key}    - Update a specific setting
+    GET  /settings/              - Get full application configuration
+    GET  /settings/database      - Get database configuration
+    PUT  /settings/database      - Update database configuration
+    GET  /settings/llm           - Get LLM configuration
+    PUT  /settings/llm           - Update LLM configuration
 """
 
-from typing import Any
+from fastapi import APIRouter, HTTPException, status
 
-from fastapi import APIRouter, HTTPException, Path, status
-
+from psychrag.config.app_config import load_config, save_config, AppConfig
 from psychrag_api.schemas.settings import (
-    AllSettingsResponse,
-    SettingResponse,
-    SettingUpdateRequest,
+    AppConfigSchema,
+    DatabaseConfigSchema,
+    DatabaseConfigUpdateRequest,
+    LLMConfigSchema,
+    LLMConfigUpdateRequest,
+    ModelConfigSchema,
+    LLMModelsConfigSchema,
 )
 
 router = APIRouter()
 
 
+def _config_to_schema(config: AppConfig) -> AppConfigSchema:
+    """Convert AppConfig to API schema."""
+    return AppConfigSchema(
+        database=DatabaseConfigSchema(
+            admin_user=config.database.admin_user,
+            host=config.database.host,
+            port=config.database.port,
+            db_name=config.database.db_name,
+            app_user=config.database.app_user,
+        ),
+        llm=LLMConfigSchema(
+            provider=config.llm.provider,
+            models=LLMModelsConfigSchema(
+                openai=ModelConfigSchema(
+                    light=config.llm.models.openai.light,
+                    full=config.llm.models.openai.full,
+                ),
+                gemini=ModelConfigSchema(
+                    light=config.llm.models.gemini.light,
+                    full=config.llm.models.gemini.full,
+                ),
+            ),
+        ),
+    )
+
+
 @router.get(
     "/",
-    response_model=AllSettingsResponse,
+    response_model=AppConfigSchema,
     summary="Get all settings",
-    description="Retrieve all current system settings and their values.",
-    responses={
-        200: {
-            "description": "Settings retrieved successfully",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "settings": {
-                            "embedding_model": "text-embedding-3-small",
-                            "llm_model": "gpt-4",
-                            "chunk_size": 512,
-                            "chunk_overlap": 50,
-                        }
-                    }
-                }
-            },
-        }
-    },
+    description="Retrieve the full application configuration.",
 )
-async def get_all_settings() -> AllSettingsResponse:
-    """
-    Get all system settings.
-    
-    Returns configuration values for:
-    - Embedding models
-    - LLM models
-    - Chunking parameters
-    - Database settings
-    """
-    # TODO: Implement using psychrag.ai.config
-    return AllSettingsResponse(
-        settings={
-            "embedding_model": "text-embedding-3-small",
-            "llm_model": "gpt-4o",
-            "chunk_size": 512,
-            "chunk_overlap": 50,
-            "database_url": "postgresql://...",
-        }
-    )
+async def get_all_settings() -> AppConfigSchema:
+    """Get full application configuration."""
+    try:
+        config = load_config()
+        return _config_to_schema(config)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load configuration: {e}",
+        )
 
 
 @router.get(
-    "/{key}",
-    response_model=SettingResponse,
-    summary="Get specific setting",
-    description="Retrieve a specific setting by its key.",
-    responses={
-        200: {"description": "Setting retrieved successfully"},
-        404: {"description": "Setting not found"},
-    },
+    "/database",
+    response_model=DatabaseConfigSchema,
+    summary="Get database settings",
+    description="Retrieve database configuration.",
 )
-async def get_setting(
-    key: str = Path(
-        ...,
-        description="The setting key to retrieve",
-        example="embedding_model",
-    ),
-) -> SettingResponse:
-    """Get a specific setting by key."""
-    # TODO: Implement actual setting retrieval
-    valid_keys = ["embedding_model", "llm_model", "chunk_size", "chunk_overlap"]
-    
-    if key not in valid_keys:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Setting '{key}' not found",
+async def get_database_settings() -> DatabaseConfigSchema:
+    """Get database configuration."""
+    try:
+        config = load_config()
+        return DatabaseConfigSchema(
+            admin_user=config.database.admin_user,
+            host=config.database.host,
+            port=config.database.port,
+            db_name=config.database.db_name,
+            app_user=config.database.app_user,
         )
-    
-    mock_values: dict[str, Any] = {
-        "embedding_model": "text-embedding-3-small",
-        "llm_model": "gpt-4o",
-        "chunk_size": 512,
-        "chunk_overlap": 50,
-    }
-    
-    return SettingResponse(
-        key=key,
-        value=mock_values.get(key),
-        description=f"Configuration for {key}",
-    )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load configuration: {e}",
+        )
 
 
 @router.put(
-    "/{key}",
-    response_model=SettingResponse,
-    summary="Update setting",
-    description="Update a specific setting value.",
-    responses={
-        200: {"description": "Setting updated successfully"},
-        404: {"description": "Setting not found"},
-        422: {"description": "Invalid value for setting"},
-    },
+    "/database",
+    response_model=DatabaseConfigSchema,
+    summary="Update database settings",
+    description="Update database configuration. Only provided fields will be updated.",
 )
-async def update_setting(
-    request: SettingUpdateRequest,
-    key: str = Path(
-        ...,
-        description="The setting key to update",
-        example="chunk_size",
-    ),
-) -> SettingResponse:
-    """
-    Update a setting value.
-    
-    Some settings may require a restart to take effect.
-    """
-    # TODO: Implement actual setting update
-    return SettingResponse(
-        key=key,
-        value=request.value,
-        description=f"Updated {key} successfully (stub)",
-    )
+async def update_database_settings(
+    request: DatabaseConfigUpdateRequest,
+) -> DatabaseConfigSchema:
+    """Update database configuration."""
+    try:
+        config = load_config(force_reload=True)
+
+        # Update only provided fields
+        if request.admin_user is not None:
+            config.database.admin_user = request.admin_user
+        if request.host is not None:
+            config.database.host = request.host
+        if request.port is not None:
+            config.database.port = request.port
+        if request.db_name is not None:
+            config.database.db_name = request.db_name
+        if request.app_user is not None:
+            config.database.app_user = request.app_user
+
+        save_config(config)
+
+        return DatabaseConfigSchema(
+            admin_user=config.database.admin_user,
+            host=config.database.host,
+            port=config.database.port,
+            db_name=config.database.db_name,
+            app_user=config.database.app_user,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update configuration: {e}",
+        )
 
 
+@router.get(
+    "/llm",
+    response_model=LLMConfigSchema,
+    summary="Get LLM settings",
+    description="Retrieve LLM configuration including active provider and all model settings.",
+)
+async def get_llm_settings() -> LLMConfigSchema:
+    """Get LLM configuration."""
+    try:
+        config = load_config()
+        return LLMConfigSchema(
+            provider=config.llm.provider,
+            models=LLMModelsConfigSchema(
+                openai=ModelConfigSchema(
+                    light=config.llm.models.openai.light,
+                    full=config.llm.models.openai.full,
+                ),
+                gemini=ModelConfigSchema(
+                    light=config.llm.models.gemini.light,
+                    full=config.llm.models.gemini.full,
+                ),
+            ),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load configuration: {e}",
+        )
+
+
+@router.put(
+    "/llm",
+    response_model=LLMConfigSchema,
+    summary="Update LLM settings",
+    description="Update LLM configuration. Only provided fields will be updated.",
+)
+async def update_llm_settings(request: LLMConfigUpdateRequest) -> LLMConfigSchema:
+    """Update LLM configuration."""
+    try:
+        config = load_config(force_reload=True)
+
+        # Update provider if provided
+        if request.provider is not None:
+            config.llm.provider = request.provider
+
+        # Update OpenAI models if provided
+        if request.openai_light is not None:
+            config.llm.models.openai.light = request.openai_light
+        if request.openai_full is not None:
+            config.llm.models.openai.full = request.openai_full
+
+        # Update Gemini models if provided
+        if request.gemini_light is not None:
+            config.llm.models.gemini.light = request.gemini_light
+        if request.gemini_full is not None:
+            config.llm.models.gemini.full = request.gemini_full
+
+        save_config(config)
+
+        return LLMConfigSchema(
+            provider=config.llm.provider,
+            models=LLMModelsConfigSchema(
+                openai=ModelConfigSchema(
+                    light=config.llm.models.openai.light,
+                    full=config.llm.models.openai.full,
+                ),
+                gemini=ModelConfigSchema(
+                    light=config.llm.models.gemini.light,
+                    full=config.llm.models.gemini.full,
+                ),
+            ),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update configuration: {e}",
+        )
