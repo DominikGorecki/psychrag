@@ -18,10 +18,35 @@ from psychrag.config import load_config
 # Load environment variables for passwords
 load_dotenv()
 
-# Load database configuration from JSON
+
+def get_database_url(force_reload: bool = False) -> str:
+    """Get database connection URL from configuration.
+    
+    Args:
+        force_reload: Whether to reload configuration from file
+        
+    Returns:
+        PostgreSQL connection string
+    """
+    db_config = load_config(force_reload=force_reload).database
+    
+    # Passwords from .env (secrets)
+    # Note: os.getenv doesn't update if .env file changes unless load_dotenv is called again
+    if force_reload:
+        load_dotenv(override=True)
+        
+    app_pwd = os.getenv("POSTGRES_APP_PASSWORD", "psych_rag_secure_password")
+    
+    return (
+        f"postgresql+psycopg://{db_config.app_user}:{app_pwd}"
+        f"@{db_config.host}:{db_config.port}/{db_config.db_name}"
+    )
+
+
+# Initial load of configuration
 _db_config = load_config().database
 
-# Database configuration from JSON
+# Database configuration from JSON (kept for backward compatibility)
 POSTGRES_HOST = _db_config.host
 POSTGRES_PORT = _db_config.port
 POSTGRES_DB = _db_config.db_name
@@ -33,10 +58,7 @@ POSTGRES_APP_PASSWORD = os.getenv("POSTGRES_APP_PASSWORD", "psych_rag_secure_pas
 POSTGRES_ADMIN_PASSWORD = os.getenv("POSTGRES_ADMIN_PASSWORD", "postgres")
 
 # Build database URL
-DATABASE_URL = (
-    f"postgresql+psycopg://{POSTGRES_APP_USER}:{POSTGRES_APP_PASSWORD}"
-    f"@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
-)
+DATABASE_URL = get_database_url()
 
 # Create engine
 engine = create_engine(DATABASE_URL, echo=False)

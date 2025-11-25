@@ -5,6 +5,7 @@ Endpoints:
     GET  /init/status     - Get system initialization status
     POST /init/database   - Initialize/reset database
     GET  /init/health     - Detailed health check
+    GET  /init/db-health  - Database health checks
 """
 
 from fastapi import APIRouter, status
@@ -12,9 +13,12 @@ from fastapi import APIRouter, status
 from psychrag_api.schemas.init import (
     DatabaseInitRequest,
     DatabaseInitResponse,
+    DbHealthCheckResponse,
+    DbHealthCheckResult,
     HealthCheckResponse,
     InitStatusResponse,
 )
+from psychrag.data.db_health_check import run_all_health_checks
 
 router = APIRouter()
 
@@ -112,6 +116,47 @@ async def detailed_health_check() -> HealthCheckResponse:
             "embedding_model": {"status": "unknown", "latency_ms": None},
             "llm": {"status": "unknown", "latency_ms": None},
         },
+    )
+
+
+@router.get(
+    "/db-health",
+    response_model=DbHealthCheckResponse,
+    summary="Database health checks",
+    description="Run comprehensive database health checks including connection, tables, indexes, and permissions.",
+)
+async def db_health_check() -> DbHealthCheckResponse:
+    """
+    Run all database health checks.
+    
+    Checks:
+    - Connection to database
+    - Required extensions (pgvector)
+    - Table existence and columns
+    - Index existence
+    - Trigger existence
+    - Read/write permissions
+    """
+    results = run_all_health_checks()
+    
+    # Convert to API schema
+    api_results = [
+        DbHealthCheckResult(
+            name=r.name,
+            passed=r.passed,
+            message=r.message,
+            details=r.details,
+        )
+        for r in results
+    ]
+    
+    all_passed = all(r.passed for r in results)
+    connection_ok = results[0].passed if results else False
+    
+    return DbHealthCheckResponse(
+        results=api_results,
+        all_passed=all_passed,
+        connection_ok=connection_ok,
     )
 
 

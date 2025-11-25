@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from sqlalchemy import text, inspect, create_engine
 from sqlalchemy.exc import SQLAlchemyError
 
-from .database import DATABASE_URL
+from .database import DATABASE_URL, get_database_url
 
 
 # Timeout for database operations (in seconds)
@@ -48,15 +48,17 @@ def time_limit(seconds):
 
 def get_engine_with_timeout():
     """Create a new engine with connection timeout."""
+    # Get latest DB URL (reloading config)
+    url = get_database_url(force_reload=True)
+    
     # Add connect_timeout to the connection URL
-    url_with_timeout = DATABASE_URL
-    if '?' in url_with_timeout:
-        url_with_timeout += f"&connect_timeout={DB_TIMEOUT}"
+    if '?' in url:
+        url += f"&connect_timeout={DB_TIMEOUT}"
     else:
-        url_with_timeout += f"?connect_timeout={DB_TIMEOUT}"
+        url += f"?connect_timeout={DB_TIMEOUT}"
 
     return create_engine(
-        url_with_timeout,
+        url,
         pool_pre_ping=True,
         pool_recycle=3600,
         connect_args={

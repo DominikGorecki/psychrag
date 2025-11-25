@@ -7,6 +7,70 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+# ============================================================================
+# Database Health Check Schemas
+# ============================================================================
+
+class DbHealthCheckResult(BaseModel):
+    """Result of a single health check."""
+
+    name: str = Field(
+        ...,
+        description="Name of the health check",
+        example="Connection",
+    )
+    passed: bool = Field(
+        ...,
+        description="Whether the check passed",
+        example=True,
+    )
+    message: str = Field(
+        ...,
+        description="Status message",
+        example="App user can connect to database",
+    )
+    details: str | None = Field(
+        default=None,
+        description="Additional details (usually for failures)",
+        example=None,
+    )
+
+
+class DbHealthCheckResponse(BaseModel):
+    """Response containing all database health check results."""
+
+    results: list[DbHealthCheckResult] = Field(
+        ...,
+        description="List of all health check results",
+    )
+    all_passed: bool = Field(
+        ...,
+        description="Whether all checks passed",
+        example=True,
+    )
+    connection_ok: bool = Field(
+        ...,
+        description="Whether the connection check passed (first check)",
+        example=True,
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "results": [
+                    {"name": "Connection", "passed": True, "message": "App user can connect to database", "details": None},
+                    {"name": "Extension: vector", "passed": True, "message": "Extension 'vector' is installed", "details": None},
+                ],
+                "all_passed": True,
+                "connection_ok": True,
+            }
+        }
+
+
+# ============================================================================
+# Init Status Schemas
+# ============================================================================
+
 class InitStatusResponse(BaseModel):
     """Response for system initialization status."""
 
