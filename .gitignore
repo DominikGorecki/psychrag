@@ -63,3 +63,6 @@ dmypy.json
 
 # Ruff
 .ruff_cache/
+
+# Raw data files (large files that shouldn't be versioned)
+raw-data/
