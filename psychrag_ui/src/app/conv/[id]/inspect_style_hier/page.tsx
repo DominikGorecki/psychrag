@@ -14,6 +14,7 @@ import {
   Link2Off,
   Link2,
   ChevronLeft,
+  HelpCircle,
 } from "lucide-react";
 import {
   Dialog,
@@ -71,8 +72,8 @@ export default function InspectStyleHierPage() {
   const [styleScrollTop, setStyleScrollTop] = useState(0);
   const [hierScrollTop, setHierScrollTop] = useState(0);
 
-  // Alignment state
-  const [isAligned, setIsAligned] = useState(false);
+  // Alignment state (default to true)
+  const [isAligned, setIsAligned] = useState(true);
   const [alignedStyleContent, setAlignedStyleContent] = useState("");
   const [alignedHierContent, setAlignedHierContent] = useState("");
 
@@ -95,11 +96,26 @@ export default function InspectStyleHierPage() {
     fileType: "style" | "hier" | null;
   }>({ open: false, fileType: null });
 
+  // Help dialog state
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
+
+  // Warning dialog for existing .md file
+  const [baseMdExists, setBaseMdExists] = useState(false);
+  const [baseMdWarningOpen, setBaseMdWarningOpen] = useState(false);
+
   // Fetch file contents and suggestion on mount
   useEffect(() => {
     fetchFiles();
     fetchSuggestion();
+    checkBaseMdExists();
   }, [fileId]);
+
+  // Auto-align when content is first loaded
+  useEffect(() => {
+    if (styleContent && hierContent && isAligned && !alignedStyleContent && !alignedHierContent) {
+      alignTitles();
+    }
+  }, [styleContent, hierContent]);
 
   const fetchFiles = async () => {
     try {
@@ -146,6 +162,23 @@ export default function InspectStyleHierPage() {
       // Don't show error to user, suggestion is optional
     } finally {
       setLoadingSuggestion(false);
+    }
+  };
+
+  const checkBaseMdExists = async () => {
+    try {
+      // Try to fetch the base .md file (not style or hier)
+      const response = await fetch(`${API_BASE_URL}/conv/file-content/${fileId}/base`);
+      
+      if (response.ok) {
+        setBaseMdExists(true);
+        setBaseMdWarningOpen(true);
+      } else {
+        setBaseMdExists(false);
+      }
+    } catch (err) {
+      // If fetch fails, assume file doesn't exist
+      setBaseMdExists(false);
     }
   };
 
@@ -453,6 +486,16 @@ export default function InspectStyleHierPage() {
             )}
             {loadingSuggestion ? "Analyzing..." : "Suggest Best"}
           </Button>
+
+          {/* Help button */}
+          <Button
+            onClick={() => setHelpDialogOpen(true)}
+            variant="outline"
+            size="sm"
+            className="w-9 h-9 p-0"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -605,6 +648,61 @@ export default function InspectStyleHierPage() {
                 "Confirm Selection"
               )}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Help Dialog */}
+      <Dialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Help - Style vs Hier Comparison</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+              ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+              aliquip ex ea commodo consequat.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
+              dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
+              proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setHelpDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Base MD exists warning */}
+      <Dialog open={baseMdWarningOpen} onOpenChange={setBaseMdWarningOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Warning: Base File Already Exists</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-muted-foreground space-y-2">
+                <p>
+                  The base markdown file (<code className="text-xs bg-muted px-1 py-0.5 rounded">&lt;file&gt;.md</code>) 
+                  already exists.
+                </p>
+                <p>
+                  If you select either the <strong>style</strong> or <strong>hier</strong> file, 
+                  the system will not be able to overwrite the existing base file.
+                </p>
+                <p className="font-medium">
+                  To select a new file, please delete or rename the existing base file first.
+                </p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setBaseMdWarningOpen(false)}>Understood</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

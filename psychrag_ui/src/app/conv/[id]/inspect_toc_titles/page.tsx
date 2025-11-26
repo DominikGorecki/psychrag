@@ -187,7 +187,7 @@ export default function InspectTocTitlesPage() {
           <div className="border-l h-8" />
 
           <div>
-            <h1 className="text-2xl font-bold">Table of Contents Titles</h1>
+            <h1 className="text-2xl font-bold">Table of Contents Titles <span className="text-sm text-muted-foreground">REQUIRED</span></h1>
             <p className="text-sm text-muted-foreground">
               File ID: <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{fileId}</code>
             </p>

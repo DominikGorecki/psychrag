@@ -15,6 +15,8 @@ from pathlib import Path
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 from psychrag_api.schemas.conversion import (
+    AddWorkRequest,
+    AddWorkResponse,
     ConversionInspectionResponse,
     ConversionJobResponse,
     ConversionStatusResponse,
@@ -30,6 +32,7 @@ from psychrag_api.schemas.conversion import (
     InspectionItemSchema,
     IOFolderDataResponse,
     ManualPromptResponse,
+    ReadinessCheckResponse,
     SupportedFormatsResponse,
 )
 from psychrag.config import load_config
@@ -505,19 +508,19 @@ async def get_file_content(io_file_id: int, file_type: str) -> FileContentRespon
     Get the content from a markdown file.
     
     For 'style' and 'hier' files, returns extracted titles (headings) only.
-    For 'toc_titles' files, returns the raw markdown content.
+    For 'toc_titles' and 'base' files, returns the raw markdown content.
     
     Args:
         io_file_id: ID of the file in the io_files table
-        file_type: Type of file ('style', 'hier', or 'toc_titles')
+        file_type: Type of file ('style', 'hier', 'toc_titles', or 'base')
         
     Returns:
         FileContentResponse with content
     """
-    if file_type not in ("style", "hier", "toc_titles"):
+    if file_type not in ("style", "hier", "toc_titles", "base"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file_type: {file_type}. Must be 'style', 'hier', or 'toc_titles'",
+            detail=f"Invalid file_type: {file_type}. Must be 'style', 'hier', 'toc_titles', or 'base'",
         )
     
     try:
@@ -549,7 +552,10 @@ async def get_file_content(io_file_id: int, file_type: str) -> FileContentRespon
         output_dir = Path(config.paths.output_dir)
         
         # Construct file path
-        target_filename = f"{base_name}.{file_type}.md"
+        if file_type == "base":
+            target_filename = f"{base_name}.md"
+        else:
+            target_filename = f"{base_name}.{file_type}.md"
         file_path = output_dir / target_filename
         
         if not file_path.exists():
@@ -558,8 +564,8 @@ async def get_file_content(io_file_id: int, file_type: str) -> FileContentRespon
                 detail=f"File not found: {target_filename}",
             )
         
-        # For toc_titles, return raw markdown content
-        if file_type == "toc_titles":
+        # For toc_titles and base, return raw markdown content
+        if file_type in ("toc_titles", "base"):
             content = file_path.read_text(encoding="utf-8")
         else:
             # For style and hier, extract titles using the extract_titles function
@@ -987,6 +993,207 @@ async def get_manual_prompt_toc_titles() -> ManualPromptResponse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error reading manual prompt: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/readiness/{io_file_id}",
+    response_model=ReadinessCheckResponse,
+    summary="Check if file is ready to be added to database",
+    description="Validates that required files exist and are error-free before adding to database.",
+    responses={
+        200: {"description": "Readiness check completed"},
+        404: {"description": "File not found"},
+        500: {"description": "Error checking readiness"},
+    },
+)
+async def check_readiness(io_file_id: int) -> ReadinessCheckResponse:
+    """
+    Check if a converted file is ready to be added to the database.
+    
+    Validates:
+    1. <base_name>.md exists
+    2. <base_name>.toc_titles.md exists
+    3. <base_name>.toc_titles.md does not contain ***ERROR***
+    
+    Args:
+        io_file_id: ID of the file in the io_files table
+        
+    Returns:
+        ReadinessCheckResponse with readiness status and reasons
+    """
+    try:
+        # Get the file from database
+        with get_session() as session:
+            io_file = session.query(IOFile).filter(IOFile.id == io_file_id).first()
+            
+            if not io_file:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"File with ID {io_file_id} not found in database",
+                )
+            
+            session.expunge(io_file)
+        
+        # Extract base name
+        filename = io_file.filename
+        first_dot = filename.find('.')
+        if first_dot == -1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid filename format: {filename}",
+            )
+        
+        base_name = filename[:first_dot]
+        
+        # Get output directory
+        config = load_config()
+        output_dir = Path(config.paths.output_dir)
+        
+        # Check for required files
+        reasons = []
+        
+        # 1. Check if <base_name>.md exists
+        md_path = output_dir / f"{base_name}.md"
+        if not md_path.exists():
+            reasons.append("Base markdown file is missing")
+        
+        # 2. Check if <base_name>.toc_titles.md exists
+        toc_titles_path = output_dir / f"{base_name}.toc_titles.md"
+        if not toc_titles_path.exists():
+            reasons.append("Table of contents file is missing. Generate it first.")
+        else:
+            # 3. Check if toc_titles.md contains ***ERROR***
+            try:
+                toc_content = toc_titles_path.read_text(encoding="utf-8")
+                if "***ERROR***" in toc_content:
+                    reasons.append("Table of contents file contains errors. Fix them before proceeding.")
+            except Exception as e:
+                reasons.append(f"Could not read table of contents file: {str(e)}")
+        
+        # Determine if ready
+        ready = len(reasons) == 0
+        
+        return ReadinessCheckResponse(
+            ready=ready,
+            reasons=reasons,
+            base_name=base_name,
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error checking readiness: {str(e)}",
+        ) from e
+
+
+@router.post(
+    "/add-to-database/{io_file_id}",
+    response_model=AddWorkResponse,
+    summary="Add converted file to database",
+    description="Create a new work entry in the database with bibliographic metadata.",
+    responses={
+        200: {"description": "Work added successfully"},
+        400: {"description": "Validation error or duplicate work"},
+        404: {"description": "File not found"},
+        500: {"description": "Error adding work to database"},
+    },
+)
+async def add_to_database(
+    io_file_id: int,
+    request: AddWorkRequest
+) -> AddWorkResponse:
+    """
+    Add a converted file to the database as a new work.
+    
+    This endpoint calls create_new_work to insert bibliographic metadata
+    and file references into the works table.
+    
+    Args:
+        io_file_id: ID of the file in the io_files table
+        request: Bibliographic metadata for the work
+        
+    Returns:
+        AddWorkResponse with success status and work ID
+    """
+    try:
+        # Get the file from database
+        with get_session() as session:
+            io_file = session.query(IOFile).filter(IOFile.id == io_file_id).first()
+            
+            if not io_file:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"File with ID {io_file_id} not found in database",
+                )
+            
+            session.expunge(io_file)
+        
+        # Extract base name
+        filename = io_file.filename
+        first_dot = filename.find('.')
+        if first_dot == -1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid filename format: {filename}",
+            )
+        
+        base_name = filename[:first_dot]
+        
+        # Get output directory and construct markdown path
+        config = load_config()
+        output_dir = Path(config.paths.output_dir)
+        markdown_path = output_dir / f"{base_name}.md"
+        
+        # Validate markdown file exists
+        if not markdown_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Markdown file not found: {markdown_path.name}",
+            )
+        
+        # Import create_new_work and DuplicateWorkError
+        from psychrag.conversions.new_work import create_new_work, DuplicateWorkError
+        
+        # Call create_new_work
+        try:
+            work = create_new_work(
+                title=request.title,
+                markdown_path=markdown_path,
+                authors=request.authors,
+                year=request.year,
+                publisher=request.publisher,
+                isbn=request.isbn,
+                edition=request.edition,
+                check_duplicates=True,
+                verbose=False,
+            )
+            
+            return AddWorkResponse(
+                success=True,
+                message=f"Successfully added work '{request.title}' to database",
+                work_id=work.id,
+            )
+            
+        except DuplicateWorkError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Duplicate work: {str(e)}",
+            ) from e
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Validation error: {str(e)}",
+            ) from e
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error adding work to database: {str(e)}",
         ) from e
 
 

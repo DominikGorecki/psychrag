@@ -18,13 +18,19 @@ interface InspectionResponse {
   items: InspectionItem[];
 }
 
+interface ReadinessResponse {
+  ready: boolean;
+  reasons: string[];
+  base_name: string;
+}
+
 // Map inspection names to human-readable labels
 const INSPECTION_LABELS: Record<string, string> = {
   inspect_style_hier: "Style vs Hier Comparison",
-  inspect_toc_titles: "Table of Contents Titles",
+  inspect_toc_titles: "Table of Contents Titles (REQUIRED)",
   inspect_titles: "Document Titles",
   inspect_title_changes: "Title Changes Review",
-  inspect_original_md: "Original Markdown",
+  inspect_original_md: "Original Markdown (REQUIRED)",
 };
 
 // Map inspection names to descriptions
@@ -46,9 +52,14 @@ export default function ConvertedFilePage() {
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState<string | null>(null); // Track which item is being generated
   const [generateError, setGenerateError] = useState<string | null>(null);
+  
+  // Readiness state
+  const [readiness, setReadiness] = useState<ReadinessResponse | null>(null);
+  const [checkingReadiness, setCheckingReadiness] = useState(false);
 
   useEffect(() => {
     fetchInspectionOptions();
+    fetchReadiness();
   }, [fileId]);
 
   const fetchInspectionOptions = async () => {
@@ -71,6 +82,27 @@ export default function ConvertedFilePage() {
       setError(err instanceof Error ? err.message : "Failed to load inspection options");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReadiness = async () => {
+    try {
+      setCheckingReadiness(true);
+
+      const response = await fetch(`${API_BASE_URL}/conv/readiness/${fileId}`);
+      
+      if (!response.ok) {
+        // Don't set error for readiness check - just leave it as not ready
+        console.error("Failed to check readiness:", response.statusText);
+        return;
+      }
+
+      const data: ReadinessResponse = await response.json();
+      setReadiness(data);
+    } catch (err) {
+      console.error("Error checking readiness:", err);
+    } finally {
+      setCheckingReadiness(false);
     }
   };
 
@@ -100,8 +132,9 @@ export default function ConvertedFilePage() {
 
       const data = await response.json();
       
-      // Refresh inspection items to show the newly created file
+      // Refresh inspection items and readiness to show the newly created file
       await fetchInspectionOptions();
+      await fetchReadiness();
       
       // Show success message (could be enhanced with a toast notification)
       if (!data.success) {
@@ -112,6 +145,10 @@ export default function ConvertedFilePage() {
     } finally {
       setGenerating(null);
     }
+  };
+
+  const handleAddToDatabase = () => {
+    router.push(`/conv/${fileId}/add`);
   };
 
   if (loading) {
@@ -265,8 +302,51 @@ export default function ConvertedFilePage() {
               <li>Make any necessary manual corrections to the files</li>
               <li>Click "Add to Database" to finalize the conversion</li>
             </ol>
-            <Button className="mt-4" variant="default" disabled>
-              Add to Database
+            
+            {/* Show readiness status */}
+            {readiness && !readiness.ready && (
+              <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0 text-amber-500 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                      Not ready to add to database
+                    </p>
+                    <ul className="text-xs text-amber-600 dark:text-amber-500 space-y-1">
+                      {readiness.reasons.map((reason, idx) => (
+                        <li key={idx}>• {reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {readiness && readiness.ready && (
+              <div className="mt-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                    Ready to add to database
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            <Button 
+              className="mt-4" 
+              variant="default" 
+              disabled={!readiness?.ready || checkingReadiness}
+              onClick={handleAddToDatabase}
+            >
+              {checkingReadiness ? (
+                <>
+                  <Loader2Icon className="h-4 w-4 animate-spin mr-2" />
+                  Checking...
+                </>
+              ) : (
+                "Add to Database"
+              )}
             </Button>
           </div>
         </CardContent>

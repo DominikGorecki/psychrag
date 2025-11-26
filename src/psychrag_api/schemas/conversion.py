@@ -482,3 +482,116 @@ class ManualPromptResponse(BaseModel):
         }
 
 
+class ReadinessCheckResponse(BaseModel):
+    """Response for checking if a file is ready to be added to the database."""
+
+    ready: bool = Field(
+        ...,
+        description="Whether the file is ready to be added to database",
+        example=True,
+    )
+    reasons: list[str] = Field(
+        default_factory=list,
+        description="List of reasons why the file is not ready (empty if ready)",
+        example=[],
+    )
+    base_name: str = Field(
+        ...,
+        description="Base name of the file",
+        example="cognitive_psychology",
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "ready": True,
+                "reasons": [],
+                "base_name": "cognitive_psychology",
+            }
+        }
+
+
+class AddWorkRequest(BaseModel):
+    """Request to add a work to the database."""
+
+    title: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="Title of the work (required)",
+        example="Cognitive Psychology: A Student's Handbook",
+    )
+    authors: str | None = Field(
+        default=None,
+        max_length=1000,
+        description="Author(s) of the work (optional)",
+        example="Michael Eysenck, Mark Keane",
+    )
+    year: int | None = Field(
+        default=None,
+        ge=1000,
+        le=9999,
+        description="Year of publication (optional, must be 4 digits)",
+        example=2020,
+    )
+    publisher: str | None = Field(
+        default=None,
+        max_length=255,
+        description="Publisher name (optional)",
+        example="Psychology Press",
+    )
+    isbn: str | None = Field(
+        default=None,
+        max_length=20,
+        description="ISBN for books (optional)",
+        example="978-1138482678",
+    )
+    edition: str | None = Field(
+        default=None,
+        max_length=100,
+        description="Edition information (optional)",
+        example="8th Edition",
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "title": "Cognitive Psychology: A Student's Handbook",
+                "authors": "Michael Eysenck, Mark Keane",
+                "year": 2020,
+                "publisher": "Psychology Press",
+                "isbn": "978-1138482678",
+                "edition": "8th Edition",
+            }
+        }
+
+
+class AddWorkResponse(BaseModel):
+    """Response after adding a work to the database."""
+
+    success: bool = Field(
+        ...,
+        description="Whether the work was successfully added",
+        example=True,
+    )
+    message: str = Field(
+        ...,
+        description="Status message",
+        example="Successfully added work to database",
+    )
+    work_id: int = Field(
+        ...,
+        description="ID of the created work",
+        example=42,
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Successfully added work to database",
+                "work_id": 42,
+            }
+        }
+
+
