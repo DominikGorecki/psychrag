@@ -37,6 +37,8 @@ from psychrag.conversions.inspection import get_conversion_inspection
 from psychrag.conversions.style_v_hier import compare_and_select, compute_final_score, extract_headings, ChunkSizeConfig, ScoringWeights
 from psychrag.data.database import get_session
 from psychrag.data.models.io_file import IOFile
+from psychrag.sanitization.extract_titles import extract_titles
+from psychrag.sanitization.apply_title_edits import apply_title_edits
 
 router = APIRouter()
 
@@ -385,14 +387,17 @@ async def get_inspection_options(io_file_id: int) -> ConversionInspectionRespons
 )
 async def get_file_content(io_file_id: int, file_type: str) -> FileContentResponse:
     """
-    Get the content of a markdown file.
+    Get the extracted titles from a markdown file.
+    
+    This endpoint now returns only the titles (headings) extracted from the file,
+    not the full content. This makes the comparison lighter and faster.
     
     Args:
         io_file_id: ID of the file in the io_files table
         file_type: Type of file ('style' or 'hier')
         
     Returns:
-        FileContentResponse with markdown content
+        FileContentResponse with extracted titles (line_num: heading format)
     """
     if file_type not in ("style", "hier"):
         raise HTTPException(
@@ -438,8 +443,11 @@ async def get_file_content(io_file_id: int, file_type: str) -> FileContentRespon
                 detail=f"File not found: {target_filename}",
             )
         
-        # Read content
-        content = file_path.read_text(encoding='utf-8')
+        # Extract titles using the extract_titles function
+        titles_list = extract_titles(file_path)
+        
+        # Convert list to newline-separated string
+        content = "\n".join(titles_list)
         
         return FileContentResponse(
             content=content,
@@ -459,7 +467,7 @@ async def get_file_content(io_file_id: int, file_type: str) -> FileContentRespon
     "/file-content/{io_file_id}/{file_type}",
     response_model=FileContentResponse,
     summary="Update markdown file content",
-    description="Save edited content back to a style.md or hier.md file.",
+    description="Apply title edits to a style.md or hier.md file based on line numbers.",
     responses={
         200: {"description": "File content updated successfully"},
         404: {"description": "File not found"},
@@ -472,15 +480,24 @@ async def update_file_content(
     request: FileContentUpdateRequest
 ) -> FileContentResponse:
     """
-    Update the content of a markdown file.
+    Apply title edits to a markdown file.
+    
+    This endpoint takes title edits in the format "line_num: title" and applies them
+    to the actual markdown file by modifying specific lines.
+    
+    Special formats:
+    - "123: # New Title" - Replace line 123 with new title
+    - "123: ***MISSING***" - Skip (no change)
+    - "123: -" - Remove heading markers from line 123
+    - "123: --" - Replace line 123 with blank line
     
     Args:
         io_file_id: ID of the file in the io_files table
         file_type: Type of file ('style' or 'hier')
-        request: New content to save
+        request: Title edits in "line_num: title" format
         
     Returns:
-        FileContentResponse with confirmation
+        FileContentResponse with confirmation (returns extracted titles after save)
     """
     if file_type not in ("style", "hier"):
         raise HTTPException(
@@ -526,11 +543,15 @@ async def update_file_content(
                 detail=f"File not found: {target_filename}",
             )
         
-        # Write content
-        file_path.write_text(request.content, encoding='utf-8')
+        # Apply title edits to the file
+        apply_title_edits(file_path, request.content)
+        
+        # Extract and return the updated titles
+        titles_list = extract_titles(file_path)
+        updated_content = "\n".join(titles_list)
         
         return FileContentResponse(
-            content=request.content,
+            content=updated_content,
             filename=target_filename
         )
         
@@ -539,7 +560,7 @@ async def update_file_content(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error writing file content: {str(e)}",
+            detail=f"Error applying title edits: {str(e)}",
         ) from e
 
 

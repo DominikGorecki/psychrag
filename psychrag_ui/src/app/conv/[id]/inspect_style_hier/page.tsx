@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { MarkdownStickyViewer } from "@/components/markdown-sticky-viewer";
+import { TitlesViewer } from "@/components/titles-viewer";
 import {
   AlertCircle,
   CheckCircle2,
   Loader2Icon,
   Save,
   Sparkles,
+  AlignVerticalJustifyCenter,
+  Link2Off,
+  Link2,
+  ChevronLeft,
 } from "lucide-react";
 import {
   Dialog,
@@ -47,6 +51,7 @@ interface Suggestion {
 
 export default function InspectStyleHierPage() {
   const params = useParams();
+  const router = useRouter();
   const fileId = params.id as string;
 
   // Content states
@@ -60,6 +65,16 @@ export default function InspectStyleHierPage() {
   // Original content for comparison
   const [originalStyleContent, setOriginalStyleContent] = useState("");
   const [originalHierContent, setOriginalHierContent] = useState("");
+
+  // Scroll sync states
+  const [syncScroll, setSyncScroll] = useState(true);
+  const [styleScrollTop, setStyleScrollTop] = useState(0);
+  const [hierScrollTop, setHierScrollTop] = useState(0);
+
+  // Alignment state
+  const [isAligned, setIsAligned] = useState(false);
+  const [alignedStyleContent, setAlignedStyleContent] = useState("");
+  const [alignedHierContent, setAlignedHierContent] = useState("");
 
   // Loading states
   const [loading, setLoading] = useState(true);
@@ -139,7 +154,15 @@ export default function InspectStyleHierPage() {
     setSaveError(null);
 
     try {
-      const content = fileType === "style" ? styleContent : hierContent;
+      // Get the current content (aligned or unaligned)
+      let content: string;
+      if (isAligned) {
+        content = fileType === "style" ? alignedStyleContent : alignedHierContent;
+      } else {
+        content = fileType === "style" ? styleContent : hierContent;
+      }
+
+      // Send title edits to API (API handles applying edits to the actual markdown file)
       const response = await fetch(
         `${API_BASE_URL}/conv/file-content/${fileId}/${fileType}`,
         {
@@ -154,13 +177,27 @@ export default function InspectStyleHierPage() {
         throw new Error(errorData.detail || "Failed to save file");
       }
 
-      // Update original content and reset modified flag
+      // API returns the updated titles after applying edits
+      const responseData = await response.json();
+      const updatedTitles = responseData.content;
+
+      // Update the content with what was actually saved
       if (fileType === "style") {
-        setOriginalStyleContent(content);
+        setStyleContent(updatedTitles);
+        setOriginalStyleContent(updatedTitles);
         setStyleModified(false);
       } else {
-        setOriginalHierContent(content);
+        setHierContent(updatedTitles);
+        setOriginalHierContent(updatedTitles);
         setHierModified(false);
+      }
+
+      // If we're in aligned mode, re-run alignment with the new content
+      if (isAligned) {
+        // Wait a bit for state to update
+        setTimeout(() => {
+          alignTitles();
+        }, 100);
       }
     } catch (err) {
       setSaveError(
@@ -200,7 +237,7 @@ export default function InspectStyleHierPage() {
       // Success - close dialog
       setSelectionDialog({ open: false, fileType: null });
       
-      // Show success message (you could add a toast notification here)
+      // Show success message
       alert(`Successfully selected ${fileType}.md as the main file!`);
     } catch (err) {
       setSaveError(
@@ -212,13 +249,108 @@ export default function InspectStyleHierPage() {
   };
 
   const handleStyleContentChange = (newContent: string) => {
-    setStyleContent(newContent);
-    setStyleModified(newContent !== originalStyleContent);
+    if (isAligned) {
+      setAlignedStyleContent(newContent);
+      // Mark as modified if different from original
+      setStyleModified(true);
+    } else {
+      setStyleContent(newContent);
+      setStyleModified(newContent !== originalStyleContent);
+    }
   };
 
   const handleHierContentChange = (newContent: string) => {
-    setHierContent(newContent);
-    setHierModified(newContent !== originalHierContent);
+    if (isAligned) {
+      setAlignedHierContent(newContent);
+      // Mark as modified if different from original
+      setHierModified(true);
+    } else {
+      setHierContent(newContent);
+      setHierModified(newContent !== originalHierContent);
+    }
+  };
+
+  const handleStyleScroll = (scrollTop: number, scrollHeight: number, clientHeight: number) => {
+    if (syncScroll) {
+      setHierScrollTop(scrollTop);
+    }
+  };
+
+  const handleHierScroll = (scrollTop: number, scrollHeight: number, clientHeight: number) => {
+    if (syncScroll) {
+      setStyleScrollTop(scrollTop);
+    }
+  };
+
+  const parseLineNumber = (line: string): number | null => {
+    const match = line.match(/^(\d+):/);
+    return match ? parseInt(match[1], 10) : null;
+  };
+
+  const alignTitles = () => {
+    const styleLines = styleContent.split('\n');
+    const hierLines = hierContent.split('\n');
+
+    // Parse line numbers and content
+    const styleMap = new Map<number, string>();
+    const hierMap = new Map<number, string>();
+    const allLineNumbers = new Set<number>();
+
+    styleLines.forEach(line => {
+      const lineNum = parseLineNumber(line);
+      if (lineNum !== null) {
+        styleMap.set(lineNum, line);
+        allLineNumbers.add(lineNum);
+      }
+    });
+
+    hierLines.forEach(line => {
+      const lineNum = parseLineNumber(line);
+      if (lineNum !== null) {
+        hierMap.set(lineNum, line);
+        allLineNumbers.add(lineNum);
+      }
+    });
+
+    // Sort line numbers
+    const sortedLineNumbers = Array.from(allLineNumbers).sort((a, b) => a - b);
+
+    // Build aligned content with ***MISSING*** placeholders
+    const alignedStyle: string[] = [];
+    const alignedHier: string[] = [];
+
+    sortedLineNumbers.forEach(lineNum => {
+      const styleLine = styleMap.get(lineNum);
+      const hierLine = hierMap.get(lineNum);
+
+      // Add line with ***MISSING*** placeholder if missing
+      alignedStyle.push(styleLine || `${lineNum}: ***MISSING***`);
+      alignedHier.push(hierLine || `${lineNum}: ***MISSING***`);
+    });
+
+    setAlignedStyleContent(alignedStyle.join('\n'));
+    setAlignedHierContent(alignedHier.join('\n'));
+    setIsAligned(true);
+  };
+
+  const unalignTitles = () => {
+    // Check if there are unsaved changes in aligned mode
+    const hasStyleChanges = isAligned && alignedStyleContent !== styleContent;
+    const hasHierChanges = isAligned && alignedHierContent !== hierContent;
+    
+    if (hasStyleChanges || hasHierChanges) {
+      const confirmed = window.confirm(
+        "You have unsaved changes in aligned mode. Unaligning will discard these changes. Continue?"
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+    
+    setIsAligned(false);
+    // Clear modified flags since we're discarding aligned changes
+    setStyleModified(false);
+    setHierModified(false);
   };
 
   if (loading) {
@@ -243,124 +375,195 @@ export default function InspectStyleHierPage() {
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Header */}
-      <div className="border-b bg-card p-4">
-        <h1 className="text-2xl font-bold">Style vs Hier Comparison</h1>
-        <p className="text-sm text-muted-foreground">
-          File ID: <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{fileId}</code>
-        </p>
+      {/* Header with controls */}
+      <div className="border-b bg-card p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {/* Back button */}
+          <Button
+            onClick={() => router.push(`/conv/${fileId}`)}
+            variant="ghost"
+            size="sm"
+            className="gap-1"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </Button>
+          
+          <div className="border-l h-8" />
+          
+          <div>
+            <h1 className="text-2xl font-bold">Style vs Hier Comparison</h1>
+            <p className="text-sm text-muted-foreground">
+              File ID: <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{fileId}</code>
+            </p>
+          </div>
+        </div>
+        
+        {/* Controls in header */}
+        <div className="flex items-center gap-2">
+          {/* Sync scroll toggle */}
+          <Button
+            onClick={() => setSyncScroll(!syncScroll)}
+            variant={syncScroll ? "default" : "outline"}
+            size="sm"
+            className="gap-2"
+          >
+            {syncScroll ? (
+              <Link2 className="h-4 w-4" />
+            ) : (
+              <Link2Off className="h-4 w-4" />
+            )}
+            {syncScroll ? "Synced" : "Sync Off"}
+          </Button>
+
+          {/* Align button */}
+          {!isAligned ? (
+            <Button
+              onClick={alignTitles}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <AlignVerticalJustifyCenter className="h-4 w-4" />
+              Align by Line
+            </Button>
+          ) : (
+            <Button
+              onClick={unalignTitles}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <AlignVerticalJustifyCenter className="h-4 w-4" />
+              Unalign
+            </Button>
+          )}
+
+          {/* Suggest button */}
+          <Button
+            onClick={fetchSuggestion}
+            disabled={loadingSuggestion}
+            variant="secondary"
+            className="gap-2"
+          >
+            {loadingSuggestion ? (
+              <Loader2Icon className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {loadingSuggestion ? "Analyzing..." : "Suggest Best"}
+          </Button>
+        </div>
       </div>
 
-      {/* Main content area - 50/50 split */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Main content area - 50/50 split, reduced height to prevent cutoff */}
+      <div className="flex-1 flex overflow-hidden" style={{ maxHeight: "calc(100vh - 180px)" }}>
         {/* Left: Style file */}
         <div className="w-1/2 flex flex-col border-r">
-          <MarkdownStickyViewer
-            content={styleContent}
+          <TitlesViewer
+            content={isAligned ? alignedStyleContent : styleContent}
             onContentChange={handleStyleContentChange}
-            title="style.md"
+            title="style.md titles"
+            onScroll={handleStyleScroll}
+            syncScroll={syncScroll}
+            externalScrollTop={styleScrollTop}
           />
-          
-          {/* Style file actions */}
-          <div className="p-4 border-t bg-card flex items-center gap-3">
-            <Button
-              onClick={() => handleSave("style")}
-              disabled={!styleModified || saving !== null}
-              className="gap-2"
-            >
-              {saving === "style" ? (
-                <Loader2Icon className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              Save
-              {styleModified && <span className="text-xs">(modified)</span>}
-            </Button>
-            
-            <Button
-              onClick={() => handleSelectClick("style")}
-              disabled={selecting !== null}
-              variant="outline"
-              className="gap-2"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              Select
-            </Button>
-
-            {suggestion && suggestion.winner === "style" && (
-              <div className="ml-auto flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                <Sparkles className="h-4 w-4" />
-                <span className="font-medium">Recommended</span>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Right: Hier file */}
         <div className="w-1/2 flex flex-col">
-          <MarkdownStickyViewer
-            content={hierContent}
+          <TitlesViewer
+            content={isAligned ? alignedHierContent : hierContent}
             onContentChange={handleHierContentChange}
-            title="hier.md"
+            title="hier.md titles"
+            onScroll={handleHierScroll}
+            syncScroll={syncScroll}
+            externalScrollTop={hierScrollTop}
           />
-          
-          {/* Hier file actions */}
-          <div className="p-4 border-t bg-card flex items-center gap-3">
-            <Button
-              onClick={() => handleSave("hier")}
-              disabled={!hierModified || saving !== null}
-              className="gap-2"
-            >
-              {saving === "hier" ? (
-                <Loader2Icon className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              Save
-              {hierModified && <span className="text-xs">(modified)</span>}
-            </Button>
-            
-            <Button
-              onClick={() => handleSelectClick("hier")}
-              disabled={selecting !== null}
-              variant="outline"
-              className="gap-2"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              Select
-            </Button>
-
-            {suggestion && suggestion.winner === "hier" && (
-              <div className="ml-auto flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                <Sparkles className="h-4 w-4" />
-                <span className="font-medium">Recommended</span>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
-      {/* Center suggestion button */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-        <Button
-          onClick={fetchSuggestion}
-          disabled={loadingSuggestion}
-          variant="secondary"
-          size="lg"
-          className="shadow-lg gap-2"
-        >
-          {loadingSuggestion ? (
-            <Loader2Icon className="h-5 w-5 animate-spin" />
-          ) : (
-            <Sparkles className="h-5 w-5" />
+      {/* Bottom action bar */}
+      <div className="border-t bg-card p-4 flex items-center gap-4">
+        {/* Style file actions */}
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => handleSave("style")}
+            disabled={!styleModified || saving !== null}
+            size="sm"
+            className="gap-2"
+          >
+            {saving === "style" ? (
+              <Loader2Icon className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save Style
+            {styleModified && <span className="text-xs">(modified)</span>}
+          </Button>
+          
+          <Button
+            onClick={() => handleSelectClick("style")}
+            disabled={selecting !== null}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Select Style
+          </Button>
+
+          {suggestion && suggestion.winner === "style" && (
+            <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+              <Sparkles className="h-4 w-4" />
+              <span className="font-medium">Recommended</span>
+            </div>
           )}
-          {loadingSuggestion ? "Analyzing..." : "Suggest Best"}
-        </Button>
+        </div>
+
+        {/* Separator */}
+        <div className="flex-1 border-l mx-4" />
+
+        {/* Hier file actions */}
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => handleSave("hier")}
+            disabled={!hierModified || saving !== null}
+            size="sm"
+            className="gap-2"
+          >
+            {saving === "hier" ? (
+              <Loader2Icon className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save Hier
+            {hierModified && <span className="text-xs">(modified)</span>}
+          </Button>
+          
+          <Button
+            onClick={() => handleSelectClick("hier")}
+            disabled={selecting !== null}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Select Hier
+          </Button>
+
+          {suggestion && suggestion.winner === "hier" && (
+            <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+              <Sparkles className="h-4 w-4" />
+              <span className="font-medium">Recommended</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Error display */}
       {saveError && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-4 py-2 rounded-md shadow-lg flex items-center gap-2">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-4 py-2 rounded-md shadow-lg flex items-center gap-2 z-50">
           <AlertCircle className="h-4 w-4" />
           {saveError}
         </div>
@@ -408,4 +611,3 @@ export default function InspectStyleHierPage() {
     </div>
   );
 }
-
