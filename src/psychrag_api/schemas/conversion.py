@@ -436,3 +436,49 @@ class FileSelectionResponse(BaseModel):
         }
 
 
+class GenerateTocTitlesResponse(BaseModel):
+    """Response for generating TOC titles file."""
+
+    success: bool = Field(
+        ...,
+        description="Whether the generation was successful",
+        example=True,
+    )
+    message: str = Field(
+        ...,
+        description="Status message",
+        example="Successfully generated toc_titles.md from PDF bookmarks",
+    )
+    file_created: str = Field(
+        ...,
+        description="Name of the file that was created",
+        example="document.toc_titles.md",
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Successfully generated toc_titles.md from PDF bookmarks",
+                "file_created": "document.toc_titles.md",
+            }
+        }
+
+
+class ManualPromptResponse(BaseModel):
+    """Response containing the manual prompt content for TOC titles extraction."""
+
+    content: str = Field(
+        ...,
+        description="The manual prompt markdown content",
+        example="You are an expert at analyzing academic PDFs...",
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "content": "You are an expert at analyzing academic PDFs...",
+            }
+        }
+
+

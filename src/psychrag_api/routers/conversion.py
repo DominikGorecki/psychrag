@@ -26,14 +26,17 @@ from psychrag_api.schemas.conversion import (
     FileSelectionRequest,
     FileSelectionResponse,
     FileSuggestionResponse,
+    GenerateTocTitlesResponse,
     InspectionItemSchema,
     IOFolderDataResponse,
+    ManualPromptResponse,
     SupportedFormatsResponse,
 )
 from psychrag.config import load_config
 from psychrag.config.io_folder_data import get_io_folder_data
 from psychrag.conversions.conv_pdf2md import convert_pdf_to_markdown
 from psychrag.conversions.inspection import get_conversion_inspection
+from psychrag.conversions.pdf_bookmarks2toc import extract_bookmarks_to_toc
 from psychrag.conversions.style_v_hier import compare_and_select, compute_final_score, extract_headings, ChunkSizeConfig, ScoringWeights
 from psychrag.data.database import get_session
 from psychrag.data.models.io_file import IOFile
@@ -374,6 +377,118 @@ async def get_inspection_options(io_file_id: int) -> ConversionInspectionRespons
         ) from e
 
 
+@router.post(
+    "/generate-toc-titles/{io_file_id}",
+    response_model=GenerateTocTitlesResponse,
+    summary="Generate TOC titles file",
+    description="Generate a toc_titles.md file by extracting bookmarks from the source PDF.",
+    responses={
+        200: {"description": "TOC titles generated successfully"},
+        404: {"description": "File not found"},
+        500: {"description": "Error generating TOC titles"},
+    },
+)
+async def generate_toc_titles(io_file_id: int) -> GenerateTocTitlesResponse:
+    """
+    Generate TOC titles file from PDF bookmarks.
+    
+    This endpoint attempts to extract bookmarks from the source PDF and create
+    a toc_titles.md file. If an error occurs, it creates the file with error details.
+    
+    Args:
+        io_file_id: ID of the file in the io_files table
+        
+    Returns:
+        GenerateTocTitlesResponse with success status and file details
+    """
+    try:
+        # Get the file from database
+        with get_session() as session:
+            io_file = session.query(IOFile).filter(IOFile.id == io_file_id).first()
+            
+            if not io_file:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"File with ID {io_file_id} not found in database",
+                )
+            
+            # Detach from session
+            session.expunge(io_file)
+        
+        # Extract base name (everything before first dot)
+        filename = io_file.filename
+        first_dot = filename.find('.')
+        if first_dot == -1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid filename format: {filename} (no extension found)",
+            )
+        
+        base_name = filename[:first_dot]
+        
+        # Get directories from config
+        config = load_config()
+        input_dir = Path(config.paths.input_dir)
+        output_dir = Path(config.paths.output_dir)
+        
+        # Locate the source PDF in input directory
+        pdf_path = input_dir / filename
+        if not pdf_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Source PDF not found: {filename}",
+            )
+        
+        # Define output path
+        output_path = output_dir / f"{base_name}.toc_titles.md"
+        
+        # Attempt to extract bookmarks
+        try:
+            toc_content = extract_bookmarks_to_toc(
+                pdf_path=pdf_path,
+                output_path=output_path,
+                verbose=False
+            )
+            
+            if not toc_content:
+                # No bookmarks found - create error file
+                error_message = "***ERROR***\n\nNo bookmarks found in PDF"
+                output_path.write_text(error_message, encoding="utf-8")
+                
+                return GenerateTocTitlesResponse(
+                    success=False,
+                    message="No bookmarks found in PDF. Created error file.",
+                    file_created=output_path.name,
+                )
+            
+            return GenerateTocTitlesResponse(
+                success=True,
+                message=f"Successfully generated toc_titles.md from PDF bookmarks ({len(toc_content.split(chr(10)))} lines)",
+                file_created=output_path.name,
+            )
+            
+        except Exception as extract_error:
+            # Error during extraction - create error file
+            error_message = f"***ERROR***\n\n{str(extract_error)}"
+            output_path.write_text(error_message, encoding="utf-8")
+            
+            return GenerateTocTitlesResponse(
+                success=False,
+                message=f"Error extracting TOC: {str(extract_error)}. Created error file.",
+                file_created=output_path.name,
+            )
+            
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Other unexpected errors
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating TOC titles: {str(e)}",
+        ) from e
+
+
 @router.get(
     "/file-content/{io_file_id}/{file_type}",
     response_model=FileContentResponse,
@@ -387,22 +502,22 @@ async def get_inspection_options(io_file_id: int) -> ConversionInspectionRespons
 )
 async def get_file_content(io_file_id: int, file_type: str) -> FileContentResponse:
     """
-    Get the extracted titles from a markdown file.
+    Get the content from a markdown file.
     
-    This endpoint now returns only the titles (headings) extracted from the file,
-    not the full content. This makes the comparison lighter and faster.
+    For 'style' and 'hier' files, returns extracted titles (headings) only.
+    For 'toc_titles' files, returns the raw markdown content.
     
     Args:
         io_file_id: ID of the file in the io_files table
-        file_type: Type of file ('style' or 'hier')
+        file_type: Type of file ('style', 'hier', or 'toc_titles')
         
     Returns:
-        FileContentResponse with extracted titles (line_num: heading format)
+        FileContentResponse with content
     """
-    if file_type not in ("style", "hier"):
+    if file_type not in ("style", "hier", "toc_titles"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file_type: {file_type}. Must be 'style' or 'hier'",
+            detail=f"Invalid file_type: {file_type}. Must be 'style', 'hier', or 'toc_titles'",
         )
     
     try:
@@ -443,11 +558,14 @@ async def get_file_content(io_file_id: int, file_type: str) -> FileContentRespon
                 detail=f"File not found: {target_filename}",
             )
         
-        # Extract titles using the extract_titles function
-        titles_list = extract_titles(file_path)
-        
-        # Convert list to newline-separated string
-        content = "\n".join(titles_list)
+        # For toc_titles, return raw markdown content
+        if file_type == "toc_titles":
+            content = file_path.read_text(encoding="utf-8")
+        else:
+            # For style and hier, extract titles using the extract_titles function
+            titles_list = extract_titles(file_path)
+            # Convert list to newline-separated string
+            content = "\n".join(titles_list)
         
         return FileContentResponse(
             content=content,
@@ -480,12 +598,14 @@ async def update_file_content(
     request: FileContentUpdateRequest
 ) -> FileContentResponse:
     """
-    Apply title edits to a markdown file.
+    Update a markdown file's content.
     
-    This endpoint takes title edits in the format "line_num: title" and applies them
+    For 'style' and 'hier' files: Applies title edits in the format "line_num: title"
     to the actual markdown file by modifying specific lines.
     
-    Special formats:
+    For 'toc_titles' files: Replaces the entire file content with the provided content.
+    
+    Special formats for style/hier:
     - "123: # New Title" - Replace line 123 with new title
     - "123: ***MISSING***" - Skip (no change)
     - "123: -" - Remove heading markers from line 123
@@ -493,16 +613,16 @@ async def update_file_content(
     
     Args:
         io_file_id: ID of the file in the io_files table
-        file_type: Type of file ('style' or 'hier')
-        request: Title edits in "line_num: title" format
+        file_type: Type of file ('style', 'hier', or 'toc_titles')
+        request: For style/hier: title edits. For toc_titles: raw markdown content
         
     Returns:
-        FileContentResponse with confirmation (returns extracted titles after save)
+        FileContentResponse with updated content
     """
-    if file_type not in ("style", "hier"):
+    if file_type not in ("style", "hier", "toc_titles"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file_type: {file_type}. Must be 'style' or 'hier'",
+            detail=f"Invalid file_type: {file_type}. Must be 'style', 'hier', or 'toc_titles'",
         )
     
     try:
@@ -543,12 +663,17 @@ async def update_file_content(
                 detail=f"File not found: {target_filename}",
             )
         
-        # Apply title edits to the file
-        apply_title_edits(file_path, request.content)
-        
-        # Extract and return the updated titles
-        titles_list = extract_titles(file_path)
-        updated_content = "\n".join(titles_list)
+        # Handle toc_titles differently - save raw markdown
+        if file_type == "toc_titles":
+            file_path.write_text(request.content, encoding="utf-8")
+            updated_content = request.content
+        else:
+            # For style and hier, apply title edits
+            apply_title_edits(file_path, request.content)
+            
+            # Extract and return the updated titles
+            titles_list = extract_titles(file_path)
+            updated_content = "\n".join(titles_list)
         
         return FileContentResponse(
             content=updated_content,
@@ -809,6 +934,59 @@ async def select_file(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error selecting file: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/manual-prompt-toc-titles",
+    response_model=ManualPromptResponse,
+    summary="Get manual TOC titles prompt",
+    description="Retrieve the manual prompt for extracting TOC titles using an LLM.",
+    responses={
+        200: {"description": "Manual prompt retrieved successfully"},
+        500: {"description": "Error reading prompt file"},
+    },
+)
+async def get_manual_prompt_toc_titles() -> ManualPromptResponse:
+    """
+    Get the manual prompt content for TOC titles extraction.
+    
+    This endpoint returns the content of manual_prompt__toc_titles.md which
+    users can copy and paste to their favorite LLM along with the PDF to
+    manually extract TOC titles.
+    
+    Returns:
+        ManualPromptResponse with the prompt content
+    """
+    try:
+        # Use pathlib to construct the path more reliably
+        import sys
+        from pathlib import Path as PathLib
+        
+        # Get the project root (where src/ is located)
+        # The API router is in src/psychrag_api/routers/conversion.py
+        current_file = PathLib(__file__).resolve()
+        src_dir = current_file.parent.parent.parent  # Go up from routers -> psychrag_api -> src
+        
+        prompt_path = src_dir / "psychrag" / "conversions" / "manual_prompt__toc_titles.md"
+        
+        if not prompt_path.exists():
+            raise FileNotFoundError(f"Prompt file not found at: {prompt_path}")
+        
+        # Read the prompt file
+        content = prompt_path.read_text(encoding="utf-8")
+        
+        return ManualPromptResponse(content=content)
+        
+    except FileNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Manual prompt file not found: {str(e)}",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error reading manual prompt: {str(e)}",
         ) from e
 
 

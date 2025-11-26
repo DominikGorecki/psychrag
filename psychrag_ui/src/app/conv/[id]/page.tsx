@@ -44,6 +44,8 @@ export default function ConvertedFilePage() {
   const [inspectionItems, setInspectionItems] = useState<InspectionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState<string | null>(null); // Track which item is being generated
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInspectionOptions();
@@ -76,9 +78,40 @@ export default function ConvertedFilePage() {
     router.push(`/conv/${fileId}/${inspectionName}`);
   };
 
-  const handleGenerate = (inspectionName: string) => {
-    // Stub: This will be implemented later
-    console.log(`Generate ${inspectionName} for file ${fileId}`);
+  const handleGenerate = async (inspectionName: string) => {
+    // Only handle toc_titles generation for now
+    if (inspectionName !== "inspect_toc_titles") {
+      console.log(`Generate ${inspectionName} for file ${fileId} - not yet implemented`);
+      return;
+    }
+
+    try {
+      setGenerating(inspectionName);
+      setGenerateError(null);
+
+      const response = await fetch(`${API_BASE_URL}/conv/generate-toc-titles/${fileId}`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Generation failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Refresh inspection items to show the newly created file
+      await fetchInspectionOptions();
+      
+      // Show success message (could be enhanced with a toast notification)
+      if (!data.success) {
+        setGenerateError(data.message);
+      }
+    } catch (err) {
+      setGenerateError(err instanceof Error ? err.message : "Generation failed");
+    } finally {
+      setGenerating(null);
+    }
   };
 
   if (loading) {
@@ -138,6 +171,14 @@ export default function ConvertedFilePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {generateError && (
+            <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <p className="text-sm">{generateError}</p>
+              </div>
+            </div>
+          )}
           <div className="space-y-3">
             {inspectionItems.length === 0 ? (
               <div className="text-sm text-muted-foreground py-8 text-center">
@@ -190,12 +231,16 @@ export default function ConvertedFilePage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled
+                        disabled={generating !== null || item.name !== "inspect_toc_titles"}
                         onClick={() => handleGenerate(item.name)}
                         className="gap-2"
                       >
-                        <PlayCircle className="h-4 w-4" />
-                        Generate
+                        {generating === item.name ? (
+                          <Loader2Icon className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <PlayCircle className="h-4 w-4" />
+                        )}
+                        {generating === item.name ? "Generating..." : "Generate"}
                       </Button>
                     )}
                   </div>
