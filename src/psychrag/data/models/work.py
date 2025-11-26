@@ -42,6 +42,9 @@ class Work(Base):
                           "sanitized": {"path": "...", "hash": "..."},
                           "sanitized_titles": {"path": "...", "hash": "..."},
                           "vec_suggestions": {"path": "...", "hash": "..."}}
+        processing_status: JSON object tracking processing operation statuses.
+                          Structure: {"heading_chunks": "completed"|"pending"|"failed",
+                                     "content_chunks": "completed"|"pending"|"failed"}
         content_hash: SHA-256 hash of source content for deduplication.
         created_at: Timestamp when record was created.
         updated_at: Timestamp when record was last updated.
@@ -62,6 +65,7 @@ class Work(Base):
     work_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
     toc: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     files: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    processing_status: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     content_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

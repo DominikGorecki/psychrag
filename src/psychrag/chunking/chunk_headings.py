@@ -268,9 +268,15 @@ def chunk_headings(work_id: int, verbose: bool = False) -> int:
                 parent_info = f", parent_id={parent_id}" if parent_id else ""
                 print(f"  Created H{level} chunk (lines {start_line}-{end_line}){parent_info}")
 
+        # Update processing status
+        updated_status = dict(work.processing_status) if work.processing_status else {}
+        updated_status['heading_chunks'] = 'completed'
+        work.processing_status = updated_status
+
         session.commit()
 
         if verbose:
             print(f"Created {chunks_created} chunks for work {work_id}")
+            print(f"Updated processing_status: heading_chunks=completed")
 
         return chunks_created
