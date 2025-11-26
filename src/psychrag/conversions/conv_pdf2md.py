@@ -201,14 +201,34 @@ def convert_pdf_to_markdown(
         if verbose:
             print("Generating hierarchical (TOC-based) output...")
 
-        postprocessor_hier = ResultPostprocessor(result_hier, pdf_path)
-        try:
-            postprocessor_hier.process()
-        except Exception as e:
-            if verbose:
-                print(f"Hierarchical processing failed: {e}, using style-based as fallback")
+        # Run hierarchical processing with timeout (same as single-output mode)
+        hier_error = [None]
+        hier_timed_out = [False]
 
-        hier_md = result_hier.document.export_to_markdown()
+        def run_hier_processing():
+            try:
+                postprocessor_hier = ResultPostprocessor(result_hier, pdf_path)
+                postprocessor_hier.process()
+            except Exception as e:
+                hier_error[0] = e
+
+        hier_thread = threading.Thread(target=run_hier_processing, daemon=True)
+        hier_thread.start()
+        hier_thread.join(timeout=120)  # 120 second timeout for hierarchical in compare mode
+
+        if hier_thread.is_alive():
+            hier_timed_out[0] = True
+            if verbose:
+                print("Warning: Hierarchical processing timed out, using style-based as fallback for hier output")
+            # Copy style_md to hier_md as fallback
+            hier_md = style_md
+        elif hier_error[0]:
+            if verbose:
+                print(f"Hierarchical processing failed: {hier_error[0]}, using style-based as fallback")
+            hier_md = style_md
+        else:
+            # Hierarchical processing succeeded
+            hier_md = result_hier.document.export_to_markdown()
 
         # Write to output files if specified
         if output_path:

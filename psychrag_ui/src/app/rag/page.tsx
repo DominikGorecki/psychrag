@@ -16,6 +16,7 @@ import {
   Layers,
   PlayCircle,
   Plus,
+  FastForward,
 } from "lucide-react";
 import {
   Table,
@@ -55,6 +56,10 @@ export default function RAGPage() {
   const [operatingId, setOperatingId] = useState<number | null>(null);
   const [operationError, setOperationError] = useState<string | null>(null);
   const [operationSuccess, setOperationSuccess] = useState<string | null>(null);
+  
+  // Run All states
+  const [runAllId, setRunAllId] = useState<number | null>(null);
+  const [runAllStep, setRunAllStep] = useState<string | null>(null);
 
   useEffect(() => {
     fetchQueries();
@@ -171,6 +176,51 @@ export default function RAGPage() {
     router.push(`/rag/${queryId}`);
   };
 
+  const handleRunAll = async (queryId: number, currentStatus: string) => {
+    setRunAllId(queryId);
+    setOperationError(null);
+    setOperationSuccess(null);
+
+    try {
+      // Determine which steps to run based on current status
+      const steps: { name: string; label: string; endpoint: string }[] = [];
+      
+      if (currentStatus === "needs_embeddings") {
+        steps.push({ name: "embed", label: "Embedding", endpoint: `/rag/queries/${queryId}/embed` });
+      }
+      if (currentStatus === "needs_embeddings" || currentStatus === "needs_retrieval") {
+        steps.push({ name: "retrieve", label: "Retrieving", endpoint: `/rag/queries/${queryId}/retrieve` });
+      }
+      if (currentStatus === "needs_embeddings" || currentStatus === "needs_retrieval" || currentStatus === "needs_consolidation") {
+        steps.push({ name: "consolidate", label: "Consolidating", endpoint: `/rag/queries/${queryId}/consolidate` });
+      }
+
+      // Run each step sequentially
+      for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        setRunAllStep(`${i + 1}/${steps.length} ${step.label}`);
+
+        const response = await fetch(`${API_BASE_URL}${step.endpoint}`, {
+          method: "POST",
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || `Failed at step: ${step.label}`);
+        }
+      }
+
+      setOperationSuccess("All steps completed successfully - query is ready for generation");
+      await fetchQueries();
+    } catch (err) {
+      setOperationError(err instanceof Error ? err.message : "Failed during run all");
+      await fetchQueries(); // Refresh to show current status
+    } finally {
+      setRunAllId(null);
+      setRunAllStep(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "needs_embeddings":
@@ -213,74 +263,115 @@ export default function RAGPage() {
 
   const getActionButton = (query: QueryListItem) => {
     const isOperating = operatingId === query.id;
+    const isRunningAll = runAllId === query.id;
+    const isDisabled = isOperating || isRunningAll;
 
-    switch (query.status) {
-      case "needs_embeddings":
-        return (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleEmbed(query.id)}
-            disabled={isOperating}
-            className="gap-1"
-          >
-            {isOperating ? (
+    // Helper to get the single-step button
+    const getSingleStepButton = () => {
+      switch (query.status) {
+        case "needs_embeddings":
+          return (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleEmbed(query.id)}
+              disabled={isDisabled}
+              className="gap-1"
+            >
+              {isOperating ? (
+                <Loader2Icon className="h-3 w-3 animate-spin" />
+              ) : (
+                <Zap className="h-3 w-3" />
+              )}
+              Embed
+            </Button>
+          );
+        case "needs_retrieval":
+          return (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleRetrieve(query.id)}
+              disabled={isDisabled}
+              className="gap-1"
+            >
+              {isOperating ? (
+                <Loader2Icon className="h-3 w-3 animate-spin" />
+              ) : (
+                <Search className="h-3 w-3" />
+              )}
+              Retrieve
+            </Button>
+          );
+        case "needs_consolidation":
+          return (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleConsolidate(query.id)}
+              disabled={isDisabled}
+              className="gap-1"
+            >
+              {isOperating ? (
+                <Loader2Icon className="h-3 w-3 animate-spin" />
+              ) : (
+                <Layers className="h-3 w-3" />
+              )}
+              Consolidate
+            </Button>
+          );
+        default:
+          return null;
+      }
+    };
+
+    // Helper to get the "Run All" button for non-ready statuses
+    const getRunAllButton = () => {
+      if (query.status === "ready") return null;
+      
+      return (
+        <Button
+          size="sm"
+          variant="default"
+          onClick={() => handleRunAll(query.id, query.status)}
+          disabled={isDisabled}
+          className="gap-1"
+        >
+          {isRunningAll ? (
+            <>
               <Loader2Icon className="h-3 w-3 animate-spin" />
-            ) : (
-              <Zap className="h-3 w-3" />
-            )}
-            Embed
-          </Button>
-        );
-      case "needs_retrieval":
-        return (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleRetrieve(query.id)}
-            disabled={isOperating}
-            className="gap-1"
-          >
-            {isOperating ? (
-              <Loader2Icon className="h-3 w-3 animate-spin" />
-            ) : (
-              <Search className="h-3 w-3" />
-            )}
-            Retrieve
-          </Button>
-        );
-      case "needs_consolidation":
-        return (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleConsolidate(query.id)}
-            disabled={isOperating}
-            className="gap-1"
-          >
-            {isOperating ? (
-              <Loader2Icon className="h-3 w-3 animate-spin" />
-            ) : (
-              <Layers className="h-3 w-3" />
-            )}
-            Consolidate
-          </Button>
-        );
-      case "ready":
-        return (
-          <Button
-            size="sm"
-            onClick={() => handleGenerate(query.id)}
-            disabled={isOperating}
-            className="gap-1"
-          >
-            <PlayCircle className="h-3 w-3" />
-            Generate
-          </Button>
-        );
-      default:
-        return null;
+              {runAllStep}
+            </>
+          ) : (
+            <>
+              <FastForward className="h-3 w-3" />
+              Run All
+            </>
+          )}
+        </Button>
+      );
+    };
+
+    if (query.status === "ready") {
+      return (
+        <Button
+          size="sm"
+          onClick={() => handleGenerate(query.id)}
+          disabled={isDisabled}
+          className="gap-1"
+        >
+          <PlayCircle className="h-3 w-3" />
+          Generate
+        </Button>
+      );
     }
+
+    return (
+      <div className="flex gap-2 justify-end">
+        {getSingleStepButton()}
+        {getRunAllButton()}
+      </div>
+    );
   };
 
   const formatDate = (dateString: string) => {
