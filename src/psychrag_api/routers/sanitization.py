@@ -30,6 +30,7 @@ from psychrag.sanitization import (
     HashMismatchError,
 )
 from psychrag.utils.file_utils import compute_file_hash, set_file_writable, set_file_readonly
+from psychrag.config import load_config
 from psychrag_api.schemas.sanitization import (
     # Legacy schemas
     ApplyChangesRequest,
@@ -62,6 +63,8 @@ from psychrag_api.schemas.sanitization import (
     VerifyTitleChangesResponse,
     TitleChangesContentResponse,
     UpdateTitleChangesContentRequest,
+    AddSanitizedMarkdownRequest,
+    AddSanitizedMarkdownResponse,
 )
 
 router = APIRouter()
@@ -834,6 +837,120 @@ async def update_titles_content(
             content=request.content,
             filename=titles_path.name,
             hash=new_hash
+        )
+
+
+@router.post(
+    "/add-sanitized",
+    response_model=AddSanitizedMarkdownResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add sanitized markdown directly",
+    description="Create a new work with sanitized markdown content directly, skipping the conversion and sanitization workflow.",
+)
+async def add_sanitized_markdown(
+    request: AddSanitizedMarkdownRequest
+) -> AddSanitizedMarkdownResponse:
+    """
+    Add a new work with pre-sanitized markdown content.
+    
+    Creates a .sanitized.md file in the output directory and a database entry
+    with the bibliographic information. The work.toc is set to empty since
+    sanitization is being skipped.
+    
+    This is useful for documents that are already clean and don't need
+    the standard sanitization workflow.
+    """
+    import re
+    
+    try:
+        # Validate filename (alphanumeric, underscores, hyphens only)
+        if not re.match(r'^[a-zA-Z0-9_-]+$', request.filename):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Filename must contain only alphanumeric characters, underscores, and hyphens"
+            )
+        
+        # Get output directory from config
+        config = load_config()
+        output_dir = Path(config.paths.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create the sanitized file path
+        sanitized_path = output_dir / f"{request.filename}.sanitized.md"
+        
+        # Check if file already exists
+        if sanitized_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"A file with this name already exists: {sanitized_path.name}"
+            )
+        
+        # Write the sanitized content
+        sanitized_path.write_text(request.content, encoding='utf-8')
+        
+        # Compute content hash
+        content_hash = compute_file_hash(sanitized_path)
+        
+        # Set file to read-only
+        set_file_readonly(sanitized_path)
+        
+        # Check for duplicate content
+        with get_session() as session:
+            existing_work = session.query(Work).filter(
+                Work.content_hash == content_hash
+            ).first()
+            
+            if existing_work:
+                # Remove the file we just created
+                set_file_writable(sanitized_path)
+                sanitized_path.unlink()
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"A work with the same content already exists (ID: {existing_work.id}, Title: '{existing_work.title}')"
+                )
+        
+        # Create files metadata
+        files_metadata = {
+            "sanitized": {
+                "path": str(sanitized_path.resolve()),
+                "hash": content_hash
+            }
+        }
+        
+        # Create the work entry
+        work = Work(
+            title=request.title,
+            markdown_path=str(sanitized_path.resolve()),
+            authors=request.authors,
+            year=request.year,
+            publisher=request.publisher,
+            isbn=request.isbn,
+            abstract=request.edition,  # Store edition in abstract field
+            content_hash=content_hash,
+            toc=[],  # Empty TOC since we're skipping sanitization
+            files=files_metadata
+        )
+        
+        # Insert into database
+        with get_session() as session:
+            session.add(work)
+            session.commit()
+            session.refresh(work)
+            work_id = work.id
+        
+        return AddSanitizedMarkdownResponse(
+            success=True,
+            work_id=work_id,
+            output_path=str(sanitized_path),
+            message=f"Work created successfully with ID {work_id}"
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to add sanitized markdown: {str(e)}"
         )
 
 

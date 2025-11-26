@@ -429,3 +429,73 @@ class UpdateTitleChangesContentRequest(BaseModel):
     content: str = Field(..., description="New content for the title_changes file")
 
 
+class AddSanitizedMarkdownRequest(BaseModel):
+    """Request to add a new work with sanitized markdown content directly."""
+
+    title: str = Field(
+        ...,
+        description="Title of the work",
+        example="Cognitive Psychology: A Student's Handbook"
+    )
+    authors: str | None = Field(
+        None,
+        description="Author(s) of the work",
+        example="Michael W. Eysenck, Mark T. Keane"
+    )
+    year: int | None = Field(
+        None,
+        ge=1000,
+        le=9999,
+        description="Year of publication",
+        example=2020
+    )
+    publisher: str | None = Field(
+        None,
+        description="Publisher name",
+        example="Psychology Press"
+    )
+    isbn: str | None = Field(
+        None,
+        description="ISBN for books",
+        example="978-1138482210"
+    )
+    edition: str | None = Field(
+        None,
+        description="Edition information",
+        example="8th Edition"
+    )
+    filename: str = Field(
+        ...,
+        description="Desired filename for the sanitized markdown (without extension)",
+        example="cognitive_psychology"
+    )
+    content: str = Field(
+        ...,
+        description="Sanitized markdown content",
+        example="# Chapter 1: Introduction\n\nThis is the introduction..."
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "title": "Cognitive Psychology: A Student's Handbook",
+                "authors": "Michael W. Eysenck, Mark T. Keane",
+                "year": 2020,
+                "publisher": "Psychology Press",
+                "isbn": "978-1138482210",
+                "edition": "8th Edition",
+                "filename": "cognitive_psychology",
+                "content": "# Chapter 1: Introduction\n\nThis is the introduction..."
+            }
+        }
+
+
+class AddSanitizedMarkdownResponse(BaseModel):
+    """Response after adding sanitized markdown."""
+
+    success: bool = Field(..., description="Whether the operation succeeded")
+    work_id: int = Field(..., description="ID of the created work")
+    output_path: str = Field(..., description="Path to the created sanitized file")
+    message: str | None = Field(None, description="Success or error message")
+
+

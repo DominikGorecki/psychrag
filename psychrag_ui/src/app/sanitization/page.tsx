@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, CheckCircle2, Loader2Icon, FileText } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2Icon, FileText, Plus } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -109,9 +109,15 @@ export default function SanitizationPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Sanitization</h2>
-        <p className="text-muted-foreground">Clean and structure markdown content.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Sanitization</h2>
+          <p className="text-muted-foreground">Clean and structure markdown content.</p>
+        </div>
+        <Button onClick={() => router.push("/sanitization/add")} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Add Sanitized Markdown
+        </Button>
       </div>
 
       {/* Stats Card */}
