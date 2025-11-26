@@ -8,7 +8,7 @@ Endpoints:
     GET  /vec/status/{id}   - Get vectorization job status
 """
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, HTTPException, status
 
 from psychrag_api.schemas.vectorization import (
     EmbeddingModelsResponse,
@@ -17,6 +17,9 @@ from psychrag_api.schemas.vectorization import (
     VectorizeQueryRequest,
     VectorizeQueryResponse,
     VectorizationStatusResponse,
+    EligibleChunksResponse,
+    VectorizeAllRequest,
+    VectorizeAllResponse,
 )
 
 router = APIRouter()
@@ -165,5 +168,67 @@ async def get_vectorization_status(job_id: str) -> VectorizationStatusResponse:
         chunks_total=10,
         message="Stub: Vectorization complete",
     )
+
+
+@router.get(
+    "/eligible",
+    response_model=EligibleChunksResponse,
+    summary="Get eligible chunks count",
+    description="Returns the count of chunks eligible for vectorization across all works.",
+)
+async def get_eligible_count() -> EligibleChunksResponse:
+    """Get count of chunks eligible for vectorization (across all works)."""
+    from psychrag.vectorization.vect_chunks import get_eligible_chunks_count
+    
+    try:
+        count = get_eligible_chunks_count(work_id=None)
+        return EligibleChunksResponse(count=count)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get eligible chunks count: {e}"
+        )
+
+
+@router.post(
+    "/vectorize",
+    response_model=VectorizeAllResponse,
+    summary="Vectorize chunks",
+    description="Vectorize eligible chunks with optional limit. Runs synchronously.",
+)
+async def vectorize_all_chunks(request: VectorizeAllRequest) -> VectorizeAllResponse:
+    """Vectorize chunks (all or limited number)."""
+    from psychrag.vectorization.vect_chunks import vectorize_chunks
+    
+    try:
+        result = vectorize_chunks(
+            work_id=request.work_id,  # None for all works
+            limit=request.limit,
+            batch_size=20,
+            verbose=True
+        )
+        
+        # Format errors for response
+        errors = None
+        if result.errors:
+            errors = [{"chunk_id": chunk_id, "error": error} for chunk_id, error in result.errors]
+        
+        return VectorizeAllResponse(
+            total_eligible=result.total_eligible,
+            processed=result.processed,
+            success=result.success,
+            failed=result.failed,
+            errors=errors
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to vectorize chunks: {e}"
+        )
 
 

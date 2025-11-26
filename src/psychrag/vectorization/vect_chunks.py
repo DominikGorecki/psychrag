@@ -36,34 +36,38 @@ class VectorizationResult:
     errors: list[tuple[int, str]]  # (chunk_id, error_message)
 
 
-def get_eligible_chunks_count(work_id: int) -> int:
+def get_eligible_chunks_count(work_id: int | None = None) -> int:
     """Get count of chunks eligible for vectorization.
 
     Args:
-        work_id: ID of the work in the database.
+        work_id: ID of the work in the database (None for all works).
 
     Returns:
         Number of eligible chunks.
     """
     with get_session() as session:
-        return session.query(Chunk).filter(
-            Chunk.work_id == work_id,
+        query = session.query(Chunk).filter(
             Chunk.vector_status == 'to_vec',
             Chunk.parent_id.isnot(None),
             Chunk.embedding.is_(None)
-        ).count()
+        )
+        
+        if work_id is not None:
+            query = query.filter(Chunk.work_id == work_id)
+        
+        return query.count()
 
 
 def vectorize_chunks(
-    work_id: int,
+    work_id: int | None = None,
     limit: int | None = None,
     batch_size: int = 20,
     verbose: bool = False
 ) -> VectorizationResult:
-    """Vectorize chunks for a work using embedding model.
+    """Vectorize chunks for a work (or all works) using embedding model.
 
     Args:
-        work_id: ID of the work in the database.
+        work_id: ID of the work in the database (None for all works).
         limit: Maximum number of chunks to process (None for all).
         batch_size: Number of chunks to embed in a single API call.
         verbose: Whether to print progress information.
@@ -72,24 +76,30 @@ def vectorize_chunks(
         VectorizationResult with counts and any errors.
 
     Raises:
-        ValueError: If work not found.
+        ValueError: If work_id specified but work not found.
     """
     with get_session() as session:
-        # Verify work exists
-        work = session.query(Work).filter(Work.id == work_id).first()
-        if not work:
-            raise ValueError(f"Work with ID {work_id} not found")
+        # Verify work exists if work_id is specified
+        if work_id is not None:
+            work = session.query(Work).filter(Work.id == work_id).first()
+            if not work:
+                raise ValueError(f"Work with ID {work_id} not found")
 
-        if verbose:
-            print(f"Processing work {work_id}: {work.title}")
+            if verbose:
+                print(f"Processing work {work_id}: {work.title}")
+        else:
+            if verbose:
+                print(f"Processing chunks across all works")
 
         # Get eligible chunks
         query = session.query(Chunk).filter(
-            Chunk.work_id == work_id,
             Chunk.vector_status == 'to_vec',
             Chunk.parent_id.isnot(None),
             Chunk.embedding.is_(None)
         ).order_by(Chunk.id)
+        
+        if work_id is not None:
+            query = query.filter(Chunk.work_id == work_id)
 
         total_eligible = query.count()
 

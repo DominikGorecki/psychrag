@@ -213,3 +213,26 @@ class VectorizationStatusResponse(BaseModel):
         }
 
 
+class EligibleChunksResponse(BaseModel):
+    """Response for eligible chunks count."""
+    
+    count: int = Field(..., description="Number of eligible chunks")
+
+
+class VectorizeAllRequest(BaseModel):
+    """Request to vectorize chunks with optional limit."""
+    
+    limit: int | None = Field(None, description="Maximum number of chunks to vectorize (None for all)")
+    work_id: int | None = Field(None, description="Work ID to filter by (None for all works)")
+
+
+class VectorizeAllResponse(BaseModel):
+    """Response for vectorization operation."""
+    
+    total_eligible: int = Field(..., description="Total number of eligible chunks")
+    processed: int = Field(..., description="Number of chunks processed")
+    success: int = Field(..., description="Number of chunks successfully vectorized")
+    failed: int = Field(..., description="Number of chunks that failed")
+    errors: list[dict] | None = Field(None, description="List of errors (chunk_id and error message)")
+
+
