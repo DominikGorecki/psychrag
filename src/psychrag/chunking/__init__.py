@@ -16,6 +16,9 @@ __all__ = [
     "extract_metadata",
     "suggest_chunks",
     "suggest_chunks_from_work",
+    "build_prompt_for_vec_suggestions",
+    "parse_vec_suggestions_response",
+    "save_vec_suggestions_from_response",
     "TableOfContents",
     "TOCEntry",
 ]
@@ -33,7 +36,13 @@ def __getattr__(name: str):
     ):
         from . import bib_extractor
         return getattr(bib_extractor, name)
-    if name in ("suggest_chunks", "suggest_chunks_from_work"):
+    if name in (
+        "suggest_chunks",
+        "suggest_chunks_from_work",
+        "build_prompt_for_vec_suggestions",
+        "parse_vec_suggestions_response",
+        "save_vec_suggestions_from_response",
+    ):
         from . import suggested_chunks
         return getattr(suggested_chunks, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

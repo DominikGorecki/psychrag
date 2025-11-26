@@ -11,6 +11,9 @@ Endpoints:
     PUT  /chunking/work/{work_id}/san-titles/content         - Update sanitized titles content
     GET  /chunking/work/{work_id}/vec-suggestions/content    - Get vec suggestions content
     PUT  /chunking/work/{work_id}/vec-suggestions/content    - Update vec suggestions content
+    GET  /chunking/work/{work_id}/vec-suggestions/prompt     - Get LLM prompt for vec suggestions
+    POST /chunking/work/{work_id}/vec-suggestions/manual     - Save manual vec suggestions response
+    POST /chunking/work/{work_id}/vec-suggestions/run        - Run vec suggestions with LLM
     POST /chunking/work/{work_id}/apply-heading-chunks       - Apply heading chunking
     POST /chunking/work/{work_id}/apply-content-chunks       - Apply content chunking
 """
@@ -37,6 +40,11 @@ from psychrag_api.schemas.chunking import (
     UpdateSanTitlesContentRequest,
     VecSuggestionsContentResponse,
     UpdateVecSuggestionsContentRequest,
+    VecSuggestionsPromptResponse,
+    ManualVecSuggestionsRequest,
+    ManualVecSuggestionsResponse,
+    RunVecSuggestionsRequest,
+    RunVecSuggestionsResponse,
     ApplyHeadingChunksResponse,
     ApplyContentChunksResponse,
 )
@@ -605,4 +613,164 @@ async def apply_content_chunks(work_id: int) -> ApplyContentChunksResponse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to apply content chunks: {e}"
+        )
+
+
+@router.get(
+    "/work/{work_id}/chunks/count",
+    summary="Get chunk count for work",
+    description="Returns the number of chunks for this work (for debugging).",
+)
+async def get_chunk_count(work_id: int) -> dict:
+    """Get chunk count for debugging."""
+    from psychrag.data.database import get_database_url
+    with get_session() as session:
+        from psychrag.data.models import Chunk
+        
+        count = session.query(Chunk).filter(Chunk.work_id == work_id).count()
+        
+        # Get database info (mask password)
+        db_url = get_database_url()
+        db_url_safe = db_url.split('@')[1] if '@' in db_url else db_url
+        
+        return {
+            "work_id": work_id,
+            "chunk_count": count,
+            "database": db_url_safe
+        }
+
+
+@router.get(
+    "/work/{work_id}/vec-suggestions/prompt",
+    response_model=VecSuggestionsPromptResponse,
+    summary="Get LLM prompt for vec suggestions",
+    description="Builds and returns the LLM prompt for generating vectorization suggestions.",
+)
+async def get_vec_suggestions_prompt(work_id: int) -> VecSuggestionsPromptResponse:
+    """Get the LLM prompt for vec suggestions."""
+    from psychrag.chunking import build_prompt_for_vec_suggestions
+    
+    try:
+        result = build_prompt_for_vec_suggestions(work_id=work_id, verbose=False)
+        
+        return VecSuggestionsPromptResponse(
+            prompt=result["prompt"],
+            work_title=result["work_title"],
+            work_authors=result["work_authors"]
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except HashMismatchError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Hash mismatch: {e}"
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to build prompt: {e}"
+        )
+
+
+@router.post(
+    "/work/{work_id}/vec-suggestions/manual",
+    response_model=ManualVecSuggestionsResponse,
+    summary="Save manual vec suggestions response",
+    description="Parses and saves a manually provided LLM response for vec suggestions.",
+)
+async def save_manual_vec_suggestions(
+    work_id: int,
+    request: ManualVecSuggestionsRequest
+) -> ManualVecSuggestionsResponse:
+    """Save manual vec suggestions from LLM response."""
+    from psychrag.chunking import save_vec_suggestions_from_response
+    
+    try:
+        output_path = save_vec_suggestions_from_response(
+            work_id=work_id,
+            response_text=request.response_text,
+            force=request.force,
+            verbose=True
+        )
+        
+        return ManualVecSuggestionsResponse(
+            success=True,
+            message=f"Successfully saved vec suggestions to {output_path.name}",
+            output_path=str(output_path)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except HashMismatchError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Hash mismatch: {e}"
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save vec suggestions: {e}"
+        )
+
+
+@router.post(
+    "/work/{work_id}/vec-suggestions/run",
+    response_model=RunVecSuggestionsResponse,
+    summary="Run vec suggestions with LLM",
+    description="Runs the full LLM-based vec suggestions generation with the FULL model.",
+)
+async def run_vec_suggestions(
+    work_id: int,
+    request: RunVecSuggestionsRequest
+) -> RunVecSuggestionsResponse:
+    """Run vec suggestions with LLM."""
+    from psychrag.chunking import suggest_chunks_from_work
+    
+    try:
+        output_path = suggest_chunks_from_work(
+            work_id=work_id,
+            use_full_model=True,
+            force=request.force,
+            verbose=True
+        )
+        
+        return RunVecSuggestionsResponse(
+            success=True,
+            message=f"Successfully generated vec suggestions to {output_path.name}",
+            output_path=str(output_path)
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except HashMismatchError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Hash mismatch: {e}"
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to run vec suggestions: {e}"
         )

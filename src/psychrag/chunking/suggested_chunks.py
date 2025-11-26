@@ -409,6 +409,270 @@ def suggest_chunks(
     return output_path
 
 
+def build_prompt_for_vec_suggestions(
+    work_id: int,
+    force: bool = False,
+    verbose: bool = False
+) -> dict:
+    """Build the LLM prompt for vec suggestions for a work.
+
+    Args:
+        work_id: Database ID of the work.
+        force: If True, skip hash validation and proceed anyway.
+        verbose: If True, print progress messages.
+
+    Returns:
+        Dictionary with prompt, work info, and titles list.
+
+    Raises:
+        ValueError: If work_id not found or sanitized file not in database.
+        HashMismatchError: If file hash doesn't match stored hash (unless force=True).
+        FileNotFoundError: If files referenced in database don't exist on disk.
+    """
+    with get_session() as session:
+        work = session.query(Work).filter(Work.id == work_id).first()
+
+        if not work:
+            raise ValueError(f"Work with ID {work_id} not found in database")
+
+        if not work.files:
+            raise ValueError(f"Work {work_id} has no files metadata")
+
+        # Only use sanitized markdown
+        if "sanitized" not in work.files:
+            raise ValueError(
+                f"Work {work_id} does not have 'sanitized' in files metadata. "
+                f"Run apply_title_changes_from_work first to create sanitized markdown."
+            )
+
+        # Get sanitized file info
+        sanitized_info = work.files["sanitized"]
+        sanitized_path = Path(sanitized_info["path"])
+        sanitized_stored_hash = sanitized_info["hash"]
+
+        if verbose:
+            print(f"Analyzing sanitized markdown: {sanitized_path}")
+
+        # Validate sanitized file exists
+        if not sanitized_path.exists():
+            raise FileNotFoundError(
+                f"Sanitized file not found on disk: {sanitized_path}\n"
+                f"Referenced in work {work_id}, key 'sanitized'"
+            )
+
+        # Compute current hash and validate
+        sanitized_current_hash = compute_file_hash(sanitized_path)
+
+        if sanitized_current_hash != sanitized_stored_hash and not force:
+            raise HashMismatchError(sanitized_stored_hash, sanitized_current_hash)
+
+        if sanitized_current_hash != sanitized_stored_hash and verbose:
+            print(f"Warning: Sanitized file hash mismatch, proceeding with --force")
+
+        # Check if sanitized_titles exists, if not generate it
+        titles_path = None
+        if "sanitized_titles" in work.files:
+            # Titles exist in database, use them
+            titles_info = work.files["sanitized_titles"]
+            titles_path = Path(titles_info["path"])
+            titles_stored_hash = titles_info["hash"]
+
+            if verbose:
+                print(f"Using existing titles file: {titles_path}")
+
+            # Validate titles file exists
+            if not titles_path.exists():
+                raise FileNotFoundError(
+                    f"Titles file not found on disk: {titles_path}\n"
+                    f"Referenced in work {work_id}, key 'sanitized_titles'"
+                )
+
+            # Validate titles hash
+            titles_current_hash = compute_file_hash(titles_path)
+            if titles_current_hash != titles_stored_hash and not force:
+                raise HashMismatchError(titles_stored_hash, titles_current_hash)
+
+            if titles_current_hash != titles_stored_hash and verbose:
+                print(f"Warning: Titles file hash mismatch, proceeding with --force")
+
+        else:
+            # Generate titles file
+            if verbose:
+                print(f"Generating titles from sanitized markdown...")
+
+            titles_path = extract_titles_from_work(
+                work_id=work_id,
+                source_key="sanitized",
+                force=force,
+                verbose=verbose
+            )
+
+            if verbose:
+                print(f"Titles generated: {titles_path}")
+
+            # Refresh work to get updated files metadata
+            session.refresh(work)
+
+        # Read titles content
+        titles_content = titles_path.read_text(encoding='utf-8')
+
+        # Extract the titles list from the file
+        titles_match = re.search(r'```\n(.*?)```', titles_content, re.DOTALL)
+        if not titles_match:
+            raise ValueError("Could not find titles codeblock in titles file")
+
+        titles_block = titles_match.group(1).strip()
+        titles_list = titles_block.split('\n')
+
+        # Build bibliographic info from work record
+        bib_info = None
+        if work.title or work.authors:
+            # Lazy import - only load BibliographicInfo when needed
+            from psychrag.chunking.bib_extractor import BibliographicInfo
+
+            bib_parts = {}
+            if work.title:
+                bib_parts['title'] = work.title
+            if work.authors:
+                # Authors might be a string or list
+                if isinstance(work.authors, str):
+                    bib_parts['authors'] = [work.authors]
+                else:
+                    bib_parts['authors'] = work.authors
+            if work.publisher:
+                bib_parts['publisher'] = work.publisher
+            if work.year:
+                bib_parts['year'] = work.year
+
+            bib_info = BibliographicInfo(**bib_parts)
+
+            if verbose:
+                print(f"Document: {work.title}")
+                print(f"Authors: {work.authors}")
+
+        # Build prompt
+        prompt = _build_prompt(titles_block, bib_info)
+
+        return {
+            "prompt": prompt,
+            "work_title": work.title,
+            "work_authors": work.authors,
+            "titles_list": titles_list
+        }
+
+
+def parse_vec_suggestions_response(response_text: str) -> dict[int, str]:
+    """Parse LLM response into line number to decision mapping.
+
+    Args:
+        response_text: LLM response text.
+
+    Returns:
+        Dictionary mapping line numbers to SKIP/VECTORIZE decisions.
+    """
+    return _parse_llm_response(response_text)
+
+
+def save_vec_suggestions_from_response(
+    work_id: int,
+    response_text: str,
+    force: bool = False,
+    verbose: bool = False
+) -> Path:
+    """Save vec suggestions from manual LLM response.
+
+    Args:
+        work_id: Database ID of the work.
+        response_text: The LLM response text to parse.
+        force: If True, skip hash validation and proceed anyway.
+        verbose: If True, print progress messages.
+
+    Returns:
+        Path to the created vectorization suggestions file.
+
+    Raises:
+        ValueError: If work_id not found or sanitized file not in database.
+        HashMismatchError: If file hash doesn't match stored hash (unless force=True).
+        FileNotFoundError: If files referenced in database don't exist on disk.
+    """
+    # Get prompt data (which validates everything and gets titles_list)
+    prompt_data = build_prompt_for_vec_suggestions(work_id, force, verbose)
+    titles_list = prompt_data["titles_list"]
+
+    with get_session() as session:
+        work = session.query(Work).filter(Work.id == work_id).first()
+
+        if not work:
+            raise ValueError(f"Work with ID {work_id} not found in database")
+
+        # Get sanitized path for output file naming
+        sanitized_info = work.files["sanitized"]
+        sanitized_path = Path(sanitized_info["path"])
+
+        # Parse response and apply hierarchy rules
+        decisions = _parse_llm_response(response_text)
+        decisions = _apply_hierarchy_rules(decisions, titles_list)
+
+        # Build output content
+        output_lines = ["# CHANGES TO HEADINGS", "```"]
+
+        for title in titles_list:
+            match = re.match(r'(\d+):', title)
+            if match:
+                line_num = int(match.group(1))
+                decision = decisions.get(line_num, 'VECTORIZE')  # Default to VECTORIZE
+                output_lines.append(f"{line_num}: {decision}")
+
+        output_lines.append("```")
+        output_content = "\n".join(output_lines)
+
+        # Determine output path: <file>.sanitized.md -> <file>.sanitized.vec_sugg.md
+        output_path = sanitized_path.parent / f"{sanitized_path.stem}.vec_sugg.md"
+
+        # Check if output file exists and is read-only
+        if output_path.exists():
+            if verbose:
+                print(f"Output file already exists: {output_path}")
+
+            # If it's read-only, we need to make it writable to overwrite
+            if is_file_readonly(output_path):
+                if verbose:
+                    print(f"File is read-only, making it writable for overwrite")
+                set_file_writable(output_path)
+
+        # Write output file
+        output_path.write_text(output_content, encoding='utf-8')
+
+        if verbose:
+            print(f"Suggestions written: {output_path}")
+
+        # Set file to read-only
+        set_file_readonly(output_path)
+
+        if verbose:
+            print(f"File set to read-only")
+
+        # Compute hash of suggestions file
+        suggestions_hash = compute_file_hash(output_path)
+
+        # Update work's files metadata
+        # Need to create a new dict to trigger SQLAlchemy's change detection for JSON columns
+        updated_files = dict(work.files) if work.files else {}
+        updated_files["vec_suggestions"] = {
+            "path": str(output_path.resolve()),
+            "hash": suggestions_hash
+        }
+        work.files = updated_files
+
+        session.commit()
+        session.refresh(work)
+
+        if verbose:
+            print(f"Updated work {work_id} with 'vec_suggestions' file metadata")
+
+    return output_path
+
+
 def suggest_chunks_from_work(
     work_id: int,
     use_full_model: bool = False,

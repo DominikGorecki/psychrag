@@ -111,3 +111,36 @@ class ApplyContentChunksResponse(BaseModel):
     success: bool = Field(..., description="Whether chunking was successful")
     message: str = Field(..., description="Status message")
     chunks_created: int = Field(..., description="Number of chunks created")
+
+
+# Vec Suggestions Schemas
+class VecSuggestionsPromptResponse(BaseModel):
+    """Response for vec suggestions prompt."""
+    prompt: str = Field(..., description="The LLM prompt for generating vec suggestions")
+    work_title: str | None = Field(None, description="Work title")
+    work_authors: str | None = Field(None, description="Work authors")
+
+
+class ManualVecSuggestionsRequest(BaseModel):
+    """Request to save manual vec suggestions response."""
+    response_text: str = Field(..., description="The LLM response text")
+    force: bool = Field(False, description="Force save even if hash doesn't match")
+
+
+class ManualVecSuggestionsResponse(BaseModel):
+    """Response after saving manual vec suggestions."""
+    success: bool = Field(..., description="Whether save was successful")
+    message: str = Field(..., description="Status message")
+    output_path: str = Field(..., description="Path to the created vec_suggestions file")
+
+
+class RunVecSuggestionsRequest(BaseModel):
+    """Request to run vec suggestions with LLM."""
+    force: bool = Field(False, description="Force run even if hash doesn't match")
+
+
+class RunVecSuggestionsResponse(BaseModel):
+    """Response after running vec suggestions."""
+    success: bool = Field(..., description="Whether generation was successful")
+    message: str = Field(..., description="Status message")
+    output_path: str = Field(..., description="Path to the created vec_suggestions file")

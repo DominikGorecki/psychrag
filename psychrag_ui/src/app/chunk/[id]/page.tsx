@@ -417,11 +417,17 @@ export default function ChunkWorkDetailPage() {
               <Button
                 size="sm"
                 variant="outline"
-                disabled
+                onClick={() => router.push(`/chunk/${workId}/gen-vec-sugg`)}
+                disabled={
+                  !workDetail.files.sanitized.exists ||
+                  !workDetail.files.sanitized.hash_match ||
+                  !workDetail.files.sanitized_titles.exists ||
+                  !workDetail.files.sanitized_titles.hash_match
+                }
                 className="gap-2"
               >
                 <PlayCircle className="h-4 w-4" />
-                Generate (Not Implemented)
+                Generate
               </Button>
             )}
           </div>

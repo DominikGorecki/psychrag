@@ -627,12 +627,14 @@ def chunk_content(work_id: int, verbose: bool = False) -> int:
         if verbose and chunks_created > 5:
             print(f"  ... and {chunks_created - 5} more chunks")
 
-        # Update processing status
-        updated_status = dict(work.processing_status) if work.processing_status else {}
-        updated_status['content_chunks'] = 'completed'
-        work.processing_status = updated_status
-
+        # Commit chunks first
         session.commit()
+
+        # Update processing status
+        work.processing_status = {**(work.processing_status or {}), "content_chunks": "completed"}
+        session.add(work)
+        session.commit()
+        session.refresh(work)
 
         if verbose:
             print(f"\nTotal: {chunks_created} chunks created for work {work_id}")
