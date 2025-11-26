@@ -214,3 +214,187 @@ class ApplyChangesResponse(BaseModel):
     message: str | None = Field(default=None)
 
 
+# Work-based sanitization schemas
+
+class WorkListItem(BaseModel):
+    """A work item in the list."""
+
+    id: int = Field(..., description="Work ID")
+    title: str = Field(..., description="Work title")
+    authors: str | None = Field(None, description="Work authors")
+    year: int | None = Field(None, description="Publication year")
+    work_type: str | None = Field(None, description="Type of work (book, article, etc.)")
+    has_sanitized: bool = Field(..., description="Whether sanitized file exists")
+    has_original_markdown: bool = Field(..., description="Whether original markdown exists")
+
+
+class WorkListResponse(BaseModel):
+    """Response containing list of works."""
+
+    works: list[WorkListItem] = Field(..., description="List of works")
+    total: int = Field(..., description="Total number of works")
+    needs_sanitization: int = Field(..., description="Number of works needing sanitization")
+
+
+class FileStatusInfo(BaseModel):
+    """File status information with hash validation."""
+
+    exists: bool = Field(..., description="Whether the file exists in files metadata")
+    path: str | None = Field(None, description="File path")
+    hash: str | None = Field(None, description="Stored file hash")
+    hash_match: bool | None = Field(None, description="Whether current hash matches stored hash (null if file doesn't exist)")
+    error: str | None = Field(None, description="Error message if any")
+
+
+class WorkDetailResponse(BaseModel):
+    """Detailed work information for sanitization."""
+
+    id: int = Field(..., description="Work ID")
+    title: str = Field(..., description="Work title")
+    authors: str | None = Field(None, description="Work authors")
+    year: int | None = Field(None, description="Publication year")
+    work_type: str | None = Field(None, description="Type of work")
+    
+    # File statuses
+    original_markdown: FileStatusInfo = Field(..., description="Original markdown file status")
+    titles: FileStatusInfo = Field(..., description="Titles file status")
+    title_changes: FileStatusInfo = Field(..., description="Title changes file status")
+    sanitized: FileStatusInfo = Field(..., description="Sanitized file status")
+
+
+class ExtractTitlesFromWorkRequest(BaseModel):
+    """Request to extract titles from a work."""
+
+    source_key: str = Field(
+        default="original_markdown",
+        description="Source file key (original_markdown or sanitized)",
+        example="original_markdown"
+    )
+    force: bool = Field(
+        default=False,
+        description="Skip hash validation if True"
+    )
+
+
+class ExtractTitlesFromWorkResponse(BaseModel):
+    """Response after extracting titles."""
+
+    success: bool = Field(..., description="Whether extraction succeeded")
+    output_path: str = Field(..., description="Path to created titles file")
+    message: str | None = Field(None, description="Success or error message")
+
+
+class SuggestTitleChangesRequest(BaseModel):
+    """Request to suggest title changes for a work."""
+
+    source_key: str = Field(
+        default="original_markdown",
+        description="Source file key (original_markdown or sanitized)",
+        example="original_markdown"
+    )
+    use_full_model: bool = Field(
+        default=False,
+        description="Use full model tier instead of light"
+    )
+    force: bool = Field(
+        default=False,
+        description="Skip hash validation if True"
+    )
+
+
+class SuggestTitleChangesResponse(BaseModel):
+    """Response after suggesting title changes."""
+
+    success: bool = Field(..., description="Whether suggestion succeeded")
+    output_path: str = Field(..., description="Path to created title_changes file")
+    message: str | None = Field(None, description="Success or error message")
+
+
+class ApplyTitleChangesRequest(BaseModel):
+    """Request to apply title changes to a work."""
+
+    source_key: str = Field(
+        default="original_markdown",
+        description="Source file key (original_markdown or sanitized)",
+        example="original_markdown"
+    )
+    force: bool = Field(
+        default=False,
+        description="Skip hash validation if True"
+    )
+
+
+class ApplyTitleChangesResponse(BaseModel):
+    """Response after applying title changes."""
+
+    success: bool = Field(..., description="Whether application succeeded")
+    output_path: str = Field(..., description="Path to created sanitized file")
+    message: str | None = Field(None, description="Success or error message")
+
+
+class SkipApplyRequest(BaseModel):
+    """Request to skip sanitization and copy original."""
+
+    source_key: str = Field(
+        default="original_markdown",
+        description="Source file key (original_markdown or sanitized)",
+        example="original_markdown"
+    )
+    force: bool = Field(
+        default=False,
+        description="Skip validation and overwrite if sanitized exists"
+    )
+
+
+class SkipApplyResponse(BaseModel):
+    """Response after skipping sanitization."""
+
+    success: bool = Field(..., description="Whether copy succeeded")
+    output_path: str = Field(..., description="Path to created sanitized file")
+    message: str | None = Field(None, description="Success or error message")
+
+
+class TitlesContentResponse(BaseModel):
+    """Response containing titles file content."""
+
+    content: str = Field(..., description="Raw markdown content of titles file")
+    filename: str = Field(..., description="Name of the titles file")
+    hash: str = Field(..., description="Current hash of the file")
+
+
+class UpdateTitlesContentRequest(BaseModel):
+    """Request to update titles file content."""
+
+    content: str = Field(..., description="New content for the titles file")
+
+
+class PromptForWorkResponse(BaseModel):
+    """Response containing LLM prompt for title changes."""
+
+    prompt: str = Field(..., description="The LLM prompt text")
+    work_title: str = Field(..., description="Title of the work")
+    work_authors: str = Field(..., description="Authors of the work")
+
+
+class ManualTitleChangesRequest(BaseModel):
+    """Request to save manually generated title changes."""
+
+    llm_response: str = Field(..., description="Raw response text from manual LLM execution")
+    source_key: str = Field(
+        default="original_markdown",
+        description="Source file key (original_markdown or sanitized)"
+    )
+    force: bool = Field(
+        default=False,
+        description="Skip validation and overwrite existing files"
+    )
+
+
+class ManualTitleChangesResponse(BaseModel):
+    """Response after saving manual title changes."""
+
+    success: bool = Field(..., description="Whether save succeeded")
+    output_path: str = Field(..., description="Path to created title_changes file")
+    message: str | None = Field(None, description="Success or error message")
+
+

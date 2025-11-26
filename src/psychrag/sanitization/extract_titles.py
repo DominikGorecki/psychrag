@@ -35,7 +35,7 @@ from typing import Optional
 
 from psychrag.data.database import get_session
 from psychrag.data.models.work import Work
-from psychrag.utils.file_utils import compute_file_hash
+from psychrag.utils.file_utils import compute_file_hash, set_file_writable, set_file_readonly
 
 
 def _validate_input(input_path: Path) -> None:
@@ -278,11 +278,24 @@ def extract_titles_from_work(
 
         output_content = "\n".join(output_lines)
 
+        # If file exists and is read-only, make it writable
+        if output_path.exists():
+            try:
+                set_file_writable(output_path)
+                if verbose:
+                    print(f"Made existing file writable: {output_path}")
+            except Exception as e:
+                if verbose:
+                    print(f"Warning: Could not make file writable: {e}")
+
         # Write output file
         output_path.write_text(output_content, encoding='utf-8')
 
         if verbose:
             print(f"Titles saved to: {output_path}")
+
+        # Set file to read-only
+        set_file_readonly(output_path)
 
         # Compute hash of new titles file
         titles_hash = compute_file_hash(output_path)

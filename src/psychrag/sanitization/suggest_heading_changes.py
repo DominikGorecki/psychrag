@@ -29,6 +29,7 @@ from pathlib import Path
 from psychrag.data.database import SessionLocal, get_session
 from psychrag.data.models import Work
 from psychrag.utils import compute_file_hash
+from psychrag.utils.file_utils import set_file_writable, set_file_readonly
 from .extract_titles import HashMismatchError
 
 # Directory for LLM logs
@@ -400,6 +401,256 @@ def _parse_llm_response(response_text: str) -> list[str]:
             changes.append(f"{line_num} : {action} : {title}")
 
     return changes
+
+
+def build_prompt_for_work(
+    work_id: int,
+    source_key: str = "original_markdown",
+    force: bool = False
+) -> dict:
+    """Build LLM prompt for suggesting heading changes without executing it.
+    
+    This function prepares the prompt that would be sent to the LLM, allowing
+    manual execution or inspection before running.
+    
+    Args:
+        work_id: Database ID of the work.
+        source_key: Key in the files JSON ("original_markdown" or "sanitized").
+        force: If True, skip hash validation and proceed anyway.
+    
+    Returns:
+        Dict with keys:
+            - prompt: The LLM prompt text
+            - work_title: Title of the work
+            - work_authors: Authors of the work
+    
+    Raises:
+        ValueError: If work_id not found, source_key invalid, or files not in database.
+        HashMismatchError: If file hashes don't match stored hashes (unless force=True).
+        FileNotFoundError: If files referenced in database don't exist on disk.
+    """
+    with get_session() as session:
+        work = session.query(Work).filter(Work.id == work_id).first()
+        
+        if not work:
+            raise ValueError(f"Work with ID {work_id} not found in database")
+        
+        if not work.files:
+            raise ValueError(f"Work {work_id} has no files metadata")
+        
+        # Validate source_key
+        if source_key not in ["original_markdown", "sanitized"]:
+            raise ValueError(
+                f"Invalid source_key: {source_key}. "
+                f"Must be 'original_markdown' or 'sanitized'"
+            )
+        
+        # Determine titles key based on source
+        if source_key == "original_markdown":
+            titles_key = "titles"
+        else:  # sanitized
+            titles_key = "sanitized_titles"
+        
+        # Validate both files exist in metadata
+        if source_key not in work.files:
+            raise ValueError(
+                f"Work {work_id} does not have '{source_key}' in files metadata"
+            )
+        
+        if titles_key not in work.files:
+            raise ValueError(
+                f"Work {work_id} does not have '{titles_key}' in files metadata. "
+                f"Run extract_titles_from_work first."
+            )
+        
+        # Get file info
+        markdown_info = work.files[source_key]
+        markdown_path = Path(markdown_info["path"])
+        markdown_stored_hash = markdown_info["hash"]
+        
+        titles_info = work.files[titles_key]
+        titles_path = Path(titles_info["path"])
+        titles_stored_hash = titles_info["hash"]
+        
+        # Validate both files exist on disk
+        if not markdown_path.exists():
+            raise FileNotFoundError(
+                f"Markdown file not found on disk: {markdown_path}\n"
+                f"Referenced in work {work_id}, key '{source_key}'"
+            )
+        
+        if not titles_path.exists():
+            raise FileNotFoundError(
+                f"Titles file not found on disk: {titles_path}\n"
+                f"Referenced in work {work_id}, key '{titles_key}'"
+            )
+        
+        # Compute current hashes and validate
+        markdown_current_hash = compute_file_hash(markdown_path)
+        titles_current_hash = compute_file_hash(titles_path)
+        
+        markdown_mismatch = markdown_current_hash != markdown_stored_hash
+        titles_mismatch = titles_current_hash != titles_stored_hash
+        
+        if (markdown_mismatch or titles_mismatch) and not force:
+            errors = []
+            if markdown_mismatch:
+                errors.append(
+                    f"Markdown file ({source_key}):\n"
+                    f"  Stored:  {markdown_stored_hash}\n"
+                    f"  Current: {markdown_current_hash}"
+                )
+            if titles_mismatch:
+                errors.append(
+                    f"Titles file ({titles_key}):\n"
+                    f"  Stored:  {titles_stored_hash}\n"
+                    f"  Current: {titles_current_hash}"
+                )
+            error_msg = "File hash mismatch detected:\n" + "\n".join(errors)
+            raise HashMismatchError(
+                stored_hash=f"{markdown_stored_hash[:16]}... / {titles_stored_hash[:16]}...",
+                current_hash=f"{markdown_current_hash[:16]}... / {titles_current_hash[:16]}..."
+            )
+        
+        # Read titles file content
+        titles_content = titles_path.read_text(encoding='utf-8')
+        
+        # Extract the titles codeblock
+        codeblock_match = re.search(r'```\n(.*?)\n```', titles_content, re.DOTALL)
+        if not codeblock_match:
+            raise ValueError(f"No titles codeblock found in: {titles_path}")
+        
+        titles_codeblock = codeblock_match.group(1)
+        
+        # Get metadata from work
+        title = work.title or "Unknown Title"
+        authors = work.authors or "Unknown Author"
+        toc = work.toc or []
+        
+        # Build the LLM prompt
+        prompt = _build_prompt(title, authors, toc, titles_codeblock)
+        
+        return {
+            "prompt": prompt,
+            "work_title": title,
+            "work_authors": authors
+        }
+
+
+def save_title_changes_from_response(
+    work_id: int,
+    source_key: str,
+    llm_response: str,
+    force: bool = False
+) -> Path:
+    """Save title changes from a manual LLM response.
+    
+    Takes the raw response from an LLM and processes it to create a title_changes file,
+    updating the database with the new file metadata.
+    
+    Args:
+        work_id: Database ID of the work.
+        source_key: Key in the files JSON ("original_markdown" or "sanitized").
+        llm_response: Raw text response from the LLM.
+        force: If True, skip validation and overwrite existing files.
+    
+    Returns:
+        Path to the created title_changes file.
+    
+    Raises:
+        ValueError: If work_id not found, source_key invalid, or files not in database.
+        FileNotFoundError: If the markdown file doesn't exist.
+    """
+    with get_session() as session:
+        work = session.query(Work).filter(Work.id == work_id).first()
+        
+        if not work:
+            raise ValueError(f"Work with ID {work_id} not found in database")
+        
+        if not work.files:
+            raise ValueError(f"Work {work_id} has no files metadata")
+        
+        # Validate source_key
+        if source_key not in ["original_markdown", "sanitized"]:
+            raise ValueError(
+                f"Invalid source_key: {source_key}. "
+                f"Must be 'original_markdown' or 'sanitized'"
+            )
+        
+        # Get markdown file path to determine output path
+        if source_key not in work.files:
+            raise ValueError(
+                f"Work {work_id} does not have '{source_key}' in files metadata"
+            )
+        
+        markdown_info = work.files[source_key]
+        markdown_path = Path(markdown_info["path"])
+        
+        if not markdown_path.exists():
+            raise FileNotFoundError(
+                f"Markdown file not found on disk: {markdown_path}"
+            )
+        
+        # Parse the LLM response to extract changes
+        changes = _parse_llm_response(llm_response)
+        
+        # Calculate relative path from markdown
+        try:
+            relative_uri = markdown_path.relative_to(markdown_path.parent)
+            relative_uri_str = f"./{relative_uri.as_posix()}"
+        except ValueError:
+            relative_uri_str = markdown_path.as_posix()
+        
+        # Build output content
+        output_lines = [
+            relative_uri_str,
+            "",
+            "# CHANGES TO HEADINGS",
+            "```",
+            *changes,
+            "```"
+        ]
+        output_content = "\n".join(output_lines)
+        
+        # Determine output path based on source
+        if source_key == "original_markdown":
+            output_path = markdown_path.parent / f"{markdown_path.stem}.title_changes.md"
+            output_key = "title_changes"
+        else:  # sanitized
+            output_path = markdown_path.parent / f"{markdown_path.stem}.title_changes.md"
+            output_key = "sanitized_title_changes"
+        
+        # Ensure output directory exists
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # If file exists and is read-only, make it writable
+        if output_path.exists():
+            try:
+                set_file_writable(output_path)
+            except Exception:
+                pass  # Ignore errors, will fail on write if needed
+        
+        # Write output file
+        output_path.write_text(output_content, encoding='utf-8')
+        
+        # Set file to read-only
+        set_file_readonly(output_path)
+        
+        # Compute hash of new file
+        output_hash = compute_file_hash(output_path)
+        
+        # Update work's files metadata
+        updated_files = dict(work.files) if work.files else {}
+        updated_files[output_key] = {
+            "path": str(output_path.resolve()),
+            "hash": output_hash
+        }
+        work.files = updated_files
+        
+        session.commit()
+        session.refresh(work)
+    
+    return output_path
 
 
 def suggest_heading_changes_from_work(
