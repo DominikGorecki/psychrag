@@ -120,3 +120,25 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Sticky Markdown Headers */
+.sticky-markdown-container {
+  /* Ensure proper scrolling context */
+  position: relative;
+}
+
+.sticky-markdown-container .sticky-h1,
+.sticky-markdown-container .sticky-h2,
+.sticky-markdown-container .sticky-h3,
+.sticky-markdown-container .sticky-h4 {
+  /* Smooth transitions */
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.sticky-markdown-container .sticky-h1:hover,
+.sticky-markdown-container .sticky-h2:hover,
+.sticky-markdown-container .sticky-h3:hover,
+.sticky-markdown-container .sticky-h4:hover {
+  /* Highlight on hover */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}

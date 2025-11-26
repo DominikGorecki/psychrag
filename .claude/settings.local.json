@@ -5,7 +5,8 @@
       "Bash(cmd /c \"dir /b output\\test*.md 2>nul\")",
       "Bash(cmd /c \"dir /b output\\test.style.md output\\test.hier.md 2>nul\")",
       "Bash(cmd /c \"if not exist c:\\code\\python\\pyschRAG-test\\migrations mkdir c:\\code\\python\\pyschRAG-test\\migrations\")",
-      "Bash(cmd /c \"if not exist c:\\code\\python\\psychRAG-test\\src\\psychrag\\config mkdir c:\\code\\python\\psychRAG-test\\src\\psychrag\\config\")"
+      "Bash(cmd /c \"if not exist c:\\code\\python\\psychRAG-test\\src\\psychrag\\config mkdir c:\\code\\python\\psychRAG-test\\src\\psychrag\\config\")",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

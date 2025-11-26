@@ -25,6 +25,7 @@ from .database import Base, engine, get_admin_database_url
 
 # Import all models to register them with Base
 from .models import Chunk, Query, Work  # noqa: F401
+from .models.io_file import IOFile  # noqa: F401
 
 
 def create_database_and_user(verbose: bool = False) -> None:

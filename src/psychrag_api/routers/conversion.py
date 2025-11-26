@@ -2,19 +2,41 @@
 Conversion Router - Document conversion operations.
 
 Endpoints:
-    POST /conv/epub       - Convert EPUB to markdown
-    POST /conv/pdf        - Convert PDF to markdown
-    GET  /conv/status/{id} - Get conversion job status
-    GET  /conv/formats    - List supported formats
+    POST /conv/epub           - Convert EPUB to markdown
+    POST /conv/pdf            - Convert PDF to markdown
+    GET  /conv/status/{id}    - Get conversion job status
+    GET  /conv/formats        - List supported formats
+    GET  /conv/io-folder-data - Get input/output folder data
+    POST /conv/convert-file   - Convert a file from input folder
 """
 
-from fastapi import APIRouter, File, UploadFile, status
+from pathlib import Path
+
+from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 from psychrag_api.schemas.conversion import (
+    ConversionInspectionResponse,
     ConversionJobResponse,
     ConversionStatusResponse,
+    ConvertFileRequest,
+    ConvertFileResponse,
+    FileContentResponse,
+    FileContentUpdateRequest,
+    FileMetricsSchema,
+    FileSelectionRequest,
+    FileSelectionResponse,
+    FileSuggestionResponse,
+    InspectionItemSchema,
+    IOFolderDataResponse,
     SupportedFormatsResponse,
 )
+from psychrag.config import load_config
+from psychrag.config.io_folder_data import get_io_folder_data
+from psychrag.conversions.conv_pdf2md import convert_pdf_to_markdown
+from psychrag.conversions.inspection import get_conversion_inspection
+from psychrag.conversions.style_v_hier import compare_and_select, compute_final_score, extract_headings, ChunkSizeConfig, ScoringWeights
+from psychrag.data.database import get_session
+from psychrag.data.models.io_file import IOFile
 
 router = APIRouter()
 
@@ -141,5 +163,631 @@ async def get_conversion_status(job_id: str) -> ConversionStatusResponse:
         output_path="/output/converted_file.md",
         message="Stub: Conversion complete",
     )
+
+
+@router.get(
+    "/io-folder-data",
+    response_model=IOFolderDataResponse,
+    summary="Get input/output folder data",
+    description="Scan input and output directories to get lists of unprocessed and processed files.",
+    responses={
+        200: {"description": "IO folder data retrieved successfully"},
+        500: {"description": "Error scanning directories"},
+    },
+)
+async def get_io_folder_data_endpoint() -> IOFolderDataResponse:
+    """
+    Get input and output folder data.
+    
+    Scans the input directory for unprocessed files and the output directory
+    for processed files that haven't been added to the database yet.
+    
+    Returns:
+    - input_files: List of filenames in input directory
+    - processed_files: List of pipe-separated strings with format:
+      basename|id|variant1|variant2|...
+    """
+    try:
+        io_data = get_io_folder_data()
+        
+        # Transform ProcessedFile objects to pipe-separated format
+        # Format: basename|id|variant1|variant2|...
+        processed_files_formatted = []
+        for pf in io_data.processed_files:
+            # Use io_file_id (database ID) instead of hash
+            id_str = str(pf.io_file_id) if pf.io_file_id is not None else ""
+            variants_str = "|".join(pf.variants)
+            pipe_format = f"{pf.base_name}|{id_str}|{variants_str}"
+            processed_files_formatted.append(pipe_format)
+        
+        return IOFolderDataResponse(
+            input_files=io_data.input_files,
+            processed_files=processed_files_formatted,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error scanning IO folders: {str(e)}",
+        ) from e
+
+
+@router.post(
+    "/convert-file",
+    response_model=ConvertFileResponse,
+    summary="Convert file from input folder",
+    description="Convert a PDF file from the input folder to markdown format.",
+    responses={
+        200: {"description": "Conversion completed successfully"},
+        400: {"description": "Invalid request or file not found"},
+        500: {"description": "Conversion failed"},
+    },
+)
+async def convert_file_endpoint(request: ConvertFileRequest) -> ConvertFileResponse:
+    """
+    Convert a file from the input directory to markdown.
+    
+    This is a blocking operation that will convert the file using the
+    conv_pdf2md module with compare=True and use_gpu=True.
+    
+    The conversion may take several minutes depending on file size.
+    
+    Args:
+        request: ConvertFileRequest with filename
+        
+    Returns:
+        ConvertFileResponse with success status and output files
+    """
+    try:
+        # Load config to get input/output directories
+        config = load_config()
+        input_dir = Path(config.paths.input_dir)
+        output_dir = Path(config.paths.output_dir)
+        
+        # Validate input file exists
+        input_file_path = input_dir / request.filename
+        if not input_file_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Input file not found: {request.filename}",
+            )
+        
+        if not input_file_path.is_file():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Path is not a file: {request.filename}",
+            )
+        
+        # Validate it's a PDF file
+        if input_file_path.suffix.lower() != ".pdf":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Only PDF files are supported, got: {input_file_path.suffix}",
+            )
+        
+        # Ensure output directory exists
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Prepare output path
+        filename_stem = input_file_path.stem
+        output_path = output_dir / f"{filename_stem}.md"
+        
+        # Convert the PDF with compare=True, use_gpu=True, verbose=True
+        convert_pdf_to_markdown(
+            pdf_path=input_file_path,
+            output_path=output_path,
+            verbose=True,
+            compare=True,
+            use_gpu=True,
+        )
+        
+        # List the output files that were created
+        output_files = []
+        expected_files = [
+            f"{filename_stem}.pdf",
+            f"{filename_stem}.style.md",
+            f"{filename_stem}.hier.md",
+            f"{filename_stem}.toc_titles.md",
+        ]
+        
+        for expected_file in expected_files:
+            file_path = output_dir / expected_file
+            if file_path.exists():
+                output_files.append(expected_file)
+        
+        return ConvertFileResponse(
+            success=True,
+            message=f"Successfully converted {request.filename}",
+            input_file=request.filename,
+            output_files=output_files,
+        )
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except FileExistsError as e:
+        # Handle the case where PDF already exists in output directory
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+    except Exception as e:
+        # Catch any conversion errors
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Conversion failed: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/inspection/{io_file_id}",
+    response_model=ConversionInspectionResponse,
+    summary="Get conversion inspection options",
+    description="Get available inspection options for a converted file based on what artifacts exist.",
+    responses={
+        200: {"description": "Inspection options retrieved successfully"},
+        404: {"description": "File not found"},
+        500: {"description": "Error checking inspection options"},
+    },
+)
+async def get_inspection_options(io_file_id: int) -> ConversionInspectionResponse:
+    """
+    Get inspection options for a converted file.
+    
+    This endpoint checks what conversion artifacts are available (style.md, hier.md,
+    toc_titles.md, etc.) and returns a list of inspection options that can be
+    viewed or generated.
+    
+    Args:
+        io_file_id: ID of the file in the io_files table
+        
+    Returns:
+        ConversionInspectionResponse with list of inspection items
+    """
+    try:
+        inspection_items = get_conversion_inspection(io_file_id)
+        
+        # Convert to schema objects
+        items_schema = [
+            InspectionItemSchema(
+                name=item.name,
+                available=item.available,
+                files_checked=item.files_checked
+            )
+            for item in inspection_items
+        ]
+        
+        return ConversionInspectionResponse(items=items_schema)
+        
+    except ValueError as e:
+        # File not found or invalid
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+    except Exception as e:
+        # Other errors
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error checking inspection options: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/file-content/{io_file_id}/{file_type}",
+    response_model=FileContentResponse,
+    summary="Get markdown file content",
+    description="Retrieve the content of a style.md or hier.md file.",
+    responses={
+        200: {"description": "File content retrieved successfully"},
+        404: {"description": "File not found"},
+        400: {"description": "Invalid file type"},
+    },
+)
+async def get_file_content(io_file_id: int, file_type: str) -> FileContentResponse:
+    """
+    Get the content of a markdown file.
+    
+    Args:
+        io_file_id: ID of the file in the io_files table
+        file_type: Type of file ('style' or 'hier')
+        
+    Returns:
+        FileContentResponse with markdown content
+    """
+    if file_type not in ("style", "hier"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file_type: {file_type}. Must be 'style' or 'hier'",
+        )
+    
+    try:
+        # Get the file from database
+        with get_session() as session:
+            io_file = session.query(IOFile).filter(IOFile.id == io_file_id).first()
+            
+            if not io_file:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"File with ID {io_file_id} not found in database",
+                )
+            
+            session.expunge(io_file)
+        
+        # Extract base name
+        filename = io_file.filename
+        first_dot = filename.find('.')
+        if first_dot == -1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid filename format: {filename}",
+            )
+        
+        base_name = filename[:first_dot]
+        
+        # Get output directory
+        config = load_config()
+        output_dir = Path(config.paths.output_dir)
+        
+        # Construct file path
+        target_filename = f"{base_name}.{file_type}.md"
+        file_path = output_dir / target_filename
+        
+        if not file_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"File not found: {target_filename}",
+            )
+        
+        # Read content
+        content = file_path.read_text(encoding='utf-8')
+        
+        return FileContentResponse(
+            content=content,
+            filename=target_filename
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error reading file content: {str(e)}",
+        ) from e
+
+
+@router.put(
+    "/file-content/{io_file_id}/{file_type}",
+    response_model=FileContentResponse,
+    summary="Update markdown file content",
+    description="Save edited content back to a style.md or hier.md file.",
+    responses={
+        200: {"description": "File content updated successfully"},
+        404: {"description": "File not found"},
+        400: {"description": "Invalid file type or content"},
+    },
+)
+async def update_file_content(
+    io_file_id: int,
+    file_type: str,
+    request: FileContentUpdateRequest
+) -> FileContentResponse:
+    """
+    Update the content of a markdown file.
+    
+    Args:
+        io_file_id: ID of the file in the io_files table
+        file_type: Type of file ('style' or 'hier')
+        request: New content to save
+        
+    Returns:
+        FileContentResponse with confirmation
+    """
+    if file_type not in ("style", "hier"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file_type: {file_type}. Must be 'style' or 'hier'",
+        )
+    
+    try:
+        # Get the file from database
+        with get_session() as session:
+            io_file = session.query(IOFile).filter(IOFile.id == io_file_id).first()
+            
+            if not io_file:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"File with ID {io_file_id} not found in database",
+                )
+            
+            session.expunge(io_file)
+        
+        # Extract base name
+        filename = io_file.filename
+        first_dot = filename.find('.')
+        if first_dot == -1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid filename format: {filename}",
+            )
+        
+        base_name = filename[:first_dot]
+        
+        # Get output directory
+        config = load_config()
+        output_dir = Path(config.paths.output_dir)
+        
+        # Construct file path
+        target_filename = f"{base_name}.{file_type}.md"
+        file_path = output_dir / target_filename
+        
+        if not file_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"File not found: {target_filename}",
+            )
+        
+        # Write content
+        file_path.write_text(request.content, encoding='utf-8')
+        
+        return FileContentResponse(
+            content=request.content,
+            filename=target_filename
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error writing file content: {str(e)}",
+        ) from e
+
+
+@router.get(
+    "/suggestion/{io_file_id}",
+    response_model=FileSuggestionResponse,
+    summary="Get file comparison suggestion",
+    description="Compare style.md and hier.md files and suggest the better one.",
+    responses={
+        200: {"description": "Suggestion generated successfully"},
+        404: {"description": "Files not found"},
+        500: {"description": "Error generating suggestion"},
+    },
+)
+async def get_file_suggestion(io_file_id: int) -> FileSuggestionResponse:
+    """
+    Compare style and hier files and suggest the better one.
+    
+    Uses the compare_and_select() function from style_v_hier module to analyze
+    both files and return detailed metrics plus a recommendation.
+    
+    This is a dry-run operation - it does NOT copy any files.
+    
+    Args:
+        io_file_id: ID of the file in the io_files table
+        
+    Returns:
+        FileSuggestionResponse with metrics and winner
+    """
+    try:
+        # Get the file from database
+        with get_session() as session:
+            io_file = session.query(IOFile).filter(IOFile.id == io_file_id).first()
+            
+            if not io_file:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"File with ID {io_file_id} not found in database",
+                )
+            
+            session.expunge(io_file)
+        
+        # Extract base name
+        filename = io_file.filename
+        first_dot = filename.find('.')
+        if first_dot == -1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid filename format: {filename}",
+            )
+        
+        base_name = filename[:first_dot]
+        
+        # Get output directory
+        config = load_config()
+        output_dir = Path(config.paths.output_dir)
+        
+        # Construct file paths
+        style_path = output_dir / f"{base_name}.style.md"
+        hier_path = output_dir / f"{base_name}.hier.md"
+        
+        if not style_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Style file not found: {style_path.name}",
+            )
+        
+        if not hier_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Hier file not found: {hier_path.name}",
+            )
+        
+        # Analyze both files
+        weights = ScoringWeights()
+        chunk_config = ChunkSizeConfig()
+        
+        # Process style file
+        style_headings = extract_headings(style_path)
+        style_lines = len(style_path.read_text(encoding='utf-8').splitlines())
+        style_metrics = compute_final_score(style_headings, style_lines, weights, chunk_config)
+        
+        # Process hier file
+        hier_headings = extract_headings(hier_path)
+        hier_lines = len(hier_path.read_text(encoding='utf-8').splitlines())
+        hier_metrics = compute_final_score(hier_headings, hier_lines, weights, chunk_config)
+        
+        # Determine winner
+        score_diff = abs(style_metrics.final_score - hier_metrics.final_score)
+        
+        if score_diff < 0.01:
+            # Use tie-breaking rules
+            if style_metrics.chunkability_score != hier_metrics.chunkability_score:
+                winner = "style" if style_metrics.chunkability_score > hier_metrics.chunkability_score else "hier"
+            elif style_metrics.level_jump_count != hier_metrics.level_jump_count:
+                winner = "style" if style_metrics.level_jump_count < hier_metrics.level_jump_count else "hier"
+            elif style_metrics.h1_h2_count != hier_metrics.h1_h2_count:
+                winner = "style" if style_metrics.h1_h2_count > hier_metrics.h1_h2_count else "hier"
+            else:
+                winner = "hier"  # Default to hier
+        else:
+            winner = "style" if style_metrics.final_score > hier_metrics.final_score else "hier"
+        
+        # Convert metrics to schema
+        style_metrics_schema = FileMetricsSchema(
+            total_headings=style_metrics.total_headings,
+            h1_h2_count=style_metrics.h1_h2_count,
+            max_depth=style_metrics.max_depth,
+            avg_depth=style_metrics.avg_depth,
+            coverage_score=style_metrics.coverage_score,
+            hierarchy_score=style_metrics.hierarchy_score,
+            chunkability_score=style_metrics.chunkability_score,
+            target_size_sections=style_metrics.target_size_sections,
+            small_sections=style_metrics.small_sections,
+            large_sections=style_metrics.large_sections,
+            level_jump_count=style_metrics.level_jump_count,
+            penalty_total=style_metrics.penalty_total,
+            final_score=style_metrics.final_score,
+        )
+        
+        hier_metrics_schema = FileMetricsSchema(
+            total_headings=hier_metrics.total_headings,
+            h1_h2_count=hier_metrics.h1_h2_count,
+            max_depth=hier_metrics.max_depth,
+            avg_depth=hier_metrics.avg_depth,
+            coverage_score=hier_metrics.coverage_score,
+            hierarchy_score=hier_metrics.hierarchy_score,
+            chunkability_score=hier_metrics.chunkability_score,
+            target_size_sections=hier_metrics.target_size_sections,
+            small_sections=hier_metrics.small_sections,
+            large_sections=hier_metrics.large_sections,
+            level_jump_count=hier_metrics.level_jump_count,
+            penalty_total=hier_metrics.penalty_total,
+            final_score=hier_metrics.final_score,
+        )
+        
+        return FileSuggestionResponse(
+            style_metrics=style_metrics_schema,
+            hier_metrics=hier_metrics_schema,
+            winner=winner,
+            score_difference=score_diff,
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating suggestion: {str(e)}",
+        ) from e
+
+
+@router.post(
+    "/select-file/{io_file_id}",
+    response_model=FileSelectionResponse,
+    summary="Select a file as main version",
+    description="Copy the selected file (style or hier) to <base>.md as the main version.",
+    responses={
+        200: {"description": "File selected successfully"},
+        404: {"description": "File not found"},
+        400: {"description": "Invalid file type or file already exists"},
+    },
+)
+async def select_file(
+    io_file_id: int,
+    request: FileSelectionRequest
+) -> FileSelectionResponse:
+    """
+    Select a file as the main version.
+    
+    Copies the selected file (style.md or hier.md) to <base>.md.
+    
+    Args:
+        io_file_id: ID of the file in the io_files table
+        request: File type to select ('style' or 'hier')
+        
+    Returns:
+        FileSelectionResponse with success status
+    """
+    file_type = request.file_type
+    
+    if file_type not in ("style", "hier"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file_type: {file_type}. Must be 'style' or 'hier'",
+        )
+    
+    try:
+        # Get the file from database
+        with get_session() as session:
+            io_file = session.query(IOFile).filter(IOFile.id == io_file_id).first()
+            
+            if not io_file:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"File with ID {io_file_id} not found in database",
+                )
+            
+            session.expunge(io_file)
+        
+        # Extract base name
+        filename = io_file.filename
+        first_dot = filename.find('.')
+        if first_dot == -1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid filename format: {filename}",
+            )
+        
+        base_name = filename[:first_dot]
+        
+        # Get output directory
+        config = load_config()
+        output_dir = Path(config.paths.output_dir)
+        
+        # Construct paths
+        source_path = output_dir / f"{base_name}.{file_type}.md"
+        target_path = output_dir / f"{base_name}.md"
+        
+        if not source_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Source file not found: {source_path.name}",
+            )
+        
+        # Check if target already exists
+        if target_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Output file already exists: {target_path.name}. Delete it first.",
+            )
+        
+        # Copy file
+        import shutil
+        shutil.copy2(source_path, target_path)
+        
+        return FileSelectionResponse(
+            success=True,
+            message=f"Successfully copied {source_path.name} to {target_path.name}",
+            output_file=target_path.name,
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error selecting file: {str(e)}",
+        ) from e
 
 
