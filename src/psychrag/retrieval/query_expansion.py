@@ -9,6 +9,17 @@ Uses lazy imports to avoid loading heavy AI dependencies until actually needed.
 Usage:
     from psychrag.retrieval.query_expansion import expand_query
     result = expand_query("What is working memory?", n=3)
+
+    # Or use individual functions for manual workflow:
+    from psychrag.retrieval.query_expansion import (
+        generate_expansion_prompt,
+        parse_expansion_response,
+        save_expansion_to_db
+    )
+    prompt = generate_expansion_prompt("What is working memory?", n=3)
+    # ... manually run prompt in LLM ...
+    parsed = parse_expansion_response(llm_response)
+    query_id = save_expansion_to_db("What is working memory?", parsed)
 """
 
 from __future__ import annotations
@@ -32,36 +43,30 @@ class QueryExpansionResult:
     entities: list[str]
 
 
-def expand_query(
-    query: str,
-    n: int = 3,
-    verbose: bool = False
-) -> QueryExpansionResult:
-    """Expand a query using MQE and HyDE with intent/entity extraction.
+@dataclass
+class ParsedExpansion:
+    """Parsed expansion data from LLM response."""
+
+    expanded_queries: list[str]
+    hyde_answer: str
+    intent: str
+    entities: list[str]
+
+
+def generate_expansion_prompt(query: str, n: int = 3) -> str:
+    """Generate the LLM prompt for query expansion.
+
+    This function creates the prompt text without calling the LLM,
+    allowing for manual execution of the prompt.
 
     Args:
         query: The original user query.
         n: Number of alternative queries to generate (default 3).
-        verbose: Whether to print progress information.
 
     Returns:
-        QueryExpansionResult with expanded queries, HyDE answer, intent, entities.
-
-    Raises:
-        ValueError: If LLM response cannot be parsed as JSON.
+        The complete prompt string to send to an LLM.
     """
-    if verbose:
-        print(f"Expanding query: {query}")
-        print(f"Generating {n} alternative queries...")
-
-    # Lazy import - only load AI module when LLM is needed
-    from psychrag.ai.config import ModelTier
-    from psychrag.ai.llm_factory import create_langchain_chat
-
-    # Create LangChain chat with FULL model
-    langchain_stack = create_langchain_chat(tier=ModelTier.FULL)
-    chat = langchain_stack.chat
-    prompt = f"""You are a query expansion assistant for a psychology and cognitive science literature RAG system
+    return f"""You are a query expansion assistant for a psychology and cognitive science literature RAG system
 (textbooks, articles, lecture notes, and research summaries).
 
 Given a user query, you must:
@@ -137,40 +142,103 @@ Remember:
 - Output MUST be valid JSON matching the schema above.
 - Do not include any explanation or commentary outside the JSON."""
 
-    # Build the prompt
-    prompt_old = f"""You are a query expansion assistant for a psychology literature RAG system.
 
-Given a user query, you must:
-1. Generate {n} alternative phrasings of the query (Multi-Query Expansion)
-2. Write a hypothetical answer paragraph that would appear in a psychology textbook (HyDE)
-3. Determine the query intent
-4. Extract key entities
+def parse_expansion_response(response_text: str) -> ParsedExpansion:
+    """Parse the LLM response into structured expansion data.
 
-IMPORTANT: Respond ONLY with valid JSON, no other text.
+    Args:
+        response_text: The raw LLM response text (may contain markdown code blocks).
 
-Query: {query}
+    Returns:
+        ParsedExpansion with extracted queries, hyde_answer, intent, and entities.
 
-Respond with this exact JSON structure:
-{{
-  "queries": ["alternative query 1", "alternative query 2", ...],
-  "hyde_answer": "A detailed hypothetical answer paragraph (2-4 sentences) that would appear in a psychology textbook answering this query...",
-  "intent": "DEFINITION | MECHANISM | COMPARISON | APPLICATION | STUDY_DETAIL | CRITIQUE",
-  "entities": ["entity1", "entity2", ...]
-}}
+    Raises:
+        ValueError: If response cannot be parsed as valid JSON.
+    """
+    text = response_text
 
-Intent types:
-- DEFINITION: "What is X?"
-- MECHANISM: "How does X work?"
-- COMPARISON: "Compare X vs Y"
-- APPLICATION: "Example of X in real life?"
-- STUDY_DETAIL: "What did Study Z find?"
-- CRITIQUE: "What are limitations of X?"
+    # Handle markdown code blocks
+    if "```json" in text:
+        json_start = text.find("```json") + 7
+        json_end = text.find("```", json_start)
+        text = text[json_start:json_end].strip()
+    elif "```" in text:
+        json_start = text.find("```") + 3
+        json_end = text.find("```", json_start)
+        text = text[json_start:json_end].strip()
 
-Entities include:
-- Key names (e.g., Baumeister, Spearman)
-- Theory names (e.g., Process Overlap Theory, CHC model)
-- Keywords (e.g., negativity bias, working memory capacity)
-"""
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Failed to parse LLM response as JSON: {e}\nResponse: {response_text}")
+
+    return ParsedExpansion(
+        expanded_queries=data.get("queries", []),
+        hyde_answer=data.get("hyde_answer", ""),
+        intent=data.get("intent", ""),
+        entities=data.get("entities", [])
+    )
+
+
+def save_expansion_to_db(query: str, parsed: ParsedExpansion) -> int:
+    """Save parsed expansion data to the database.
+
+    Args:
+        query: The original user query.
+        parsed: ParsedExpansion data from parse_expansion_response.
+
+    Returns:
+        The ID of the newly created Query record.
+    """
+    with get_session() as session:
+        query_record = Query(
+            original_query=query,
+            expanded_queries=parsed.expanded_queries,
+            hyde_answer=parsed.hyde_answer,
+            intent=parsed.intent,
+            entities=parsed.entities,
+            vector_status="to_vec"
+        )
+        session.add(query_record)
+        session.commit()
+        return query_record.id
+
+
+def expand_query(
+    query: str,
+    n: int = 3,
+    verbose: bool = False
+) -> QueryExpansionResult:
+    """Expand a query using MQE and HyDE with intent/entity extraction.
+
+    This is the full pipeline function that generates the prompt, calls the LLM,
+    parses the response, and saves to the database.
+
+    Args:
+        query: The original user query.
+        n: Number of alternative queries to generate (default 3).
+        verbose: Whether to print progress information.
+
+    Returns:
+        QueryExpansionResult with expanded queries, HyDE answer, intent, entities.
+
+    Raises:
+        ValueError: If LLM response cannot be parsed as JSON.
+    """
+    if verbose:
+        print(f"Expanding query: {query}")
+        print(f"Generating {n} alternative queries...")
+
+    # Lazy import - only load AI module when LLM is needed
+    from psychrag.ai.config import ModelTier
+    from psychrag.ai.llm_factory import create_langchain_chat
+
+    # Generate the prompt
+    prompt = generate_expansion_prompt(query, n)
+
+    # Create LangChain chat with FULL model
+    langchain_stack = create_langchain_chat(tier=ModelTier.FULL)
+    chat = langchain_stack.chat
 
     # Call the LLM
     if verbose:
@@ -179,54 +247,25 @@ Entities include:
     response = chat.invoke(prompt)
     response_text = response.content
 
-    # Parse JSON response
-    try:
-        # Try to extract JSON from response (handle markdown code blocks)
-        if "```json" in response_text:
-            json_start = response_text.find("```json") + 7
-            json_end = response_text.find("```", json_start)
-            response_text = response_text[json_start:json_end].strip()
-        elif "```" in response_text:
-            json_start = response_text.find("```") + 3
-            json_end = response_text.find("```", json_start)
-            response_text = response_text[json_start:json_end].strip()
-
-        data = json.loads(response_text)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Failed to parse LLM response as JSON: {e}\nResponse: {response_text}")
-
-    expanded_queries = data.get("queries", [])
-    hyde_answer = data.get("hyde_answer", "")
-    intent = data.get("intent", "")
-    entities = data.get("entities", [])
+    # Parse the response
+    parsed = parse_expansion_response(response_text)
 
     if verbose:
-        print(f"Generated {len(expanded_queries)} alternative queries")
-        print(f"Intent: {intent}")
-        print(f"Entities: {len(entities)}")
+        print(f"Generated {len(parsed.expanded_queries)} alternative queries")
+        print(f"Intent: {parsed.intent}")
+        print(f"Entities: {len(parsed.entities)}")
 
     # Save to database
-    with get_session() as session:
-        query_record = Query(
-            original_query=query,
-            expanded_queries=expanded_queries,
-            hyde_answer=hyde_answer,
-            intent=intent,
-            entities=entities,
-            vector_status="to_vec"
-        )
-        session.add(query_record)
-        session.commit()
-        query_id = query_record.id
+    query_id = save_expansion_to_db(query, parsed)
 
-        if verbose:
-            print(f"Saved to database with ID: {query_id}")
+    if verbose:
+        print(f"Saved to database with ID: {query_id}")
 
     return QueryExpansionResult(
         query_id=query_id,
         original_query=query,
-        expanded_queries=expanded_queries,
-        hyde_answer=hyde_answer,
-        intent=intent,
-        entities=entities
+        expanded_queries=parsed.expanded_queries,
+        hyde_answer=parsed.hyde_answer,
+        intent=parsed.intent,
+        entities=parsed.entities
     )

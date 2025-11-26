@@ -2,6 +2,7 @@
 
 from .chunk import Chunk
 from .query import Query
+from .result import Result
 from .work import Work
 
-__all__ = ["Chunk", "Query", "Work"]
+__all__ = ["Chunk", "Query", "Result", "Work"]
