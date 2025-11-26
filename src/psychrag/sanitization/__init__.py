@@ -9,7 +9,7 @@ from .suggest_heading_changes import (
 )
 from .apply_title_changes import apply_title_changes_from_work
 from .skip_apply import skip_apply_from_work
-from .update_content_hash import update_content_hash
+from .update_content_hash import update_content_hash, verify_title_changes_integrity
 
 __all__ = [
     "extract_titles",
@@ -23,4 +23,5 @@ __all__ = [
     "apply_title_changes_from_work",
     "skip_apply_from_work",
     "update_content_hash",
+    "verify_title_changes_integrity",
 ]

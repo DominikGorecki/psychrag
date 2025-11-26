@@ -40,6 +40,7 @@ export default function WorkSanitizationPage() {
   const [operationLoading, setOperationLoading] = useState<string | null>(null);
   const [operationError, setOperationError] = useState<string | null>(null);
   const [operationSuccess, setOperationSuccess] = useState<string | null>(null);
+  const [verifyErrors, setVerifyErrors] = useState<string[]>([]);
 
   useEffect(() => {
     fetchWorkDetail();
@@ -105,6 +106,46 @@ export default function WorkSanitizationPage() {
 
   const handleSuggestTitleChanges = async () => {
     router.push(`/sanitization/${workId}/gen-title-changes`);
+  };
+
+  const handleVerifyTitleChanges = async () => {
+    setOperationLoading("verify-title-changes");
+    setOperationError(null);
+    setOperationSuccess(null);
+    setVerifyErrors([]);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/sanitization/work/${workId}/verify-title-changes`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            source_key: "original_markdown",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setOperationSuccess(data.message || "Title changes verified and hash updated successfully");
+        // Refresh work detail
+        await fetchWorkDetail();
+      } else {
+        setOperationError(data.message || "Verification failed");
+        setVerifyErrors(data.errors || []);
+      }
+    } catch (err) {
+      setOperationError(err instanceof Error ? err.message : "Failed to verify title changes");
+    } finally {
+      setOperationLoading(null);
+    }
   };
 
   const handleApplyTitleChanges = async () => {
@@ -374,6 +415,22 @@ export default function WorkSanitizationPage() {
                     </AlertDescription>
                   </Alert>
                 )}
+                {verifyErrors.length > 0 && (
+                  <Alert variant="destructive" className="mt-2">
+                    <AlertCircle className="h-3 w-3" />
+                    <AlertDescription className="text-xs">
+                      <p className="font-semibold mb-1">Verification errors:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        {verifyErrors.slice(0, 5).map((error, idx) => (
+                          <li key={idx}>{error}</li>
+                        ))}
+                        {verifyErrors.length > 5 && (
+                          <li>... and {verifyErrors.length - 5} more errors</li>
+                        )}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
                 {!titlesReady && (
                   <p className="text-xs text-muted-foreground mt-2">
                     Requires titles to be extracted first
@@ -381,7 +438,7 @@ export default function WorkSanitizationPage() {
                 )}
               </div>
 
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex gap-2">
                 {titleChangesReady ? (
                   <Button
                     size="sm"
@@ -392,6 +449,33 @@ export default function WorkSanitizationPage() {
                     <Eye className="h-4 w-4" />
                     Inspect
                   </Button>
+                ) : workDetail.title_changes.exists && !workDetail.title_changes.hash_match ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleVerifyTitleChanges}
+                      disabled={operationLoading !== null}
+                      className="gap-2"
+                    >
+                      {operationLoading === "verify-title-changes" ? (
+                        <Loader2Icon className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
+                      Verify
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleSuggestTitleChanges}
+                      disabled={!titlesReady || operationLoading !== null}
+                      className="gap-2"
+                    >
+                      <PlayCircle className="h-4 w-4" />
+                      Regenerate
+                    </Button>
+                  </>
                 ) : (
                   <Button
                     size="sm"

@@ -26,6 +26,7 @@ from psychrag.sanitization import (
     skip_apply_from_work,
     build_prompt_for_work,
     save_title_changes_from_response,
+    verify_title_changes_integrity,
     HashMismatchError,
 )
 from psychrag.utils.file_utils import compute_file_hash, set_file_writable, set_file_readonly
@@ -57,6 +58,10 @@ from psychrag_api.schemas.sanitization import (
     PromptForWorkResponse,
     ManualTitleChangesRequest,
     ManualTitleChangesResponse,
+    VerifyTitleChangesRequest,
+    VerifyTitleChangesResponse,
+    TitleChangesContentResponse,
+    UpdateTitleChangesContentRequest,
 )
 
 router = APIRouter()
@@ -404,6 +409,50 @@ async def skip_apply_endpoint(
         )
 
 
+@router.post(
+    "/work/{work_id}/verify-title-changes",
+    response_model=VerifyTitleChangesResponse,
+    summary="Verify title changes integrity",
+    description="Verify that title changes file is consistent with titles and markdown files, and update hash if valid.",
+)
+async def verify_title_changes(
+    work_id: int,
+    request: VerifyTitleChangesRequest
+) -> VerifyTitleChangesResponse:
+    """
+    Verify title changes file integrity and update hash.
+    
+    Validates that:
+    - Titles file hash is correct
+    - Every line in title_changes exists in titles file
+    - Every line in titles file has a heading in markdown
+    - Updates title_changes hash if all checks pass
+    """
+    try:
+        result = verify_title_changes_integrity(
+            work_id=work_id,
+            source_key=request.source_key,
+            verbose=False
+        )
+        
+        return VerifyTitleChangesResponse(
+            success=result["success"],
+            message=result["message"],
+            errors=result.get("errors", [])
+        )
+    
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to verify title changes: {str(e)}"
+        )
+
+
 @router.get(
     "/work/{work_id}/prompt",
     response_model=PromptForWorkResponse,
@@ -500,6 +549,148 @@ async def save_manual_title_changes(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to save title changes: {str(e)}"
+        )
+
+
+@router.get(
+    "/work/{work_id}/title-changes/content",
+    response_model=TitleChangesContentResponse,
+    summary="Get title changes file content",
+    description="Retrieve the content of a work's title_changes file for viewing/editing.",
+)
+async def get_title_changes_content(work_id: int) -> TitleChangesContentResponse:
+    """
+    Get the content of a work's title_changes file.
+    
+    Retrieves the raw markdown content from the title_changes file referenced
+    in work.files["title_changes"].
+    """
+    with get_session() as session:
+        work = session.query(Work).filter(Work.id == work_id).first()
+        
+        if not work:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Work with ID {work_id} not found"
+            )
+        
+        if not work.files or "title_changes" not in work.files:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Work {work_id} does not have a title_changes file"
+            )
+        
+        title_changes_info = work.files["title_changes"]
+        title_changes_path = Path(title_changes_info["path"])
+        
+        if not title_changes_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Title changes file not found on disk: {title_changes_path}"
+            )
+        
+        # Read file content
+        try:
+            content = title_changes_path.read_text(encoding="utf-8")
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to read title changes file: {str(e)}"
+            )
+        
+        # Get current hash
+        current_hash = compute_file_hash(title_changes_path)
+        
+        return TitleChangesContentResponse(
+            content=content,
+            filename=title_changes_path.name,
+            hash=current_hash
+        )
+
+
+@router.put(
+    "/work/{work_id}/title-changes/content",
+    response_model=TitleChangesContentResponse,
+    summary="Update title changes file content",
+    description="Update the content of a work's title_changes file and update its hash.",
+)
+async def update_title_changes_content(
+    work_id: int,
+    request: UpdateTitleChangesContentRequest
+) -> TitleChangesContentResponse:
+    """
+    Update the content of a work's title_changes file.
+    
+    Writes the new content to the file, computes a new hash, and updates
+    the work.files["title_changes"]["hash"] in the database.
+    """
+    with get_session() as session:
+        work = session.query(Work).filter(Work.id == work_id).first()
+        
+        if not work:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Work with ID {work_id} not found"
+            )
+        
+        if not work.files or "title_changes" not in work.files:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Work {work_id} does not have a title_changes file"
+            )
+        
+        title_changes_info = work.files["title_changes"]
+        title_changes_path = Path(title_changes_info["path"])
+        
+        if not title_changes_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Title changes file not found on disk: {title_changes_path}"
+            )
+        
+        # Make file writable
+        try:
+            set_file_writable(title_changes_path)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to make file writable: {str(e)}"
+            )
+        
+        # Write new content
+        try:
+            title_changes_path.write_text(request.content, encoding="utf-8")
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to write file: {str(e)}"
+            )
+        
+        # Make file read-only again
+        try:
+            set_file_readonly(title_changes_path)
+        except Exception as e:
+            # Not critical, log but continue
+            print(f"Warning: Failed to set file read-only: {e}")
+        
+        # Compute new hash
+        new_hash = compute_file_hash(title_changes_path)
+        
+        # Update work.files with new hash
+        updated_files = dict(work.files) if work.files else {}
+        updated_files["title_changes"] = {
+            "path": str(title_changes_path.resolve()),
+            "hash": new_hash
+        }
+        work.files = updated_files
+        
+        session.commit()
+        session.refresh(work)
+        
+        return TitleChangesContentResponse(
+            content=request.content,
+            filename=title_changes_path.name,
+            hash=new_hash
         )
 
 

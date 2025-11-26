@@ -69,6 +69,196 @@ def _parse_vectorize_suggestions(file_path: Path) -> dict[int, str]:
     return decisions
 
 
+def verify_title_changes_integrity(work_id: int, source_key: str = "original_markdown", verbose: bool = False) -> dict:
+    """Verify integrity of title changes file and update its hash if valid.
+    
+    This function validates that:
+    1. The titles file hash is correct (must be already verified)
+    2. Every line number in title_changes.md exists in titles.md
+    3. Every line number in titles.md has a corresponding heading in the markdown file
+    4. If all validations pass, updates the title_changes hash
+    
+    Args:
+        work_id: ID of the work in the database.
+        source_key: Source file key ("original_markdown" or "sanitized").
+        verbose: Whether to print progress information.
+    
+    Returns:
+        Dict with keys:
+            - success: bool - Whether validation passed
+            - message: str - Success or error message
+            - errors: list[str] - List of validation errors if any
+    
+    Raises:
+        ValueError: If work not found or required files missing.
+    """
+    with get_session() as session:
+        work = session.query(Work).filter(Work.id == work_id).first()
+        if not work:
+            raise ValueError(f"Work with ID {work_id} not found")
+        
+        if not work.files:
+            raise ValueError(f"Work {work_id} has no files metadata")
+        
+        # Validate source_key
+        if source_key not in ["original_markdown", "sanitized"]:
+            raise ValueError(
+                f"Invalid source_key: {source_key}. Must be 'original_markdown' or 'sanitized'"
+            )
+        
+        # Determine file keys based on source
+        if source_key == "original_markdown":
+            titles_key = "titles"
+            title_changes_key = "title_changes"
+        else:
+            titles_key = "sanitized_titles"
+            title_changes_key = "sanitized_title_changes"
+        
+        # Validate all required files exist in metadata
+        if source_key not in work.files:
+            raise ValueError(f"Work {work_id} does not have '{source_key}' in files metadata")
+        
+        if titles_key not in work.files:
+            raise ValueError(f"Work {work_id} does not have '{titles_key}' in files metadata")
+        
+        if title_changes_key not in work.files:
+            raise ValueError(f"Work {work_id} does not have '{title_changes_key}' in files metadata")
+        
+        # Get file paths
+        markdown_info = work.files[source_key]
+        markdown_path = Path(markdown_info["path"])
+        
+        titles_info = work.files[titles_key]
+        titles_path = Path(titles_info["path"])
+        titles_stored_hash = titles_info["hash"]
+        
+        title_changes_info = work.files[title_changes_key]
+        title_changes_path = Path(title_changes_info["path"])
+        
+        if verbose:
+            print(f"Markdown: {markdown_path}")
+            print(f"Titles: {titles_path}")
+            print(f"Title Changes: {title_changes_path}")
+        
+        # Validate files exist on disk
+        if not markdown_path.exists():
+            raise ValueError(f"Markdown file not found: {markdown_path}")
+        
+        if not titles_path.exists():
+            raise ValueError(f"Titles file not found: {titles_path}")
+        
+        if not title_changes_path.exists():
+            raise ValueError(f"Title changes file not found: {title_changes_path}")
+        
+        validation_errors = []
+        
+        # Step 1: Verify titles file hash is correct
+        titles_current_hash = compute_file_hash(titles_path)
+        if titles_current_hash != titles_stored_hash:
+            return {
+                "success": False,
+                "message": "Titles file hash mismatch. Please regenerate titles first.",
+                "errors": [
+                    f"Titles file hash mismatch: stored={titles_stored_hash[:16]}..., current={titles_current_hash[:16]}..."
+                ]
+            }
+        
+        if verbose:
+            print("Titles file hash is valid")
+        
+        # Step 2: Parse headings from markdown file
+        markdown_headings = _parse_headings_from_file(markdown_path)
+        if verbose:
+            print(f"Found {len(markdown_headings)} headings in markdown file")
+        
+        # Step 3: Parse line numbers from titles file
+        titles_content = titles_path.read_text(encoding='utf-8')
+        titles_line_numbers = set()
+        
+        # Extract from code block
+        match = re.search(r'```\n(.*?)```', titles_content, re.DOTALL)
+        if match:
+            for line in match.group(1).strip().split('\n'):
+                m = re.match(r'^(\d+):\s*', line)
+                if m:
+                    titles_line_numbers.add(int(m.group(1)))
+        
+        if verbose:
+            print(f"Found {len(titles_line_numbers)} line numbers in titles file")
+        
+        # Step 4: Validate every line in titles.md has a heading in markdown
+        for line_num in titles_line_numbers:
+            if line_num not in markdown_headings:
+                validation_errors.append(
+                    f"Line {line_num} in titles file has no heading in markdown file"
+                )
+        
+        if validation_errors:
+            return {
+                "success": False,
+                "message": "Validation failed: Line numbers in titles file don't match markdown headings",
+                "errors": validation_errors
+            }
+        
+        if verbose:
+            print("Titles vs markdown validation passed")
+        
+        # Step 5: Parse line numbers from title_changes file
+        title_changes_content = title_changes_path.read_text(encoding='utf-8')
+        title_changes_line_numbers = set()
+        
+        # Extract from code block
+        match = re.search(r'```\n(.*?)```', title_changes_content, re.DOTALL)
+        if match:
+            for line in match.group(1).strip().split('\n'):
+                m = re.match(r'^(\d+)\s*:\s*', line)
+                if m:
+                    title_changes_line_numbers.add(int(m.group(1)))
+        
+        if verbose:
+            print(f"Found {len(title_changes_line_numbers)} line numbers in title_changes file")
+        
+        # Step 6: Validate every line in title_changes.md exists in titles.md
+        for line_num in title_changes_line_numbers:
+            if line_num not in titles_line_numbers:
+                validation_errors.append(
+                    f"Line {line_num} in title_changes file does not exist in titles file"
+                )
+        
+        if validation_errors:
+            return {
+                "success": False,
+                "message": "Validation failed: Line numbers in title_changes don't match titles file",
+                "errors": validation_errors
+            }
+        
+        if verbose:
+            print("Title_changes vs titles validation passed")
+        
+        # Step 7: All validations passed - update title_changes hash
+        new_hash = compute_file_hash(title_changes_path)
+        
+        # Update work.files with new hash
+        updated_files = dict(work.files) if work.files else {}
+        updated_files[title_changes_key] = {
+            "path": str(title_changes_path.resolve()),
+            "hash": new_hash
+        }
+        work.files = updated_files
+        
+        session.commit()
+        session.refresh(work)
+        
+        if verbose:
+            print(f"Updated {title_changes_key} hash to: {new_hash}")
+        
+        return {
+            "success": True,
+            "message": f"Validation passed. Title changes hash updated successfully.",
+            "errors": []
+        }
+
+
 def update_content_hash(work_id: int, verbose: bool = False) -> bool:
     """Validate files and update content hash for a work.
 

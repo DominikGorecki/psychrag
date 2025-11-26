@@ -398,3 +398,34 @@ class ManualTitleChangesResponse(BaseModel):
     message: str | None = Field(None, description="Success or error message")
 
 
+class VerifyTitleChangesRequest(BaseModel):
+    """Request to verify title changes integrity."""
+
+    source_key: str = Field(
+        default="original_markdown",
+        description="Source file key (original_markdown or sanitized)"
+    )
+
+
+class VerifyTitleChangesResponse(BaseModel):
+    """Response after verifying title changes."""
+
+    success: bool = Field(..., description="Whether validation passed")
+    message: str = Field(..., description="Success or error message")
+    errors: list[str] = Field(default_factory=list, description="List of validation errors if any")
+
+
+class TitleChangesContentResponse(BaseModel):
+    """Response containing title changes file content."""
+
+    content: str = Field(..., description="Raw markdown content of title_changes file")
+    filename: str = Field(..., description="Name of the title_changes file")
+    hash: str = Field(..., description="Current hash of the file")
+
+
+class UpdateTitleChangesContentRequest(BaseModel):
+    """Request to update title changes file content."""
+
+    content: str = Field(..., description="New content for the title_changes file")
+
+

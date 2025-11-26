@@ -312,7 +312,7 @@ export default function GenTitleChangesPage() {
 
       {/* Manual Paste Dialog */}
       <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh]">
+        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Paste LLM Response</DialogTitle>
             <DialogDescription>
@@ -320,16 +320,16 @@ export default function GenTitleChangesPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4">
+          <div className="flex-1 overflow-hidden py-4">
             <Textarea
               value={pastedResponse}
               onChange={(e) => setPastedResponse(e.target.value)}
               placeholder="Paste the LLM response here..."
-              className="min-h-[300px] font-mono text-sm"
+              className="h-full min-h-[300px] max-h-[50vh] font-mono text-sm resize-none"
             />
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-shrink-0">
             <Button
               variant="outline"
               onClick={() => {
