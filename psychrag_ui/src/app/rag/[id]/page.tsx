@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -294,9 +294,7 @@ export default function GeneratePage() {
               </CardHeader>
               <CardContent className="h-full overflow-hidden pb-6">
                 <ScrollArea className="h-full pr-4" style={{ maxHeight: "calc(100vh - 380px)" }}>
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown>{generatedResponse || ""}</ReactMarkdown>
-                  </div>
+                  <MarkdownRenderer content={generatedResponse || ""} />
                 </ScrollArea>
               </CardContent>
             </Card>

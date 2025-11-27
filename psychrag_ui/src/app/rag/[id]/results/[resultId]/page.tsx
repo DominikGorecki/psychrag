@@ -13,7 +13,7 @@ import {
   Loader2Icon,
   PlayCircle,
 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -142,9 +142,7 @@ export default function ResultDetailPage() {
             <Card className="h-full overflow-hidden">
               <CardContent className="h-full p-0">
                 <ScrollArea className="h-full p-6">
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown>{result?.response_text || ""}</ReactMarkdown>
-                  </div>
+                  <MarkdownRenderer content={result?.response_text || ""} />
                 </ScrollArea>
               </CardContent>
             </Card>

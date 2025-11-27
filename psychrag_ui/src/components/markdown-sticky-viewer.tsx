@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Button } from "@/components/ui/button";
 import { Eye, FileText } from "lucide-react";
 
@@ -78,10 +77,9 @@ export function MarkdownStickyViewer({
             spellCheck={false}
           />
         ) : (
-          <div className="sticky-markdown-container h-full overflow-auto">
-            <div className="p-6 prose prose-sm max-w-none dark:prose-invert">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
+          <div className="sticky-markdown-container h-full overflow-auto p-6">
+              <MarkdownRenderer
+                content={localContent}
                 components={{
                   h1: ({ node, ...props }) => (
                     <h1
@@ -128,10 +126,7 @@ export function MarkdownStickyViewer({
                     />
                   ),
                 }}
-              >
-                {localContent}
-              </ReactMarkdown>
-            </div>
+              />
           </div>
         )}
       </div>
