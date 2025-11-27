@@ -29,8 +29,8 @@ class TestConvertEpubToMarkdown:
             convert_epub_to_markdown(txt_file)
 
     @patch("psychrag.conversions.conv_epub2md._extract_epub_to_html")
-    @patch("psychrag.conversions.conv_epub2md.DocumentConverter")
-    def test_successful_conversion(self, mock_converter_class, mock_extract, tmp_path):
+    @patch("psychrag.conversions.conv_epub2md.md")
+    def test_successful_conversion(self, mock_md, mock_extract, tmp_path):
         """Test successful EPUB to Markdown conversion."""
         # Create mock EPUB file
         epub_file = tmp_path / "test.epub"
@@ -38,11 +38,7 @@ class TestConvertEpubToMarkdown:
 
         # Setup mocks
         mock_extract.return_value = "<html><body>Test</body></html>"
-        mock_result = MagicMock()
-        mock_result.document.export_to_markdown.return_value = "# Test Markdown"
-        mock_converter = MagicMock()
-        mock_converter.convert.return_value = mock_result
-        mock_converter_class.return_value = mock_converter
+        mock_md.return_value = "# Test Markdown"
 
         # Run conversion
         result = convert_epub_to_markdown(epub_file)
@@ -50,10 +46,11 @@ class TestConvertEpubToMarkdown:
         # Verify
         assert result == "# Test Markdown"
         mock_extract.assert_called_once_with(epub_file)
+        mock_md.assert_called_once()
 
     @patch("psychrag.conversions.conv_epub2md._extract_epub_to_html")
-    @patch("psychrag.conversions.conv_epub2md.DocumentConverter")
-    def test_output_file_created(self, mock_converter_class, mock_extract, tmp_path):
+    @patch("psychrag.conversions.conv_epub2md.md")
+    def test_output_file_created(self, mock_md, mock_extract, tmp_path):
         """Test that output file is created when output_path is specified."""
         # Create mock EPUB file
         epub_file = tmp_path / "test.epub"
@@ -62,11 +59,7 @@ class TestConvertEpubToMarkdown:
 
         # Setup mocks
         mock_extract.return_value = "<html><body>Test</body></html>"
-        mock_result = MagicMock()
-        mock_result.document.export_to_markdown.return_value = "# Test Output"
-        mock_converter = MagicMock()
-        mock_converter.convert.return_value = mock_result
-        mock_converter_class.return_value = mock_converter
+        mock_md.return_value = "# Test Output"
 
         # Run conversion
         convert_epub_to_markdown(epub_file, output_path=output_file)
@@ -76,8 +69,8 @@ class TestConvertEpubToMarkdown:
         assert output_file.read_text(encoding="utf-8") == "# Test Output"
 
     @patch("psychrag.conversions.conv_epub2md._extract_epub_to_html")
-    @patch("psychrag.conversions.conv_epub2md.DocumentConverter")
-    def test_verbose_mode(self, mock_converter_class, mock_extract, tmp_path, capsys):
+    @patch("psychrag.conversions.conv_epub2md.md")
+    def test_verbose_mode(self, mock_md, mock_extract, tmp_path, capsys):
         """Test verbose output."""
         # Create mock EPUB file
         epub_file = tmp_path / "test.epub"
@@ -85,11 +78,7 @@ class TestConvertEpubToMarkdown:
 
         # Setup mocks
         mock_extract.return_value = "<html><body>Test</body></html>"
-        mock_result = MagicMock()
-        mock_result.document.export_to_markdown.return_value = "# Test"
-        mock_converter = MagicMock()
-        mock_converter.convert.return_value = mock_result
-        mock_converter_class.return_value = mock_converter
+        mock_md.return_value = "# Test"
 
         # Run with verbose
         convert_epub_to_markdown(epub_file, verbose=True)
@@ -99,20 +88,70 @@ class TestConvertEpubToMarkdown:
         assert "Converting:" in captured.out
 
     @patch("psychrag.conversions.conv_epub2md._extract_epub_to_html")
-    @patch("psychrag.conversions.conv_epub2md.DocumentConverter")
-    def test_path_object_input(self, mock_converter_class, mock_extract, tmp_path):
+    @patch("psychrag.conversions.conv_epub2md.md")
+    def test_path_object_input(self, mock_md, mock_extract, tmp_path):
         """Test that Path objects are accepted as input."""
         epub_file = tmp_path / "test.epub"
         epub_file.write_text("fake content")
 
         # Setup mocks
         mock_extract.return_value = "<html><body>Test</body></html>"
-        mock_result = MagicMock()
-        mock_result.document.export_to_markdown.return_value = "# Test"
-        mock_converter_class.return_value.convert.return_value = mock_result
+        mock_md.return_value = "# Test"
 
         result = convert_epub_to_markdown(Path(epub_file))
         assert isinstance(result, str)
+
+    @patch("psychrag.conversions.conv_epub2md._extract_epub_to_html")
+    @patch("psychrag.conversions.conv_epub2md.md")
+    def test_hierarchy_preservation(self, mock_md, mock_extract, tmp_path):
+        """Test that hierarchical structure is preserved in HTML extraction."""
+        # Create mock EPUB file
+        epub_file = tmp_path / "test.epub"
+        epub_file.write_text("fake epub content")
+
+        # Setup mocks - simulate HTML with hierarchical headings
+        mock_html = """<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Test</title></head>
+<body>
+<h1>Chapter 1</h1>
+<p>Chapter 1 content</p>
+<h2>Section 1.1</h2>
+<p>Section content</p>
+<h3>Subsection 1.1.1</h3>
+<p>Subsection content</p>
+<h2>Section 1.2</h2>
+<p>More content</p>
+</body>
+</html>"""
+        mock_extract.return_value = mock_html
+
+        # Simulate markdown output with hierarchy
+        mock_md.return_value = """# Chapter 1
+
+Chapter 1 content
+
+## Section 1.1
+
+Section content
+
+### Subsection 1.1.1
+
+Subsection content
+
+## Section 1.2
+
+More content"""
+
+        # Run conversion
+        result = convert_epub_to_markdown(epub_file)
+
+        # Verify hierarchy is reflected in the result
+        assert "# Chapter 1" in result
+        assert "## Section 1.1" in result
+        assert "### Subsection 1.1.1" in result
+        assert "## Section 1.2" in result
+        mock_extract.assert_called_once_with(epub_file)
 
 
 class TestMain:

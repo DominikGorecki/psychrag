@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { UpdateRetrieveConsolidateButton } from "@/components/rag/update-button";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -169,44 +170,6 @@ export default function RAGPage() {
       await fetchQueries();
     } catch (err) {
       setOperationError(err instanceof Error ? err.message : "Failed to consolidate");
-    } finally {
-      setOperatingId(null);
-    }
-  };
-
-  const handleUpdateRetrieveConsolidate = async (queryId: number) => {
-    setOperatingId(queryId);
-    setOperationError(null);
-    setOperationSuccess(null);
-
-    try {
-      // First call retrieve endpoint
-      const retrieveResponse = await fetch(`${API_BASE_URL}/rag/queries/${queryId}/retrieve`, {
-        method: "POST",
-      });
-
-      if (!retrieveResponse.ok) {
-        const errorData = await retrieveResponse.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Failed to retrieve");
-      }
-
-      const retrieveData = await retrieveResponse.json();
-
-      // Then call consolidate endpoint
-      const consolidateResponse = await fetch(`${API_BASE_URL}/rag/queries/${queryId}/consolidate`, {
-        method: "POST",
-      });
-
-      if (!consolidateResponse.ok) {
-        const errorData = await consolidateResponse.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Failed to consolidate");
-      }
-
-      const consolidateData = await consolidateResponse.json();
-      setOperationSuccess(`Updated: Retrieved ${retrieveData.final_count} chunks, consolidated into ${consolidateData.consolidated_count} groups`);
-      await fetchQueries();
-    } catch (err) {
-      setOperationError(err instanceof Error ? err.message : "Failed to update retrieval and consolidation");
     } finally {
       setOperatingId(null);
     }
@@ -406,19 +369,12 @@ export default function RAGPage() {
             <Files className="h-3 w-3" />
           </Button>
           {/* Update R & C */}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleUpdateRetrieveConsolidate(query.id)}
+          <UpdateRetrieveConsolidateButton
+            queryId={query.id}
+            onSuccess={fetchQueries}
             disabled={isDisabled}
             className="gap-1"
-          >
-            {isOperating ? (
-              <Loader2Icon className="h-3 w-3 animate-spin" />
-            ) : (
-              <RefreshCw className="h-3 w-3" />
-            )}
-          </Button>
+          />
           <Button
             size="sm"
             onClick={() => handleGenerate(query.id)}

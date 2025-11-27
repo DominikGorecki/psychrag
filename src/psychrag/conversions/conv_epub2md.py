@@ -24,40 +24,124 @@ from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 
 
-def _get_navigation_map(book) -> dict[str, str]:
+def _extract_hierarchy(book) -> list[dict]:
     """
-    Extract navigation map from EPUB to get chapter titles.
+    Extract hierarchical navigation structure from EPUB.
+
+    Handles both EPUB 3 (HTML5 nav) and EPUB 2 (NCX) formats.
+    Recursively processes nested sections to preserve heading levels.
 
     Args:
         book: The ebooklib epub object.
 
     Returns:
-        Dictionary mapping HTML filenames to chapter titles.
+        List of dictionaries with structure:
+        [
+            {
+                'level': int,           # 1-6 for h1-h6
+                'title': str,           # Section title
+                'document': str,        # Document filename
+                'fragment': str or None # Anchor ID if present
+            },
+            ...
+        ]
     """
-    nav_map = {}
+    hierarchy = []
 
+    # Try EPUB 3 navigation first (modern format)
+    for item in book.get_items_of_type(ebooklib.ITEM_NAVIGATION):
+        content = item.get_content().decode("utf-8", errors="ignore")
+        soup = BeautifulSoup(content, "html.parser")
+
+        # Look for EPUB 3 navigation structure
+        nav = soup.find("nav")
+        if nav:
+            ol = nav.find("ol")
+            if ol:
+                def parse_nested_ol(ol_elem, level=1):
+                    """Recursively parse nested ordered lists."""
+                    for li in ol_elem.find_all("li", recursive=False):
+                        a = li.find("a", recursive=False)
+                        if a and a.get("href"):
+                            href = a["href"]
+                            title = a.get_text(strip=True)
+
+                            # Parse href into document and fragment
+                            if "#" in href:
+                                document, fragment = href.split("#", 1)
+                            else:
+                                document, fragment = href, None
+
+                            # Extract filename from path if needed
+                            if "/" in document:
+                                document = document.split("/")[-1]
+
+                            hierarchy.append({
+                                "level": min(level, 6),  # Cap at h6
+                                "title": title,
+                                "document": document,
+                                "fragment": fragment,
+                            })
+
+                        # Recurse into nested <ol>
+                        nested_ol = li.find("ol", recursive=False)
+                        if nested_ol:
+                            parse_nested_ol(nested_ol, level + 1)
+
+                parse_nested_ol(ol)
+                return hierarchy  # Found EPUB 3 nav, return it
+
+    # Fallback to EPUB 2 NCX format (legacy)
     for item in book.get_items_of_type(ebooklib.ITEM_NAVIGATION):
         content = item.get_content().decode("utf-8", errors="ignore")
         soup = BeautifulSoup(content, "xml")
 
-        for nav_point in soup.find_all("navPoint"):
-            label = nav_point.find("navLabel")
-            content_elem = nav_point.find("content")
+        def parse_nav_point(nav_point, level=1):
+            """Recursively parse navPoint elements."""
+            label = nav_point.find("navLabel", recursive=False)
+            content_elem = nav_point.find("content", recursive=False)
 
             if label and content_elem:
-                text = label.get_text(strip=True)
+                title = label.get_text(strip=True)
                 src = content_elem.get("src", "")
-                # Remove any anchor from the source
-                filename = src.split("#")[0]
-                if filename and text:
-                    nav_map[filename] = text
 
-    return nav_map
+                # Parse src into document and fragment
+                if "#" in src:
+                    document, fragment = src.split("#", 1)
+                else:
+                    document, fragment = src, None
+
+                # Extract filename from path if needed
+                if "/" in document:
+                    document = document.split("/")[-1]
+
+                if document and title:
+                    hierarchy.append({
+                        "level": min(level, 6),  # Cap at h6
+                        "title": title,
+                        "document": document,
+                        "fragment": fragment,
+                    })
+
+            # Recurse into nested navPoints
+            for child_nav_point in nav_point.find_all("navPoint", recursive=False):
+                parse_nav_point(child_nav_point, level + 1)
+
+        # Find all top-level navPoints
+        for nav_point in soup.find_all("navPoint", recursive=False):
+            parse_nav_point(nav_point)
+
+        if hierarchy:
+            return hierarchy  # Found NCX navigation
+
+    return hierarchy  # Return empty list if no navigation found
 
 
 def _extract_epub_to_html(epub_path: Path) -> str:
     """
     Extract all text content from an EPUB file as a single well-formed HTML.
+
+    Preserves hierarchical heading structure from navigation when available.
 
     Args:
         epub_path: Path to the EPUB file.
@@ -67,8 +151,17 @@ def _extract_epub_to_html(epub_path: Path) -> str:
     """
     book = epub.read_epub(str(epub_path))
 
-    # Get navigation map for chapter titles
-    nav_map = _get_navigation_map(book)
+    # Get hierarchical navigation structure
+    hierarchy = _extract_hierarchy(book)
+
+    # Build a mapping from documents to their heading entries
+    # Structure: {document: [(fragment, level, title), ...]}
+    doc_headings = {}
+    for entry in hierarchy:
+        doc = entry["document"]
+        if doc not in doc_headings:
+            doc_headings[doc] = []
+        doc_headings[doc].append((entry["fragment"], entry["level"], entry["title"]))
 
     # Collect body content from all document items
     body_parts = []
@@ -81,15 +174,29 @@ def _extract_epub_to_html(epub_path: Path) -> str:
         item_name = item.get_name()
         filename = item_name.split("/")[-1] if "/" in item_name else item_name
 
-        # If this file has a chapter title in navigation, inject H1 heading
-        if filename in nav_map:
-            chapter_title = nav_map[filename]
-            h1_tag = soup.new_tag("h1")
-            h1_tag.string = chapter_title
+        # Inject headings from navigation hierarchy
+        if filename in doc_headings:
             body = soup.find("body")
             if body:
-                # Insert H1 at the beginning of the body
-                body.insert(0, h1_tag)
+                for fragment, level, title in doc_headings[filename]:
+                    # Create heading tag with appropriate level (h1-h6)
+                    heading_tag = soup.new_tag(f"h{level}")
+                    heading_tag.string = title
+
+                    if fragment:
+                        # Find element with matching ID and insert heading before it
+                        target = body.find(id=fragment)
+                        if target:
+                            target.insert_before(heading_tag)
+                        else:
+                            # Fragment not found, insert at beginning
+                            body.insert(0, heading_tag)
+                    else:
+                        # No fragment specified, insert at beginning of body
+                        body.insert(0, heading_tag)
+
+        # If no TOC headings were found, preserve existing headings
+        # (They're already in the content, so no action needed)
 
         # Remove internal anchor links (links to .html files or # anchors)
         for a_tag in soup.find_all("a", href=True):

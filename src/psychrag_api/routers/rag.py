@@ -4,6 +4,7 @@ RAG Router - Retrieval, Augmentation and Generation operations.
 Endpoints for query management:
     GET  /rag/queries                      - List all queries with status info
     GET  /rag/queries/{id}                 - Get single query details
+    PATCH /rag/queries/{id}                - Update query fields
     POST /rag/queries/{id}/embed           - Run vectorization
     POST /rag/queries/{id}/retrieve        - Run retrieval
     POST /rag/queries/{id}/consolidate     - Run consolidation
@@ -39,6 +40,7 @@ from psychrag_api.schemas.rag_queries import (
     QueryListItem,
     QueryListResponse,
     QueryDetailResponse,
+    QueryUpdateRequest,
     ExpansionPromptRequest,
     ExpansionPromptResponse,
     ExpansionRunRequest,
@@ -127,6 +129,58 @@ async def get_query(query_id: int) -> QueryDetailResponse:
             vector_status=query.vector_status,
             has_retrieved_context=bool(query.retrieved_context),
             has_clean_context=bool(query.clean_retrieval_context),
+            clean_retrieval_context=query.clean_retrieval_context,
+            created_at=query.created_at,
+            updated_at=query.updated_at
+        )
+
+
+@router.patch(
+    "/queries/{query_id}",
+    response_model=QueryDetailResponse,
+    summary="Update query fields",
+    description="Update editable fields of a query.",
+)
+async def update_query(query_id: int, request: QueryUpdateRequest) -> QueryDetailResponse:
+    """Update query fields."""
+    with get_session() as session:
+        query = session.query(Query).filter(Query.id == query_id).first()
+
+        if not query:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Query with ID {query_id} not found"
+            )
+
+        if request.expanded_queries is not None:
+            query.expanded_queries = request.expanded_queries
+        
+        if request.hyde_answer is not None:
+            query.hyde_answer = request.hyde_answer
+        
+        if request.intent is not None:
+            query.intent = request.intent
+        
+        if request.entities is not None:
+            query.entities = request.entities
+        
+        if request.clean_retrieval_context is not None:
+            query.clean_retrieval_context = request.clean_retrieval_context
+
+        session.commit()
+        session.refresh(query)
+
+        return QueryDetailResponse(
+            id=query.id,
+            original_query=query.original_query,
+            expanded_queries=query.expanded_queries,
+            hyde_answer=query.hyde_answer,
+            intent=query.intent,
+            entities=query.entities,
+            vector_status=query.vector_status,
+            has_retrieved_context=bool(query.retrieved_context),
+            has_clean_context=bool(query.clean_retrieval_context),
+            clean_retrieval_context=query.clean_retrieval_context,
             created_at=query.created_at,
             updated_at=query.updated_at
         )

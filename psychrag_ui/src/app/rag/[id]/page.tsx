@@ -13,6 +13,7 @@ import {
   PlayCircle,
   Check,
   MessageSquare,
+  Eye,
 } from "lucide-react";
 import {
   Dialog,
@@ -231,8 +232,20 @@ export default function GeneratePage() {
           </div>
         </div>
 
-        {/* View toggle */}
-        {generatedResponse && (
+        <div className="flex gap-2">
+          {/* Inspect Query */}
+           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/rag/${queryId}/inspect`)}
+            className="gap-1"
+          >
+            <Eye className="h-4 w-4" />
+            Inspect
+          </Button>
+
+          {/* View toggle */}
+          {generatedResponse && (
           <div className="flex gap-2">
             <Button
               variant={viewMode === "prompt" ? "default" : "outline"}
@@ -250,6 +263,7 @@ export default function GeneratePage() {
             </Button>
           </div>
         )}
+        </div>
       </div>
 
       {/* Success/Error Messages */}

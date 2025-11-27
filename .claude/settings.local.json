@@ -7,7 +7,8 @@
       "Bash(cmd /c \"if not exist c:\\code\\python\\pyschRAG-test\\migrations mkdir c:\\code\\python\\pyschRAG-test\\migrations\")",
       "Bash(cmd /c \"if not exist c:\\code\\python\\psychRAG-test\\src\\psychrag\\config mkdir c:\\code\\python\\psychRAG-test\\src\\psychrag\\config\")",
       "Bash(dir:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(venvScriptspython.exe -m pytest tests/unit/test_conv_epub2md.py -v)"
     ],
     "deny": [],
     "ask": []

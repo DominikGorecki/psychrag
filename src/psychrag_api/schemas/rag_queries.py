@@ -48,8 +48,19 @@ class QueryDetailResponse(BaseModel):
     vector_status: str = Field(..., description="Vectorization status")
     has_retrieved_context: bool = Field(..., description="Whether retrieval has been run")
     has_clean_context: bool = Field(..., description="Whether consolidation has been run")
+    clean_retrieval_context: Optional[list[dict[str, Any]]] = Field(None, description="Clean retrieval context")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
+
+
+class QueryUpdateRequest(BaseModel):
+    """Request to update query fields."""
+
+    expanded_queries: Optional[list[str]] = Field(None, description="Expanded query variations")
+    hyde_answer: Optional[str] = Field(None, description="Hypothetical answer")
+    intent: Optional[str] = Field(None, description="Query intent")
+    entities: Optional[list[str]] = Field(None, description="Extracted entities")
+    clean_retrieval_context: Optional[list[dict[str, Any]]] = Field(None, description="Clean retrieval context")
 
 
 # ============================================================================
@@ -238,4 +249,3 @@ class ResultListResponse(BaseModel):
     query_id: int = Field(..., description="Query ID")
     results: list[ResultItem] = Field(..., description="List of results")
     total: int = Field(..., description="Total number of results")
-
