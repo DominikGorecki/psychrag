@@ -7,8 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, CheckCircle2, ChevronLeft, Loader2Icon } from "lucide-react";
+import { MarkdownEditor } from "@/components/markdown-editor";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+interface FileContentResponse {
+  content: string;
+  filename: string;
+}
 
 interface FormData {
   title: string;
@@ -42,6 +48,30 @@ export default function AddWorkPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const [markdownContent, setMarkdownContent] = useState<string>("");
+  const [loadingContent, setLoadingContent] = useState(true);
+
+  useEffect(() => {
+    const fetchMarkdown = async () => {
+      try {
+        setLoadingContent(true);
+        const response = await fetch(`${API_BASE_URL}/conv/original-markdown/${fileId}`);
+        if (response.ok) {
+          const data: FileContentResponse = await response.json();
+          setMarkdownContent(data.content);
+        }
+      } catch (err) {
+        console.error("Failed to load markdown preview", err);
+      } finally {
+        setLoadingContent(false);
+      }
+    };
+
+    if (fileId) {
+      fetchMarkdown();
+    }
+  }, [fileId]);
 
   const validateForm = (): boolean => {
     const errors: FormErrors = {};
@@ -159,7 +189,7 @@ export default function AddWorkPage() {
   }
 
   return (
-    <div className="container max-w-3xl py-8">
+    <div className="container max-w-[95vw] py-8">
       {/* Header */}
       <div className="mb-6">
         <Button
@@ -178,154 +208,183 @@ export default function AddWorkPage() {
         </p>
       </div>
 
-      {/* Form Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Work Metadata</CardTitle>
-          <CardDescription>
-            File ID: <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{fileId}</code>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Title - Required */}
-            <div className="space-y-2">
-              <Label htmlFor="title" className="required">
-                Title <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="title"
-                type="text"
-                value={formData.title}
-                onChange={(e) => handleFieldChange("title", e.target.value)}
-                placeholder="Enter work title"
-                className={formErrors.title ? "border-destructive" : ""}
-              />
-              {formErrors.title && (
-                <p className="text-sm text-destructive">{formErrors.title}</p>
-              )}
-            </div>
-
-            {/* Authors - Optional */}
-            <div className="space-y-2">
-              <Label htmlFor="authors">Authors</Label>
-              <Input
-                id="authors"
-                type="text"
-                value={formData.authors}
-                onChange={(e) => handleFieldChange("authors", e.target.value)}
-                placeholder="e.g., John Smith, Jane Doe"
-              />
-              <p className="text-xs text-muted-foreground">
-                Optional: Enter author names separated by commas
-              </p>
-            </div>
-
-            {/* Year - Optional */}
-            <div className="space-y-2">
-              <Label htmlFor="year">Year</Label>
-              <Input
-                id="year"
-                type="number"
-                value={formData.year}
-                onChange={(e) => handleFieldChange("year", e.target.value)}
-                placeholder="e.g., 2020"
-                min="1000"
-                max="9999"
-                className={formErrors.year ? "border-destructive" : ""}
-              />
-              {formErrors.year && (
-                <p className="text-sm text-destructive">{formErrors.year}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Optional: 4-digit year of publication
-              </p>
-            </div>
-
-            {/* Publisher - Optional */}
-            <div className="space-y-2">
-              <Label htmlFor="publisher">Publisher</Label>
-              <Input
-                id="publisher"
-                type="text"
-                value={formData.publisher}
-                onChange={(e) => handleFieldChange("publisher", e.target.value)}
-                placeholder="e.g., Psychology Press"
-              />
-              <p className="text-xs text-muted-foreground">
-                Optional: Publisher name
-              </p>
-            </div>
-
-            {/* ISBN - Optional */}
-            <div className="space-y-2">
-              <Label htmlFor="isbn">ISBN</Label>
-              <Input
-                id="isbn"
-                type="text"
-                value={formData.isbn}
-                onChange={(e) => handleFieldChange("isbn", e.target.value)}
-                placeholder="e.g., 978-0-12-345678-9"
-              />
-              <p className="text-xs text-muted-foreground">
-                Optional: ISBN for books
-              </p>
-            </div>
-
-            {/* Edition - Optional */}
-            <div className="space-y-2">
-              <Label htmlFor="edition">Edition</Label>
-              <Input
-                id="edition"
-                type="text"
-                value={formData.edition}
-                onChange={(e) => handleFieldChange("edition", e.target.value)}
-                placeholder="e.g., 3rd Edition"
-              />
-              <p className="text-xs text-muted-foreground">
-                Optional: Edition information
-              </p>
-            </div>
-
-            {/* Error Display */}
-            {submitError && (
-              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                <div className="flex items-start gap-2 text-destructive">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm">{submitError}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-250px)]">
+        {/* Form Card */}
+        <div className="overflow-y-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Work Metadata</CardTitle>
+              <CardDescription>
+                File ID: <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{fileId}</code>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Title - Required */}
+                <div className="space-y-2">
+                  <Label htmlFor="title" className="required">
+                    Title <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="title"
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => handleFieldChange("title", e.target.value)}
+                    placeholder="Enter work title"
+                    className={formErrors.title ? "border-destructive" : ""}
+                  />
+                  {formErrors.title && (
+                    <p className="text-sm text-destructive">{formErrors.title}</p>
+                  )}
                 </div>
-              </div>
-            )}
 
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={submitting}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={submitting}
-                className="flex-1"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2Icon className="h-4 w-4 animate-spin mr-2" />
-                    Adding...
-                  </>
-                ) : (
-                  "Add to Database"
+                {/* Authors - Optional */}
+                <div className="space-y-2">
+                  <Label htmlFor="authors">Authors</Label>
+                  <Input
+                    id="authors"
+                    type="text"
+                    value={formData.authors}
+                    onChange={(e) => handleFieldChange("authors", e.target.value)}
+                    placeholder="e.g., John Smith, Jane Doe"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Enter author names separated by commas
+                  </p>
+                </div>
+
+                {/* Year - Optional */}
+                <div className="space-y-2">
+                  <Label htmlFor="year">Year</Label>
+                  <Input
+                    id="year"
+                    type="number"
+                    value={formData.year}
+                    onChange={(e) => handleFieldChange("year", e.target.value)}
+                    placeholder="e.g., 2020"
+                    min="1000"
+                    max="9999"
+                    className={formErrors.year ? "border-destructive" : ""}
+                  />
+                  {formErrors.year && (
+                    <p className="text-sm text-destructive">{formErrors.year}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Optional: 4-digit year of publication
+                  </p>
+                </div>
+
+                {/* Publisher - Optional */}
+                <div className="space-y-2">
+                  <Label htmlFor="publisher">Publisher</Label>
+                  <Input
+                    id="publisher"
+                    type="text"
+                    value={formData.publisher}
+                    onChange={(e) => handleFieldChange("publisher", e.target.value)}
+                    placeholder="e.g., Psychology Press"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Publisher name
+                  </p>
+                </div>
+
+                {/* ISBN - Optional */}
+                <div className="space-y-2">
+                  <Label htmlFor="isbn">ISBN</Label>
+                  <Input
+                    id="isbn"
+                    type="text"
+                    value={formData.isbn}
+                    onChange={(e) => handleFieldChange("isbn", e.target.value)}
+                    placeholder="e.g., 978-0-12-345678-9"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: ISBN for books
+                  </p>
+                </div>
+
+                {/* Edition - Optional */}
+                <div className="space-y-2">
+                  <Label htmlFor="edition">Edition</Label>
+                  <Input
+                    id="edition"
+                    type="text"
+                    value={formData.edition}
+                    onChange={(e) => handleFieldChange("edition", e.target.value)}
+                    placeholder="e.g., 3rd Edition"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Edition information
+                  </p>
+                </div>
+
+                {/* Error Display */}
+                {submitError && (
+                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                    <div className="flex items-start gap-2 text-destructive">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm">{submitError}</p>
+                    </div>
+                  </div>
                 )}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCancel}
+                    disabled={submitting}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2Icon className="h-4 w-4 animate-spin mr-2" />
+                        Adding...
+                      </>
+                    ) : (
+                      "Add to Database"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Markdown Preview Card */}
+        <div className="h-full flex flex-col">
+          <Card className="h-full flex flex-col overflow-hidden">
+            <CardHeader className="py-4">
+              <CardTitle className="text-lg">Content Preview</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 p-0 overflow-hidden">
+              {loadingContent ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="h-full">
+                  <MarkdownEditor
+                    content={markdownContent}
+                    readOnly={true}
+                    viewMode="markdown-only"
+                    className="h-full"
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
