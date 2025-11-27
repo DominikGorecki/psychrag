@@ -144,3 +144,5 @@ def _remove_heading_markers(line: str) -> str:
     # Not a heading, return as-is
     return line
 
+
+

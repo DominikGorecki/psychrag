@@ -111,6 +111,11 @@ Add an `output` folder to the root of the repo.
 ```bash
 mkdir output
 ``` 
+# Useful Commands When Hangs
+```powershell
+Stop-Process -Name "python" -Force  # Replace with the actual name
+```
+
 
 # Adding new Work (Asset) To DB
 
