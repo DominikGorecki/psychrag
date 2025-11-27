@@ -3,17 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
 import {
   AlertCircle,
   ChevronLeft,
   Loader2Icon,
   Save,
 } from "lucide-react";
-import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { MarkdownEditor } from "@/components/markdown-editor";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -150,36 +146,12 @@ export default function InspectOriginalMarkdownPage() {
 
       {/* Content */}
       <div className="flex-1 p-6 overflow-hidden flex flex-col">
-        <Tabs defaultValue="rendered" className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="w-[200px] mb-4">
-            <TabsTrigger value="rendered">Rendered</TabsTrigger>
-            <TabsTrigger value="markdown">Markdown</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="rendered" className="flex-1 overflow-hidden mt-0">
-            <Card className="h-full overflow-hidden">
-              <CardContent className="h-full p-0">
-                <ScrollArea className="h-full p-6">
-                  <MarkdownRenderer content={content} />
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="markdown" className="flex-1 overflow-hidden mt-0">
-            <Card className="h-full overflow-hidden">
-              <CardContent className="h-full p-0">
-                <Textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  className="h-full border-0 rounded-none focus-visible:ring-0 resize-none font-mono text-sm p-6"
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        <MarkdownEditor 
+          content={content} 
+          onChange={setContent}
+          viewMode="both"
+        />
       </div>
     </div>
   );
 }
-

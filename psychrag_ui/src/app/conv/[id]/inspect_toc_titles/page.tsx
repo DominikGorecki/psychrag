@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import {
   AlertCircle,
   ChevronLeft,
@@ -19,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { MarkdownEditor } from "@/components/markdown-editor";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -216,14 +216,14 @@ export default function InspectTocTitlesPage() {
         </div>
       </div>
 
-      {/* Main content area - editable textarea */}
-      <div className="flex-1 flex overflow-hidden" style={{ maxHeight: "calc(100vh - 180px)" }}>
+      {/* Main content area - editable markdown editor */}
+      <div className="flex-1 flex overflow-hidden">
         <div className="w-full flex flex-col p-4">
-          <Textarea
-            value={content}
-            onChange={(e) => handleContentChange(e.target.value)}
-            className="flex-1 font-mono text-sm resize-none"
-            placeholder="# Chapter 1 Title&#10;&#10;## 1.1 Section Title&#10;&#10;..."
+          <MarkdownEditor 
+            content={content} 
+            onChange={handleContentChange}
+            viewMode="markdown-only"
+            className="flex-1"
           />
         </div>
       </div>
@@ -323,4 +323,3 @@ export default function InspectTocTitlesPage() {
     </div>
   );
 }
-

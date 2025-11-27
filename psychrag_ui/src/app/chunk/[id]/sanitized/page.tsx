@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import {
   AlertCircle,
   ChevronLeft,
@@ -19,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { MarkdownEditor } from "@/components/markdown-editor";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -151,9 +151,9 @@ export default function InspectSanitizedPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-[calc(100vh-100px)] space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={handleBack}>
             <ChevronLeft className="h-4 w-4" />
@@ -194,7 +194,7 @@ export default function InspectSanitizedPage() {
 
       {/* Save Error Alert */}
       {saveError && (
-        <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
+        <div className="rounded-lg border border-destructive bg-destructive/10 p-4 shrink-0">
           <div className="flex items-center gap-3 text-destructive">
             <AlertCircle className="h-5 w-5" />
             <div>
@@ -207,7 +207,7 @@ export default function InspectSanitizedPage() {
 
       {/* Modified Indicator */}
       {modified && (
-        <div className="rounded-lg border border-yellow-500 bg-yellow-50 p-3">
+        <div className="rounded-lg border border-yellow-500 bg-yellow-50 p-3 shrink-0">
           <p className="text-sm text-yellow-800">
             You have unsaved changes. Click "Save Changes" to update the file.
           </p>
@@ -215,12 +215,11 @@ export default function InspectSanitizedPage() {
       )}
 
       {/* Content Editor */}
-      <div className="rounded-lg border">
-        <Textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="min-h-[calc(100vh-350px)] font-mono text-sm resize-none border-0 focus-visible:ring-0"
-          placeholder="Sanitized markdown content..."
+      <div className="flex-1 min-h-0 border rounded-lg overflow-hidden">
+        <MarkdownEditor 
+          content={content} 
+          onChange={setContent}
+          viewMode="both"
         />
       </div>
 
@@ -267,4 +266,3 @@ export default function InspectSanitizedPage() {
     </div>
   );
 }
-
