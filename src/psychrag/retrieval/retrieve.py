@@ -64,8 +64,41 @@ DEFAULT_RRF_K = 60
 DEFAULT_TOP_K_RRF = 60
 DEFAULT_TOP_N_FINAL = 12
 DEFAULT_ENTITY_BOOST = 0.05
-DEFAULT_MIN_CONTENT_LENGTH = 350    #character
+DEFAULT_MIN_CONTENT_LENGTH = 350    # characters (for enrichment)
 DEFAULT_CONTEXT_SENTENCES = 5
+DEFAULT_MIN_WORD_COUNT = 50         # minimum words in chunk.content to be included
+DEFAULT_MIN_CHAR_COUNT = 250        # minimum characters in chunk.content to be included
+
+
+def _meets_minimum_requirements(
+    content: str,
+    min_word_count: int = DEFAULT_MIN_WORD_COUNT,
+    min_char_count: int = DEFAULT_MIN_CHAR_COUNT
+) -> bool:
+    """Check if chunk content meets minimum length requirements.
+
+    Args:
+        content: The chunk content to check
+        min_word_count: Minimum number of words required (0 to disable)
+        min_char_count: Minimum number of characters required (0 to disable)
+
+    Returns:
+        True if content meets both requirements, False otherwise
+    """
+    if not content or not content.strip():
+        return False
+
+    # Check character count (if enabled)
+    if min_char_count > 0 and len(content) < min_char_count:
+        return False
+
+    # Check word count (if enabled)
+    if min_word_count > 0:
+        word_count = len(content.split())
+        if word_count < min_word_count:
+            return False
+
+    return True
 
 
 def _dense_search(
@@ -338,6 +371,8 @@ def retrieve(
     top_k_rrf: int = DEFAULT_TOP_K_RRF,
     top_n_final: int = DEFAULT_TOP_N_FINAL,
     entity_boost: float = DEFAULT_ENTITY_BOOST,
+    min_word_count: int = DEFAULT_MIN_WORD_COUNT,
+    min_char_count: int = DEFAULT_MIN_CHAR_COUNT,
     verbose: bool = False
 ) -> RetrievalResult:
     """Perform full retrieval pipeline for a query.
@@ -350,6 +385,8 @@ def retrieve(
         top_k_rrf: Top candidates after RRF (default 60)
         top_n_final: Final number of results (default 12)
         entity_boost: Score boost per entity match (default 0.05)
+        min_word_count: Minimum words in chunk content (default 50)
+        min_char_count: Minimum characters in chunk content (default 250)
         verbose: Print progress information
 
     Returns:
@@ -426,10 +463,21 @@ def retrieve(
 
         # Fetch chunk data
         chunks_data = session.query(Chunk).filter(Chunk.id.in_(top_ids)).all()
-        chunks_map = {c.id: c for c in chunks_data}
+
+        # Filter out chunks that don't meet minimum requirements
+        filtered_chunks = [
+            c for c in chunks_data
+            if _meets_minimum_requirements(c.content, min_word_count, min_char_count)
+        ]
+
+        if verbose and len(filtered_chunks) < len(chunks_data):
+            filtered_count = len(chunks_data) - len(filtered_chunks)
+            print(f"  Filtered out {filtered_count} chunks below minimum length requirements")
+
+        chunks_map = {c.id: c for c in filtered_chunks}
 
         # Get work data for enrichment
-        work_ids = {c.work_id for c in chunks_data}
+        work_ids = {c.work_id for c in filtered_chunks}
         works = session.query(Work).filter(Work.id.in_(work_ids)).all()
         works_map = {w.id: w for w in works}
 
