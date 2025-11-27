@@ -41,6 +41,9 @@ dependencies = [
     "transformers",
     "torch",
 
+    # Numerical
+    "numpy",
+
     # Testing
     "pytest",
 

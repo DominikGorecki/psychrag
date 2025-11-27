@@ -29,6 +29,7 @@ class ConsolidatedGroup:
     start_line: int
     end_line: int
     score: float
+    heading_chain: list[str] | None = None  # Breadcrumb trail of section headings
 
 
 @dataclass
@@ -53,6 +54,48 @@ def _get_level_order(level: str) -> int:
         "sentence": 6, "chunk": 7
     }
     return level_map.get(level, 10)
+
+
+def _get_heading_chain(
+    parent_id: int | None,
+    parents_map: dict
+) -> list[str]:
+    """Walk up the parent tree to build heading breadcrumbs.
+
+    Returns a list of heading texts from root (H1) to the immediate parent,
+    providing hierarchical context for the chunk.
+
+    Args:
+        parent_id: The parent_id of the current chunk/group
+        parents_map: Dict mapping chunk_id to Chunk objects
+
+    Returns:
+        List of heading texts, e.g., ["Chapter 5: Therapy", "Schema Therapy", "Core Techniques"]
+    """
+    chain = []
+    current_id = parent_id
+
+    while current_id and current_id in parents_map:
+        parent = parents_map[current_id]
+
+        # Extract heading text from first line of content
+        content = parent.content or ""
+        first_line = content.split('\n')[0].strip()
+
+        # Remove markdown heading markers (# ## ### etc.)
+        if first_line.startswith('#'):
+            heading_text = first_line.lstrip('#').strip()
+        else:
+            heading_text = first_line
+
+        # Only include non-empty headings
+        if heading_text:
+            chain.insert(0, heading_text)  # Insert at beginning (root first)
+
+        # Move up to next parent
+        current_id = parent.parent_id
+
+    return chain
 
 
 def _read_content_from_file(
@@ -329,9 +372,12 @@ def consolidate_context(
 
             items = new_items
 
-        # Build final result
+        # Build final result with heading breadcrumbs
         groups = []
         for item in items:
+            # Compute heading chain from parent hierarchy
+            heading_chain = _get_heading_chain(item.get('parent_id'), parents_map)
+
             groups.append(ConsolidatedGroup(
                 chunk_ids=item.get('chunk_ids', [item.get('id')]),
                 parent_id=item.get('parent_id'),
@@ -339,7 +385,8 @@ def consolidate_context(
                 content=item['content'],
                 start_line=item['start_line'],
                 end_line=item['end_line'],
-                score=item['score']
+                score=item['score'],
+                heading_chain=heading_chain
             ))
 
         # Sort by score descending
@@ -358,7 +405,8 @@ def consolidate_context(
                 'content': group.content,
                 'start_line': group.start_line,
                 'end_line': group.end_line,
-                'score': group.score
+                'score': group.score,
+                'heading_chain': group.heading_chain
             })
 
         query.clean_retrieval_context = context_data

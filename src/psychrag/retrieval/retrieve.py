@@ -16,6 +16,7 @@ Usage:
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import numpy as np
 import torch
 from sqlalchemy import text
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -43,6 +44,8 @@ class RetrievedChunk:
     rerank_score: float = 0.0
     entity_boost: float = 0.0
     final_score: float = 0.0
+    # Embedding for MMR diversity (not persisted, used internally)
+    _embedding: np.ndarray | None = field(default=None, repr=False)
 
 
 @dataclass
@@ -133,17 +136,26 @@ def _lexical_search(
     query_text: str,
     limit: int = DEFAULT_LEXICAL_LIMIT
 ) -> list[tuple[int, int]]:
-    """Perform lexical full-text search.
+    """Perform lexical full-text search with phrase support.
+
+    Uses websearch_to_tsquery for better phrase handling:
+    - Quoted phrases ("schema therapy") require adjacent words
+    - Negation (-anxiety) excludes matching chunks
+    - OR logic (CBT or DBT) matches either term
+
+    Uses ts_rank_cd which considers document structure and proximity,
+    providing better ranking than basic ts_rank.
 
     Returns list of (chunk_id, rank) tuples.
     """
-    # Convert query to tsquery format
+    # Use websearch_to_tsquery for phrase and negation support
+    # ts_rank_cd considers cover density (proximity) for better ranking
     result = session.execute(
         text("""
             SELECT id
             FROM chunks
-            WHERE content_tsvector @@ plainto_tsquery('english', :query)
-            ORDER BY ts_rank(content_tsvector, plainto_tsquery('english', :query)) DESC
+            WHERE content_tsvector @@ websearch_to_tsquery('english', :query)
+            ORDER BY ts_rank_cd(content_tsvector, websearch_to_tsquery('english', :query)) DESC
             LIMIT :limit
         """),
         {"query": query_text, "limit": limit}
@@ -343,24 +355,228 @@ def _apply_entity_bias(
     return chunks
 
 
+# Intent preferences: level preferences and length preferences per intent type
+# Each intent maps to preferred heading levels and content length category
+INTENT_PREFERENCES = {
+    "DEFINITION": {
+        "preferred_levels": ["H2", "H3"],
+        "length_preference": "short",  # < 500 chars
+        "level_boost": 0.03,
+        "length_boost": 0.01,
+    },
+    "MECHANISM": {
+        "preferred_levels": ["H3", "H4", "chunk"],
+        "length_preference": "long",  # > 800 chars
+        "level_boost": 0.02,
+        "length_boost": 0.01,
+    },
+    "COMPARISON": {
+        "preferred_levels": ["H2", "H3"],
+        "length_preference": "medium",  # 400-900 chars
+        "level_boost": 0.02,
+        "length_boost": 0.01,
+    },
+    "APPLICATION": {
+        "preferred_levels": ["H4", "chunk", "sentence"],
+        "length_preference": "medium",
+        "level_boost": 0.02,
+        "length_boost": 0.01,
+    },
+    "STUDY_DETAIL": {
+        "preferred_levels": ["H4", "chunk"],
+        "length_preference": "long",
+        "level_boost": 0.03,
+        "length_boost": 0.01,
+    },
+    "CRITIQUE": {
+        "preferred_levels": ["H3", "H4"],
+        "length_preference": "medium",
+        "level_boost": 0.02,
+        "length_boost": 0.01,
+    },
+}
+
+
 def _apply_intent_bias(
     chunks: list[RetrievedChunk],
     intent: str | None
 ) -> list[RetrievedChunk]:
     """Apply intent-based bias to scores.
 
-    Currently a placeholder that does nothing.
-    Future implementation will adjust scores based on intent type.
+    Different intents favor different chunk characteristics:
+    - DEFINITION: prefer shorter chunks at H2/H3 level
+    - MECHANISM: prefer longer explanatory chunks at H3/H4/chunk level
+    - COMPARISON: prefer H2/H3 chunks with medium length
+    - APPLICATION: prefer practical H4/chunk/sentence with medium length
+    - STUDY_DETAIL: prefer longer H4/chunk with methodology details
+    - CRITIQUE: prefer H3/H4 chunks with evaluative content
 
     Args:
-        chunks: Chunks with current scores
-        intent: Query intent type
+        chunks: Chunks with current final_score set
+        intent: Query intent type (DEFINITION, MECHANISM, etc.)
 
     Returns:
-        Chunks (unmodified for now)
+        Chunks with final_score adjusted based on intent preferences
     """
-    # Placeholder - will implement intent-specific biasing later
+    if not intent or not chunks:
+        return chunks
+
+    # Get preferences for this intent
+    prefs = INTENT_PREFERENCES.get(intent.upper())
+    if not prefs:
+        return chunks
+
+    for chunk in chunks:
+        boost = 0.0
+
+        # Level preference boost
+        if chunk.level in prefs["preferred_levels"]:
+            boost += prefs["level_boost"]
+
+        # Length preference boost (based on enriched_content)
+        content_len = len(chunk.enriched_content)
+        length_pref = prefs["length_preference"]
+
+        if length_pref == "short" and content_len < 500:
+            boost += prefs["length_boost"]
+        elif length_pref == "long" and content_len > 800:
+            boost += prefs["length_boost"]
+        elif length_pref == "medium" and 400 <= content_len <= 900:
+            boost += prefs["length_boost"]
+
+        # Apply the boost to final_score
+        chunk.final_score += boost
+
     return chunks
+
+
+# Default MMR parameters
+DEFAULT_MMR_LAMBDA = 0.7  # Balance between relevance (1.0) and diversity (0.0)
+
+
+def _cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:
+    """Compute cosine similarity between two vectors.
+
+    Args:
+        vec1: First vector
+        vec2: Second vector
+
+    Returns:
+        Cosine similarity score between -1 and 1
+    """
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+    return float(np.dot(vec1, vec2) / (norm1 * norm2))
+
+
+def _jaccard_similarity(text1: str, text2: str) -> float:
+    """Compute Jaccard similarity based on word overlap.
+
+    Used as fallback when embeddings are not available.
+
+    Args:
+        text1: First text
+        text2: Second text
+
+    Returns:
+        Jaccard similarity score between 0 and 1
+    """
+    words1 = set(text1.lower().split())
+    words2 = set(text2.lower().split())
+    if not words1 or not words2:
+        return 0.0
+    intersection = len(words1 & words2)
+    union = len(words1 | words2)
+    return intersection / union if union > 0 else 0.0
+
+
+def _compute_chunk_similarity(
+    chunk1: RetrievedChunk,
+    chunk2: RetrievedChunk
+) -> float:
+    """Compute similarity between two chunks.
+
+    Uses embedding cosine similarity if both chunks have embeddings,
+    otherwise falls back to Jaccard word overlap.
+
+    Args:
+        chunk1: First chunk
+        chunk2: Second chunk
+
+    Returns:
+        Similarity score between 0 and 1
+    """
+    # Use embedding similarity if available
+    if chunk1._embedding is not None and chunk2._embedding is not None:
+        # Cosine similarity can be negative; normalize to [0, 1]
+        cos_sim = _cosine_similarity(chunk1._embedding, chunk2._embedding)
+        return (cos_sim + 1) / 2  # Map [-1, 1] to [0, 1]
+
+    # Fallback to Jaccard
+    return _jaccard_similarity(chunk1.enriched_content, chunk2.enriched_content)
+
+
+def _apply_mmr_diversity(
+    chunks: list[RetrievedChunk],
+    top_n: int,
+    lambda_param: float = DEFAULT_MMR_LAMBDA
+) -> list[RetrievedChunk]:
+    """Apply Maximal Marginal Relevance for diverse chunk selection.
+
+    MMR balances relevance and diversity by iteratively selecting chunks
+    that maximize: λ * relevance - (1-λ) * max_similarity_to_selected
+
+    Args:
+        chunks: Chunks sorted by final_score (descending)
+        top_n: Number of chunks to select
+        lambda_param: Balance parameter (0.7 = 70% relevance, 30% diversity)
+
+    Returns:
+        Selected chunks with diverse content
+    """
+    if not chunks or len(chunks) <= top_n:
+        return chunks
+
+    # Normalize scores to [0, 1] for fair comparison with similarity
+    scores = [c.final_score for c in chunks]
+    min_score = min(scores)
+    max_score = max(scores)
+    score_range = max_score - min_score if max_score != min_score else 1.0
+
+    def normalized_score(chunk: RetrievedChunk) -> float:
+        return (chunk.final_score - min_score) / score_range
+
+    # Start with the highest-scoring chunk
+    selected = [chunks[0]]
+    remaining = list(chunks[1:])
+
+    while len(selected) < top_n and remaining:
+        best_idx = -1
+        best_mmr = float('-inf')
+
+        for i, candidate in enumerate(remaining):
+            # Relevance component (normalized)
+            relevance = normalized_score(candidate)
+
+            # Diversity component: max similarity to any selected chunk
+            max_sim = max(
+                _compute_chunk_similarity(candidate, s)
+                for s in selected
+            )
+
+            # MMR score
+            mmr_score = lambda_param * relevance - (1 - lambda_param) * max_sim
+
+            if mmr_score > best_mmr:
+                best_mmr = mmr_score
+                best_idx = i
+
+        if best_idx >= 0:
+            selected.append(remaining.pop(best_idx))
+
+    return selected
 
 
 def retrieve(
@@ -474,14 +690,16 @@ def retrieve(
             filtered_count = len(chunks_data) - len(filtered_chunks)
             print(f"  Filtered out {filtered_count} chunks below minimum length requirements")
 
+        # Build maps with embeddings for MMR diversity
         chunks_map = {c.id: c for c in filtered_chunks}
+        embeddings_map = {c.id: c.embedding for c in filtered_chunks}
 
         # Get work data for enrichment
         work_ids = {c.work_id for c in filtered_chunks}
         works = session.query(Work).filter(Work.id.in_(work_ids)).all()
         works_map = {w.id: w for w in works}
 
-        # Build RetrievedChunk objects
+        # Build RetrievedChunk objects (with embeddings for MMR)
         retrieved_chunks = []
         for chunk_id in top_ids:
             if chunk_id not in chunks_map:
@@ -493,6 +711,12 @@ def retrieve(
             # Enrich content
             enriched = _enrich_content(chunk, work) if work else chunk.content
 
+            # Get embedding as numpy array for MMR (if available)
+            embedding = embeddings_map.get(chunk_id)
+            np_embedding = None
+            if embedding is not None:
+                np_embedding = np.array(embedding, dtype=np.float32)
+
             retrieved_chunks.append(RetrievedChunk(
                 id=chunk.id,
                 parent_id=chunk.parent_id,
@@ -502,7 +726,8 @@ def retrieve(
                 start_line=chunk.start_line,
                 end_line=chunk.end_line,
                 level=chunk.level,
-                rrf_score=rrf_scores[chunk_id]
+                rrf_score=rrf_scores[chunk_id],
+                _embedding=np_embedding
             ))
 
         if verbose:
@@ -515,15 +740,19 @@ def retrieve(
         entities = query.entities or []
         retrieved_chunks = _apply_entity_bias(retrieved_chunks, entities, entity_boost)
 
-        # Apply intent bias (placeholder)
+        # Apply intent bias
         retrieved_chunks = _apply_intent_bias(retrieved_chunks, query.intent)
 
-        # Final sort and selection
+        # Sort by final_score before MMR
         retrieved_chunks.sort(key=lambda x: x.final_score, reverse=True)
-        final_chunks = retrieved_chunks[:top_n_final]
+
+        # Apply MMR diversity for final selection
+        if verbose:
+            print(f"  Applying MMR diversity selection...")
+        final_chunks = _apply_mmr_diversity(retrieved_chunks, top_n_final)
 
         if verbose:
-            print(f"  Final selection: {len(final_chunks)} chunks")
+            print(f"  Final selection: {len(final_chunks)} chunks (with diversity)")
 
         # Save to database
         context_data = []

@@ -58,15 +58,15 @@ def get_query_with_context(query_id: int, top_n: int = 5) -> tuple[Query, list]:
 
 def format_context_blocks(contexts: list, session: Session) -> str:
     """
-    Format contexts as markdown blocks with source citations.
+    Format contexts as markdown blocks with source citations and heading breadcrumbs.
     
     Each context is formatted as:
-    [S#] Source: {work_title} -- {first_line} | (work_id={id}, start-line={start}, end-line={end})
+    [S#] Source: {work_title} > {heading_chain} | (work_id={id}, start-line={start}, end-line={end})
     Text:
-    {remaining_content_trimmed}
+    {content_trimmed}
     
     Args:
-        contexts: List of context dicts with work_id, content, start_line, end_line, score
+        contexts: List of context dicts with work_id, content, start_line, end_line, score, heading_chain
         session: SQLAlchemy session for querying works
         
     Returns:
@@ -82,23 +82,30 @@ def format_context_blocks(contexts: list, session: Session) -> str:
         content = context.get('content', '')
         start_line = context.get('start_line', 0)
         end_line = context.get('end_line', 0)
+        heading_chain = context.get('heading_chain', [])
         
         # Query work title
         work = session.query(Work).filter(Work.id == work_id).first()
         work_title = work.title if work else f"Unknown Work (id={work_id})"
         
-        # Extract first line and remaining content
-        lines = content.split('\n', 1)
-        first_line = lines[0].strip() if lines else ""
-        remaining_content = lines[1].strip() if len(lines) > 1 else ""
+        # Build source path with heading breadcrumbs
+        if heading_chain:
+            # Join heading chain with " > " separator
+            breadcrumb_path = " > ".join(heading_chain)
+            source_path = f"{work_title} > {breadcrumb_path}"
+        else:
+            # Fallback: use first line of content as section indicator
+            lines = content.split('\n', 1)
+            first_line = lines[0].strip() if lines else ""
+            source_path = f"{work_title} -- {first_line}" if first_line else work_title
         
-        # Trim empty lines at top and bottom of remaining content
-        remaining_content = remaining_content.strip()
+        # Trim content (remove leading empty lines)
+        trimmed_content = content.strip()
         
         # Format the block
-        block = f"""[S{idx}] Source: {work_title} -- {first_line} | (work_id={work_id}, start-line={start_line}, end-line={end_line})
+        block = f"""[S{idx}] Source: {source_path} | (work_id={work_id}, start-line={start_line}, end-line={end_line})
 Text:
-{remaining_content}"""
+{trimmed_content}"""
         
         blocks.append(block)
     
