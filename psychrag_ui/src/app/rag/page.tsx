@@ -18,6 +18,7 @@ import {
   Plus,
   FastForward,
   RefreshCw,
+  Files,
 } from "lucide-react";
 import {
   Table,
@@ -394,6 +395,17 @@ export default function RAGPage() {
     if (query.status === "ready") {
       return (
         <div className="flex gap-2 justify-end">
+          {/* View Results */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => router.push(`/rag/${query.id}/results`)}
+            disabled={isDisabled}
+            title="View Results"
+          >
+            <Files className="h-3 w-3" />
+          </Button>
+          {/* Update R & C */}
           <Button
             size="sm"
             variant="outline"
@@ -406,7 +418,6 @@ export default function RAGPage() {
             ) : (
               <RefreshCw className="h-3 w-3" />
             )}
-            Update R & C
           </Button>
           <Button
             size="sm"
@@ -415,7 +426,7 @@ export default function RAGPage() {
             className="gap-1"
           >
             <PlayCircle className="h-3 w-3" />
-            Generate
+            Go
           </Button>
         </div>
       );

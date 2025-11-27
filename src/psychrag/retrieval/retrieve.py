@@ -155,6 +155,7 @@ def _lexical_search(
             SELECT id
             FROM chunks
             WHERE content_tsvector @@ websearch_to_tsquery('english', :query)
+                AND vector_status = 'vec'
             ORDER BY ts_rank_cd(content_tsvector, websearch_to_tsquery('english', :query)) DESC
             LIMIT :limit
         """),

@@ -44,6 +44,12 @@ def main():
         action="store_true",
         help="Print detailed progress information"
     )
+    parser.add_argument(
+        "--min-words",
+        type=int,
+        default=50,
+        help="Minimum word count for chunks (default: 50)"
+    )
 
     args = parser.parse_args()
 
@@ -71,8 +77,10 @@ def main():
                 return 1
 
         # Create content chunks
-        count = chunk_content(args.work_id, verbose=args.verbose)
+        count = chunk_content(args.work_id, verbose=args.verbose, min_chunk_words=args.min_words)
         print(f"Successfully created {count} content chunks for work {args.work_id}")
+        if args.min_words != 50:
+            print(f"Used minimum word count: {args.min_words}")
         return 0
 
     except HashMismatchError as e:

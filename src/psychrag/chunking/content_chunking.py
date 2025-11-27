@@ -44,14 +44,33 @@ except OSError:
 # Chunking constants
 TARGET_WORDS = 200
 MAX_WORDS = 300
+MIN_CHUNK_WORDS = 50  # Minimum words for a valid chunk
 MIN_OVERLAP_SENTENCES = 2
 MAX_OVERLAP_SENTENCES = 3
 PARAGRAPH_BREAK_OVERLAP = 3
 
 
 def _count_words(text: str) -> int:
-    """Count words in text."""
-    return len(text.split())
+    """Count words in text, handling markdown syntax properly.
+
+    This improved version:
+    - Removes markdown link syntax [text](url) and keeps only 'text'
+    - Removes formatting markers (*,_,~,`)
+    - Splits on word boundaries to count actual words
+
+    Args:
+        text: Text to count words in.
+
+    Returns:
+        Number of words in the text.
+    """
+    # Remove markdown link syntax, keeping only the link text
+    text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+    # Remove formatting markers
+    text = re.sub(r'[*_~`]+', '', text)
+    # Find all word sequences (alphanumeric + underscore)
+    words = re.findall(r'\b\w+\b', text)
+    return len(words)
 
 
 def _get_sentences(text: str) -> list[str]:
@@ -264,7 +283,8 @@ def _format_breadcrumb(breadcrumb: list[str]) -> str:
 def _create_paragraph_chunks(
     paragraphs: list[tuple[int, int, str]],
     headings: list[tuple[int, int, str]],
-    heading_hierarchy: dict[int, list[str]]
+    heading_hierarchy: dict[int, list[str]],
+    min_words: int = MIN_CHUNK_WORDS
 ) -> list[dict]:
     """Create chunks from paragraphs, combining short paragraphs under same heading.
 
@@ -273,6 +293,12 @@ def _create_paragraph_chunks(
     - Adding the next paragraph would exceed MAX_WORDS
     - We hit a new heading
     - We finish all paragraphs
+
+    Args:
+        paragraphs: List of (start_line, end_line, text) tuples.
+        headings: List of (line_num, level, text) tuples.
+        heading_hierarchy: Dictionary mapping line numbers to breadcrumbs.
+        min_words: Minimum word count for chunks (default: MIN_CHUNK_WORDS).
 
     Returns:
         List of chunk dictionaries with keys:
@@ -316,8 +342,13 @@ def _create_paragraph_chunks(
         # Track overlap sentences for continuity between chunks
         overlap_sentences = []
 
-        def flush_chunk():
-            """Create a chunk from accumulated sentences."""
+        def flush_chunk(force: bool = False):
+            """Create a chunk from accumulated sentences.
+
+            Args:
+                force: If True, create chunk even if below minimum word count.
+                       Used at end of heading groups to avoid losing content.
+            """
             nonlocal current_sentences, current_start_line, current_end_line, overlap_sentences
 
             if not current_sentences or current_start_line is None:
@@ -328,6 +359,13 @@ def _create_paragraph_chunks(
                 return
 
             chunk_text = ' '.join(current_sentences)
+            chunk_word_count = _count_words(chunk_text)
+
+            # Check minimum word count (unless forced)
+            if not force and chunk_word_count < min_words:
+                # Don't flush yet - keep accumulating
+                return
+
             content = f"{breadcrumb_text}\n{chunk_text}" if breadcrumb_text else chunk_text
 
             chunks.append({
@@ -421,8 +459,8 @@ def _create_paragraph_chunks(
                         current_start_line = para_start
                         current_end_line = para_end
 
-        # Flush any remaining content for this heading
-        flush_chunk()
+        # Flush any remaining content for this heading (force=True to avoid losing content)
+        flush_chunk(force=True)
 
     return chunks
 
@@ -479,12 +517,122 @@ def _create_figure_chunks(
     return chunks
 
 
-def chunk_content(work_id: int, verbose: bool = False) -> int:
+def _merge_small_chunks(chunks: list[dict], min_words: int = MIN_CHUNK_WORDS, verbose: bool = False) -> tuple[list[dict], int]:
+    """Merge chunks that are below the minimum word count with adjacent chunks.
+
+    Strategy:
+    - Iterate through chunks and find those below minimum
+    - Attempt to merge small chunks with the previous chunk if they share the same heading
+    - If no previous chunk exists or headings differ, merge with the next chunk
+    - Track number of merges for logging
+
+    Args:
+        chunks: List of chunk dictionaries to validate and merge.
+        min_words: Minimum word count threshold.
+        verbose: Whether to print merge information.
+
+    Returns:
+        Tuple of (merged_chunks_list, merge_count).
+    """
+    if not chunks:
+        return [], 0
+
+    validated_chunks = []
+    pending_merge = None
+    merge_count = 0
+
+    for i, chunk in enumerate(chunks):
+        # Skip non-text chunks (tables, figures) from word count validation
+        if chunk.get('vector_status') in ['tbl', 'fig']:
+            if pending_merge:
+                # Can't merge text with table/figure - flush pending
+                validated_chunks.append(pending_merge)
+                pending_merge = None
+            validated_chunks.append(chunk)
+            continue
+
+        # Extract just the content text (without breadcrumb for counting)
+        content = chunk['content']
+        # Count words in the actual content
+        word_count = _count_words(content)
+
+        if word_count < min_words:
+            if verbose:
+                print(f"  Found small chunk ({word_count} words) at lines {chunk['start_line']}-{chunk['end_line']}")
+
+            if pending_merge:
+                # Merge this small chunk with the previous pending small chunk
+                pending_merge['content'] += '\n\n' + chunk['content']
+                pending_merge['end_line'] = chunk['end_line']
+                # Update word count check
+                merged_word_count = _count_words(pending_merge['content'])
+                if merged_word_count >= min_words:
+                    # Now meets minimum - flush it
+                    validated_chunks.append(pending_merge)
+                    pending_merge = None
+                    merge_count += 1
+                    if verbose:
+                        print(f"    Merged with previous small chunk -> {merged_word_count} words")
+                # else: keep accumulating in pending_merge
+            elif validated_chunks and validated_chunks[-1].get('heading_line') == chunk.get('heading_line'):
+                # Merge with previous chunk if same heading
+                prev_chunk = validated_chunks[-1]
+                # Only merge text chunks, not tables/figures
+                if prev_chunk.get('vector_status') == 'to_vec':
+                    prev_chunk['content'] += '\n\n' + chunk['content']
+                    prev_chunk['end_line'] = chunk['end_line']
+                    merge_count += 1
+                    if verbose:
+                        new_word_count = _count_words(prev_chunk['content'])
+                        print(f"    Merged with previous chunk -> {new_word_count} words")
+                else:
+                    # Previous is table/figure, save this as pending
+                    pending_merge = chunk
+            else:
+                # No previous chunk or different heading - save as pending
+                pending_merge = chunk
+        else:
+            # Chunk meets minimum requirements
+            if pending_merge:
+                # Merge pending small chunk with this chunk
+                chunk['content'] = pending_merge['content'] + '\n\n' + chunk['content']
+                chunk['start_line'] = pending_merge['start_line']
+                merge_count += 1
+                if verbose:
+                    new_word_count = _count_words(chunk['content'])
+                    print(f"    Merged pending chunk with current -> {new_word_count} words")
+                pending_merge = None
+
+            validated_chunks.append(chunk)
+
+    # Handle any remaining pending merge at the end
+    if pending_merge:
+        if validated_chunks and validated_chunks[-1].get('vector_status') == 'to_vec':
+            # Merge with last chunk if it's a text chunk
+            validated_chunks[-1]['content'] += '\n\n' + pending_merge['content']
+            validated_chunks[-1]['end_line'] = pending_merge['end_line']
+            merge_count += 1
+            if verbose:
+                new_word_count = _count_words(validated_chunks[-1]['content'])
+                print(f"    Merged final pending chunk with last chunk -> {new_word_count} words")
+        else:
+            # Keep even if small (edge case: only chunk or can't merge)
+            validated_chunks.append(pending_merge)
+            if verbose:
+                word_count = _count_words(pending_merge['content'])
+                print(f"    Kept final small chunk ({word_count} words) - no merge possible")
+
+    return validated_chunks, merge_count
+
+
+def chunk_content(work_id: int, verbose: bool = False, min_chunk_words: int = MIN_CHUNK_WORDS) -> int:
     """Chunk content from a work into the database.
 
     Args:
         work_id: ID of the work in the database.
         verbose: Whether to print progress information.
+        min_chunk_words: Minimum word count for chunks (default: 50).
+                        Chunks below this will be merged with adjacent chunks.
 
     Returns:
         Number of chunks created.
@@ -554,7 +702,7 @@ def chunk_content(work_id: int, verbose: bool = False) -> int:
 
         # Paragraph chunks
         para_chunks = _create_paragraph_chunks(
-            structure['paragraphs'], headings, heading_hierarchy
+            structure['paragraphs'], headings, heading_hierarchy, min_chunk_words
         )
         all_chunks.extend(para_chunks)
 
@@ -573,6 +721,13 @@ def chunk_content(work_id: int, verbose: bool = False) -> int:
         if verbose:
             print(f"Created {len(para_chunks)} paragraph chunks, "
                   f"{len(table_chunks)} table chunks, {len(figure_chunks)} figure chunks")
+
+        # Step 7.5: Merge small chunks to ensure minimum word count
+        all_chunks, merge_count = _merge_small_chunks(all_chunks, min_chunk_words, verbose)
+
+        if verbose and merge_count > 0:
+            print(f"Merged {merge_count} small chunks")
+            print(f"Final chunk count: {len(all_chunks)}")
 
         # Step 8: Get existing heading chunks for parent lookup
         heading_chunks = session.query(Chunk).filter(

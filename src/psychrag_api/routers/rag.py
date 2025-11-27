@@ -10,6 +10,8 @@ Endpoints for query management:
     GET  /rag/queries/{id}/augment/prompt  - Get augmented prompt
     POST /rag/queries/{id}/augment/run     - Run augmented prompt with LLM
     POST /rag/queries/{id}/augment/manual  - Save manually-run LLM response
+    GET  /rag/queries/{id}/results         - List query results
+    GET  /rag/queries/{id}/results/{id}    - Get specific result
 
 Endpoints for query expansion:
     POST /rag/expansion/prompt             - Generate expansion prompt (no LLM)
@@ -51,6 +53,8 @@ from psychrag_api.schemas.rag_queries import (
     AugmentRunResponse,
     AugmentManualRequest,
     AugmentManualResponse,
+    ResultListResponse,
+    ResultItem,
 )
 
 router = APIRouter()
@@ -403,4 +407,75 @@ async def save_manual_expansion(request: ExpansionManualRequest) -> ExpansionMan
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
+        )
+
+
+# ============================================================================
+# Result Endpoints
+# ============================================================================
+
+@router.get(
+    "/queries/{query_id}/results",
+    response_model=ResultListResponse,
+    summary="List query results",
+    description="List all generated results for a query.",
+)
+async def list_results(query_id: int) -> ResultListResponse:
+    """List all results for a query."""
+    with get_session() as session:
+        # Verify query exists
+        query = session.query(Query).filter(Query.id == query_id).first()
+        if not query:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Query with ID {query_id} not found"
+            )
+
+        # Get results
+        results = session.query(Result)\
+            .filter(Result.query_id == query_id)\
+            .order_by(Result.created_at.desc())\
+            .all()
+
+        items = [
+            ResultItem(
+                id=r.id,
+                query_id=r.query_id,
+                response_text=r.response_text,
+                created_at=r.created_at
+            )
+            for r in results
+        ]
+
+        return ResultListResponse(
+            query_id=query_id,
+            results=items,
+            total=len(items)
+        )
+
+
+@router.get(
+    "/queries/{query_id}/results/{result_id}",
+    response_model=ResultItem,
+    summary="Get result details",
+    description="Get a specific result.",
+)
+async def get_result(query_id: int, result_id: int) -> ResultItem:
+    """Get a specific result."""
+    with get_session() as session:
+        result = session.query(Result)\
+            .filter(Result.id == result_id, Result.query_id == query_id)\
+            .first()
+
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Result with ID {result_id} not found for query {query_id}"
+            )
+
+        return ResultItem(
+            id=result.id,
+            query_id=result.query_id,
+            response_text=result.response_text,
+            created_at=result.created_at
         )

@@ -329,3 +329,7 @@ venv\Scripts\pytest
 * Add URL prop to `work`
 * Semantic Chunking 
 * Lock Document -- simplify cleaning
+
+## TODO for UI:
+* Add a "Corpus" link below RAG -- have an HR
+* 
