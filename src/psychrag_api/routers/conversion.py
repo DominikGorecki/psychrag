@@ -1214,3 +1214,159 @@ async def add_to_database(
         ) from e
 
 
+@router.get(
+    "/original-markdown/{io_file_id}",
+    response_model=FileContentResponse,
+    summary="Get original markdown file content",
+    description="Retrieve the content of the markdown file corresponding to the given IOFile ID.",
+    responses={
+        200: {"description": "File content retrieved successfully"},
+        404: {"description": "File not found"},
+    },
+)
+async def get_original_markdown(io_file_id: int) -> FileContentResponse:
+    """
+    Get the content of the markdown file corresponding to the given IOFile ID.
+    
+    This endpoint takes the IOFile ID (which might point to an EPUB/PDF or a markdown file),
+    derives the base name, and finds the corresponding <base_name>.md in the output directory.
+    
+    Args:
+        io_file_id: ID of the file in the io_files table
+        
+    Returns:
+        FileContentResponse with content
+    """
+    try:
+        # Get the file from database
+        with get_session() as session:
+            io_file = session.query(IOFile).filter(IOFile.id == io_file_id).first()
+            
+            if not io_file:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"File with ID {io_file_id} not found in database",
+                )
+            
+            session.expunge(io_file)
+        
+        # Extract base name
+        filename = io_file.filename
+        first_dot = filename.find('.')
+        if first_dot == -1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid filename format: {filename}",
+            )
+        
+        base_name = filename[:first_dot]
+        
+        # Get output directory
+        config = load_config()
+        output_dir = Path(config.paths.output_dir)
+        
+        # Construct markdown file path
+        target_filename = f"{base_name}.md"
+        file_path = output_dir / target_filename
+        
+        if not file_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Original markdown file not found: {target_filename}",
+            )
+            
+        content = file_path.read_text(encoding="utf-8")
+        
+        return FileContentResponse(
+            content=content,
+            filename=target_filename
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error reading file content: {str(e)}",
+        ) from e
+
+
+@router.put(
+    "/original-markdown/{io_file_id}",
+    response_model=FileContentResponse,
+    summary="Update original markdown file content",
+    description="Update the content of the markdown file corresponding to the given IOFile ID.",
+    responses={
+        200: {"description": "File content updated successfully"},
+        404: {"description": "File not found"},
+    },
+)
+async def update_original_markdown(
+    io_file_id: int,
+    request: FileContentUpdateRequest
+) -> FileContentResponse:
+    """
+    Update the content of the markdown file corresponding to the given IOFile ID.
+    
+    This endpoint takes the IOFile ID (which might point to an EPUB/PDF or a markdown file),
+    derives the base name, and overwrites the corresponding <base_name>.md in the output directory.
+    
+    Args:
+        io_file_id: ID of the file in the io_files table
+        request: New content
+        
+    Returns:
+        FileContentResponse with updated content
+    """
+    try:
+        # Get the file from database
+        with get_session() as session:
+            io_file = session.query(IOFile).filter(IOFile.id == io_file_id).first()
+            
+            if not io_file:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"File with ID {io_file_id} not found in database",
+                )
+            
+            session.expunge(io_file)
+        
+        # Extract base name
+        filename = io_file.filename
+        first_dot = filename.find('.')
+        if first_dot == -1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid filename format: {filename}",
+            )
+        
+        base_name = filename[:first_dot]
+        
+        # Get output directory
+        config = load_config()
+        output_dir = Path(config.paths.output_dir)
+        
+        # Construct markdown file path
+        target_filename = f"{base_name}.md"
+        file_path = output_dir / target_filename
+        
+        if not file_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Original markdown file not found: {target_filename}",
+            )
+            
+        file_path.write_text(request.content, encoding="utf-8")
+        
+        return FileContentResponse(
+            content=request.content,
+            filename=target_filename
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error updating file content: {str(e)}",
+        ) from e
