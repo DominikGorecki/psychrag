@@ -38,6 +38,7 @@ from psychrag_api.schemas.conversion import (
 from psychrag.config import load_config
 from psychrag.config.io_folder_data import get_io_folder_data
 from psychrag.conversions.conv_pdf2md import convert_pdf_to_markdown
+from psychrag.conversions.conv_epub2md import convert_epub_to_markdown
 from psychrag.conversions.inspection import get_conversion_inspection
 from psychrag.conversions.pdf_bookmarks2toc import extract_bookmarks_to_toc
 from psychrag.conversions.style_v_hier import compare_and_select, compute_final_score, extract_headings, ChunkSizeConfig, ScoringWeights
@@ -265,11 +266,12 @@ async def convert_file_endpoint(request: ConvertFileRequest) -> ConvertFileRespo
                 detail=f"Path is not a file: {request.filename}",
             )
         
-        # Validate it's a PDF file
-        if input_file_path.suffix.lower() != ".pdf":
+        # Validate it's a PDF or EPUB file
+        file_ext = input_file_path.suffix.lower()
+        if file_ext not in [".pdf", ".epub"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Only PDF files are supported, got: {input_file_path.suffix}",
+                detail=f"Only PDF and EPUB files are supported, got: {file_ext}",
             )
         
         # Ensure output directory exists
@@ -279,23 +281,38 @@ async def convert_file_endpoint(request: ConvertFileRequest) -> ConvertFileRespo
         filename_stem = input_file_path.stem
         output_path = output_dir / f"{filename_stem}.md"
         
-        # Convert the PDF with compare=True, use_gpu=True, verbose=True
-        convert_pdf_to_markdown(
-            pdf_path=input_file_path,
-            output_path=output_path,
-            verbose=True,
-            compare=True,
-            use_gpu=True,
-        )
-        
         # List the output files that were created
         output_files = []
-        expected_files = [
-            f"{filename_stem}.pdf",
-            f"{filename_stem}.style.md",
-            f"{filename_stem}.hier.md",
-            f"{filename_stem}.toc_titles.md",
-        ]
+
+        if file_ext == ".pdf":
+            # Convert the PDF with compare=True, use_gpu=True, verbose=True
+            convert_pdf_to_markdown(
+                pdf_path=input_file_path,
+                output_path=output_path,
+                verbose=True,
+                compare=True,
+                use_gpu=True,
+            )
+            
+            expected_files = [
+                f"{filename_stem}.pdf",
+                f"{filename_stem}.style.md",
+                f"{filename_stem}.hier.md",
+                f"{filename_stem}.toc_titles.md",
+            ]
+        else:
+            # Convert the EPUB
+            convert_epub_to_markdown(
+                epub_path=input_file_path,
+                output_path=output_path,
+                verbose=True,
+            )
+            
+            expected_files = [
+                f"{filename_stem}.epub",
+                f"{filename_stem}.md",
+                f"{filename_stem}.toc_titles.md",
+            ]
         
         for expected_file in expected_files:
             file_path = output_dir / expected_file

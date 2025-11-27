@@ -13,10 +13,10 @@ from psychrag.config import load_config
 
 
 # Supported input formats (expandable list)
-INPUT_FORMATS = [".pdf"]
+INPUT_FORMATS = [".pdf", ".epub"]
 
 # Supported output formats
-OUTPUT_FORMATS = [".md", ".pdf", ".csv"]
+OUTPUT_FORMATS = [".md", ".pdf", ".epub", ".csv"]
 
 
 @dataclass
@@ -205,7 +205,7 @@ def get_io_folder_data() -> IOFolderData:
             io_file_id, variants = file_groups[base_name]
 
             # Store the ID of the PDF variant (if this is one)
-            if variant == '.pdf':
+            if variant == '.pdf' or variant == '.epub':
                 io_file_id = io_file.id
 
             # Add variant
@@ -219,6 +219,7 @@ def get_io_folder_data() -> IOFolderData:
         base: (io_id, variants)
         for base, (io_id, variants) in file_groups.items()
         if not any(f"{base}{variant}" in processed_filenames for variant in variants)
+        and not any("sanitized" in variant for variant in variants)
     }
 
     # Convert to ProcessedFile objects
@@ -282,7 +283,7 @@ def get_io_folder_objects() -> list[IOFileObject]:
             io_file_id, variants = file_groups[base_name]
 
             # Use PDF's ID if this is a PDF
-            if variant == '.pdf':
+            if variant == '.pdf' or variant == '.epub':
                 io_file_id = io_file.id
 
             if variant not in variants:
@@ -292,10 +293,10 @@ def get_io_folder_objects() -> list[IOFileObject]:
 
     # Add to_convert file groups
     for base_name, (io_file_id, variants) in file_groups.items():
-        # Find the file path (use PDF if exists, otherwise first variant)
+        # Find the file path (use PDF/EPUB if exists, otherwise first variant)
         file_path = None
         for io_file in to_convert_files:
-            if io_file.filename == f"{base_name}.pdf":
+            if io_file.filename == f"{base_name}.pdf" or io_file.filename == f"{base_name}.epub":
                 file_path = io_file.file_path
                 break
 
@@ -308,7 +309,9 @@ def get_io_folder_objects() -> list[IOFileObject]:
 
         result.append(IOFileObject(
             id=io_file_id,
-            filename=f"{base_name}.pdf" if '.pdf' in variants else f"{base_name}{variants[0]}",
+            filename=f"{base_name}.pdf" if '.pdf' in variants else (
+                f"{base_name}.epub" if '.epub' in variants else f"{base_name}{variants[0]}"
+            ),
             file_type=FileType.TO_CONVERT.value,
             file_path=file_path or "",
             base_name=base_name,

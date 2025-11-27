@@ -14,6 +14,7 @@ Example (as library):
 """
 
 import argparse
+import shutil
 import sys
 from pathlib import Path
 from typing import Optional
@@ -22,6 +23,8 @@ import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md
+
+from psychrag.conversions.epub_bookmarks2toc import extract_epub_toc
 
 
 def _extract_hierarchy(book) -> list[dict]:
@@ -276,9 +279,28 @@ def convert_epub_to_markdown(
     if output_path:
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Copy EPUB first (before writing any files)
+        dest_epub = output_path.parent / epub_path.name
+        if not (dest_epub.exists() and dest_epub.samefile(epub_path)):
+             # Only copy if it's not the same file
+             if dest_epub.exists():
+                 dest_epub.unlink()
+             shutil.copy2(epub_path, dest_epub)
+             if verbose:
+                print(f"Copied EPUB to: {dest_epub}")
+
         output_path.write_text(markdown_content, encoding="utf-8")
         if verbose:
             print(f"Output written to: {output_path}")
+
+        # Extract TOC from EPUB bookmarks
+        toc_path = output_path.parent / f"{output_path.stem}.toc_titles.md"
+        try:
+            extract_epub_toc(epub_path, output_path=toc_path, verbose=verbose)
+        except Exception as e:
+            if verbose:
+                print(f"Warning: Could not extract TOC: {e}")
 
     return markdown_content
 
