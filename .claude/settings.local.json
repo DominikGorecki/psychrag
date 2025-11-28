@@ -9,7 +9,9 @@
       "Bash(dir:*)",
       "Bash(python:*)",
       "Bash(venvScriptspython.exe -m pytest tests/unit/test_conv_epub2md.py -v)",
-      "Bash(nul)"
+      "Bash(nul)",
+      "Bash(curl:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

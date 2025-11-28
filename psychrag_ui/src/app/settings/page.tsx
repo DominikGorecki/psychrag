@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircleIcon, Loader2Icon } from "lucide-react";
+import { CheckCircleIcon, Loader2Icon, AlertCircle, XCircle, CheckCircle2 } from "lucide-react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -45,7 +46,28 @@ interface AppConfig {
   paths: PathsConfig;
 }
 
+// Init/Status types
+interface DbHealthCheckResult {
+  name: string;
+  passed: boolean;
+  message: string;
+  details: string | null;
+}
+
+interface DbHealthCheckResponse {
+  results: DbHealthCheckResult[];
+  all_passed: boolean;
+  connection_ok: boolean;
+}
+
 export default function SettingsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const defaultTab = tabParam && ["init", "models", "database", "paths"].includes(tabParam)
+    ? tabParam
+    : "init";
+
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,10 +79,32 @@ export default function SettingsPage() {
   const [llmForm, setLlmForm] = useState<LLMConfig | null>(null);
   const [pathsForm, setPathsForm] = useState<PathsConfig | null>(null);
 
+  // Init/Status state
+  const [dbSettings, setDbSettings] = useState<DatabaseConfig | null>(null);
+  const [dbSettingsError, setDbSettingsError] = useState<string | null>(null);
+  const [healthResults, setHealthResults] = useState<DbHealthCheckResponse | null>(null);
+  const [healthError, setHealthError] = useState<string | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [initLoading, setInitLoading] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
+
+  // Check if required DB settings are present
+  const hasRequiredDbSettings = dbSettings &&
+    dbSettings.db_name &&
+    dbSettings.app_user &&
+    dbSettings.admin_user;
+
   // Fetch settings on mount
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  // Fetch health checks when settings are available
+  useEffect(() => {
+    if (hasRequiredDbSettings) {
+      fetchHealthChecks();
+    }
+  }, [hasRequiredDbSettings]);
 
   const fetchSettings = async () => {
     try {
@@ -75,10 +119,55 @@ export default function SettingsPage() {
       setDbForm(data.database);
       setLlmForm(data.llm);
       setPathsForm(data.paths);
+      setDbSettings(data.database);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load settings");
+      setDbSettingsError(err instanceof Error ? err.message : "Failed to load settings");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchHealthChecks = async () => {
+    try {
+      setHealthLoading(true);
+      setHealthError(null);
+      const response = await fetch(`${API_BASE_URL}/init/db-health`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch health: ${response.statusText}`);
+      }
+      const data: DbHealthCheckResponse = await response.json();
+      setHealthResults(data);
+    } catch (err) {
+      setHealthError(err instanceof Error ? err.message : "Failed to check health");
+    } finally {
+      setHealthLoading(false);
+    }
+  };
+
+  const handleInitialize = async () => {
+    try {
+      setInitLoading(true);
+      setInitError(null);
+
+      const response = await fetch(`${API_BASE_URL}/init/database`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reset: false }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Initialization failed: ${response.statusText}`);
+      }
+
+      // Refresh health checks after successful initialization
+      await fetchHealthChecks();
+
+    } catch (err) {
+      setInitError(err instanceof Error ? err.message : "Failed to initialize database");
+    } finally {
+      setInitLoading(false);
     }
   };
 
@@ -98,6 +187,7 @@ export default function SettingsPage() {
       const data: DatabaseConfig = await response.json();
       setConfig((prev) => prev ? { ...prev, database: data } : null);
       setDbForm(data);
+      setDbSettings(data);
       setSaveSuccess("database");
       setTimeout(() => setSaveSuccess(null), 2000);
     } catch (err) {
@@ -140,22 +230,22 @@ export default function SettingsPage() {
 
   const savePathsSettings = async () => {
     if (!pathsForm) return;
-    
+
     // Frontend validation for absolute paths
     const isAbsoluteWindows = (path: string) => /^[A-Za-z]:\\/.test(path);
     const isAbsoluteUnix = (path: string) => path.startsWith('/');
     const isAbsolute = (path: string) => isAbsoluteWindows(path) || isAbsoluteUnix(path);
-    
+
     if (!isAbsolute(pathsForm.input_dir)) {
       setError("Input directory must be an absolute path (e.g., C:\\path\\to\\input or /path/to/input)");
       return;
     }
-    
+
     if (!isAbsolute(pathsForm.output_dir)) {
       setError("Output directory must be an absolute path (e.g., C:\\path\\to\\output or /path/to/output)");
       return;
     }
-    
+
     try {
       setSaving(true);
       setSaveSuccess(null);
@@ -243,12 +333,176 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <Tabs defaultValue="models" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList>
+          <TabsTrigger value="init">Init/Status</TabsTrigger>
           <TabsTrigger value="models">Models</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
           <TabsTrigger value="paths">Paths</TabsTrigger>
         </TabsList>
+
+        {/* Init/Status Tab */}
+        <TabsContent value="init" className="mt-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Database Health Card */}
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>Database Health</CardTitle>
+                <CardDescription>
+                  {dbSettings ? (
+                    <span>
+                      {dbSettings.db_name} @ {dbSettings.host}:{dbSettings.port}
+                    </span>
+                  ) : (
+                    "Connection status and schema checks"
+                  )}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Show error if settings failed to load */}
+                {dbSettingsError && (
+                  <div className="flex items-center gap-2 text-destructive mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm">{dbSettingsError}</span>
+                  </div>
+                )}
+
+                {/* Show warning if required settings are missing */}
+                {!hasRequiredDbSettings && !dbSettingsError && (
+                  <div className="flex items-center justify-between py-4 border-b">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="h-5 w-5 text-amber-500" />
+                      <span className="text-sm">Database settings incomplete</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('tab', 'database');
+                        router.push(url.pathname + url.search);
+                      }}
+                    >
+                      Configure Database
+                    </Button>
+                  </div>
+                )}
+
+                {/* Health check results */}
+                {hasRequiredDbSettings && (
+                  <>
+                    {healthLoading && (
+                      <div className="flex items-center gap-2 py-4">
+                        <Loader2Icon className="h-4 w-4 animate-spin" />
+                        <span className="text-sm text-muted-foreground">Running health checks...</span>
+                      </div>
+                    )}
+
+                    {healthError && (
+                      <div className="flex items-center gap-2 text-destructive py-4">
+                        <XCircle className="h-4 w-4" />
+                        <span className="text-sm">{healthError}</span>
+                        <Button variant="ghost" size="sm" onClick={fetchHealthChecks}>
+                          Retry
+                        </Button>
+                      </div>
+                    )}
+
+                    {healthResults && (
+                      <div className="space-y-1">
+                        {healthResults.results.map((result, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-3 py-1.5 text-sm"
+                          >
+                            {result.passed ? (
+                              <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-destructive flex-shrink-0" />
+                            )}
+                            <span className={result.passed ? "text-foreground" : "text-destructive"}>
+                              {result.name}
+                            </span>
+                            <span className="text-muted-foreground text-xs truncate">
+                              — {result.message}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Actions Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Actions</CardTitle>
+                <CardDescription>Setup and maintenance tasks</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {/* Show "Add DB Settings" if settings are missing */}
+                {!hasRequiredDbSettings && (
+                  <Button
+                    className="w-full"
+                    variant="default"
+                    onClick={() => {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('tab', 'database');
+                      router.push(url.pathname + url.search);
+                    }}
+                  >
+                    Configure Database
+                  </Button>
+                )}
+
+                {/* Show "Initialize" only if connection fails */}
+                {hasRequiredDbSettings && healthResults && !healthResults.connection_ok && (
+                  <div className="space-y-2">
+                    <Button
+                      className="w-full cursor-pointer"
+                      variant="default"
+                      onClick={handleInitialize}
+                      disabled={initLoading}
+                    >
+                      {initLoading ? (
+                        <>
+                          <Loader2Icon className="h-4 w-4 animate-spin mr-2" />
+                          Initializing Database...
+                        </>
+                      ) : (
+                        "Initialize Database"
+                      )}
+                    </Button>
+                    {initError && (
+                      <p className="text-sm text-destructive px-1">{initError}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Show "Check Connections" button */}
+                {hasRequiredDbSettings && (
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={fetchHealthChecks}
+                    disabled={healthLoading}
+                  >
+                    {healthLoading ? (
+                      <>
+                        <Loader2Icon className="h-4 w-4 animate-spin mr-2" />
+                        Checking...
+                      </>
+                    ) : (
+                      "Check Connections"
+                    )}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
         {/* Models Tab */}
         <TabsContent value="models" className="mt-4">
@@ -256,7 +510,7 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>LLM Configuration</CardTitle>
               <CardDescription>
-                Configure language model providers. Click a provider tab to view/edit its models, 
+                Configure language model providers. Click a provider tab to view/edit its models,
                 or click "Set Active" to switch the active provider.
               </CardDescription>
             </CardHeader>

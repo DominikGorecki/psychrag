@@ -4,16 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Settings, FileText, Eraser, Scissors, Braces, MessageSquare } from "lucide-react";
+import { LayoutDashboard, Settings, FileText, Eraser, Scissors, Braces, MessageSquare, Database } from "lucide-react";
 
 const navItems = [
-  { href: "/init", label: "Init & Status", icon: LayoutDashboard },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/corpus", label: "Corpus", icon: Database },
   { href: "/conv", label: "Conversion", icon: FileText },
   { href: "/sanitization", label: "Sanitization", icon: Eraser },
   { href: "/chunk", label: "Chunking", icon: Scissors },
   { href: "/vec", label: "Vectorization", icon: Braces },
   { href: "/rag", label: "RAG", icon: MessageSquare },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function NavBar() {

@@ -23,6 +23,7 @@ from psychrag_api.config import get_settings
 from psychrag_api.routers import (
     chunking,
     conversion,
+    corpus,
     init,
     rag,
     sanitization,
@@ -80,6 +81,10 @@ app = FastAPI(
             "description": "Vectorization operations. Generate embeddings for document chunks.",
         },
         {
+            "name": "Corpus",
+            "description": "Corpus management. Read-only access to works with completed chunking.",
+        },
+        {
             "name": "RAG",
             "description": "Retrieval, Augmentation and Generation. Query documents and generate responses.",
         },
@@ -109,6 +114,7 @@ app.include_router(conversion.router, prefix="/conv", tags=["Conversion"])
 app.include_router(sanitization.router, prefix="/sanitization", tags=["Sanitization"])
 app.include_router(chunking.router, prefix="/chunk", tags=["Chunking"])
 app.include_router(vectorization.router, prefix="/vec", tags=["Vectorization"])
+app.include_router(corpus.router, prefix="/corpus", tags=["Corpus"])
 app.include_router(rag.router, prefix="/rag", tags=["RAG"])
 
 

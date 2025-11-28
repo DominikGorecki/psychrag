@@ -247,7 +247,7 @@ export default function GeneratePage() {
           <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
           <p className="text-destructive">{error}</p>
           <div className="flex gap-3 justify-center">
-            <Button onClick={fetchPrompt}>Retry</Button>
+            <Button onClick={() => fetchPrompt()}>Retry</Button>
             <Button variant="outline" onClick={() => router.push("/rag")}>
               Back
             </Button>

@@ -8,12 +8,14 @@ Each router handles a specific group of endpoints:
     - sanitization: Content sanitization
     - chunking: Document chunking
     - vectorization: Embedding generation
+    - corpus: Corpus management (read-only access to completed works)
     - rag: Retrieval and generation
 """
 
 from psychrag_api.routers import (
     chunking,
     conversion,
+    corpus,
     init,
     rag,
     sanitization,
@@ -28,6 +30,7 @@ __all__ = [
     "sanitization",
     "chunking",
     "vectorization",
+    "corpus",
     "rag",
 ]
 
