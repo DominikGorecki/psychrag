@@ -169,9 +169,9 @@ export default function InspectTocTitlesPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col min-h-screen">
       {/* Header with controls */}
-      <div className="border-b bg-card p-4 flex items-center justify-between">
+      <div className="border-b bg-card p-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           {/* Back button */}
           <Button
@@ -196,6 +196,16 @@ export default function InspectTocTitlesPage() {
 
         {/* Action buttons in header */}
         <div className="flex items-center gap-2">
+          {modified && <span className="text-sm text-yellow-600 mr-2">Unsaved changes</span>}
+          <Button
+            onClick={() => setHelpDialogOpen(true)}
+            variant="outline"
+            size="sm"
+            className="w-9 h-9 p-0"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </Button>
+
           <Button
             onClick={handleManualClick}
             variant="outline"
@@ -206,48 +216,37 @@ export default function InspectTocTitlesPage() {
           </Button>
 
           <Button
-            onClick={() => setHelpDialogOpen(true)}
-            variant="outline"
+            onClick={handleSave}
+            disabled={!modified || saving}
             size="sm"
-            className="w-9 h-9 p-0"
+            className="gap-2"
           >
-            <HelpCircle className="h-4 w-4" />
+            {saving ? (
+              <Loader2Icon className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save
           </Button>
+
+
         </div>
       </div>
 
       {/* Main content area - editable markdown editor */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex">
         <div className="w-full flex flex-col p-4">
           <MarkdownEditor 
             content={content} 
             onChange={handleContentChange}
             viewMode="markdown-only"
-            className="flex-1"
+            scrollMode="page"
           />
         </div>
       </div>
 
-      {/* Bottom action bar */}
-      <div className="border-t bg-card p-4 flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          {modified && <span>Unsaved changes</span>}
-        </div>
+      {/* Bottom action bar removed - moved to top */}
 
-        <Button
-          onClick={handleSave}
-          disabled={!modified || saving}
-          size="sm"
-          className="gap-2"
-        >
-          {saving ? (
-            <Loader2Icon className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          Save
-        </Button>
-      </div>
 
       {/* Error display */}
       {saveError && (

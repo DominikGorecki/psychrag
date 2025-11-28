@@ -1,17 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
-import Editor from "@monaco-editor/react";
+import Editor, { OnMount } from "@monaco-editor/react";
 
 interface MarkdownEditorProps {
   content: string;
   onChange?: (value: string) => void;
   readOnly?: boolean;
   viewMode?: "both" | "markdown-only";
+  scrollMode?: "container" | "page";
   className?: string;
 }
 
@@ -20,19 +21,17 @@ export function MarkdownEditor({
   onChange,
   readOnly = false,
   viewMode = "both",
+  scrollMode = "container",
   className = "",
 }: MarkdownEditorProps) {
-  const [activeTab, setActiveTab] = useState<string>(
-    viewMode === "markdown-only" ? "markdown" : "rendered"
-  );
+  const [userTab, setUserTab] = useState<string>("rendered");
+  const [editorHeight, setEditorHeight] = useState("100%");
+  const editorRef = useRef<any>(null);
+  
   // Force light theme (white background) as requested
   const monacoTheme = "light";
 
-  useEffect(() => {
-    if (viewMode === "markdown-only") {
-      setActiveTab("markdown");
-    }
-  }, [viewMode]);
+  const activeTab = viewMode === "markdown-only" ? "markdown" : userTab;
 
   const handleEditorChange = (value: string | undefined) => {
     if (onChange && value !== undefined) {
@@ -40,12 +39,44 @@ export function MarkdownEditor({
     }
   };
 
+  const handleEditorDidMount: OnMount = (editor, monaco) => {
+    editorRef.current = editor;
+    if (scrollMode === "page") {
+      const updateHeight = () => {
+        const contentHeight = editor.getContentHeight();
+        setEditorHeight(`${Math.max(100, contentHeight)}px`);
+        editor.layout();
+      };
+      editor.onDidContentSizeChange(updateHeight);
+      // Initial update
+      updateHeight();
+    }
+  };
+
+  // Re-measure when tab changes or content updates in page mode
+  useEffect(() => {
+    if (scrollMode === "page" && activeTab === "markdown" && editorRef.current) {
+      const contentHeight = editorRef.current.getContentHeight();
+      setEditorHeight(`${Math.max(100, contentHeight)}px`);
+    }
+  }, [activeTab, content, scrollMode]);
+
+  // CSS classes based on scrollMode
+  const containerClass = scrollMode === "container" ? "h-full" : "";
+  const tabListClass = scrollMode === "container" ? "flex-1 flex flex-col overflow-hidden" : "flex-1 flex flex-col";
+  const contentContainerClass = scrollMode === "container" ? "flex-1 overflow-hidden mt-0" : "mt-0";
+  const cardClass = scrollMode === "container" ? "h-full overflow-hidden" : "border-0";
+  
+  // For Rendered view: Use ScrollArea in container mode, plain div in page mode
+  const RenderedWrapper = scrollMode === "container" ? ScrollArea : "div";
+  const renderedWrapperProps = scrollMode === "container" ? { className: "h-full p-6" } : { className: "p-6" };
+
   return (
-    <div className={`flex flex-col h-full ${className}`}>
+    <div className={`flex flex-col ${containerClass} ${className}`}>
       <Tabs 
         value={activeTab} 
-        onValueChange={setActiveTab} 
-        className="flex-1 flex flex-col overflow-hidden"
+        onValueChange={setUserTab} 
+        className={tabListClass}
       >
         {viewMode === "both" && (
           <div className="flex items-center justify-between mb-4">
@@ -56,25 +87,26 @@ export function MarkdownEditor({
           </div>
         )}
 
-        <TabsContent value="rendered" className="flex-1 overflow-hidden mt-0">
-          <Card className="h-full overflow-hidden">
+        <TabsContent value="rendered" className={contentContainerClass}>
+          <Card className={cardClass}>
             <CardContent className="h-full p-0">
-              <ScrollArea className="h-full p-6">
+              <RenderedWrapper {...renderedWrapperProps}>
                 <MarkdownRenderer content={content} />
-              </ScrollArea>
+              </RenderedWrapper>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="markdown" className="flex-1 overflow-hidden mt-0">
-          <Card className="h-full overflow-hidden border-0 rounded-none">
+        <TabsContent value="markdown" className={contentContainerClass}>
+          <Card className={scrollMode === "container" ? "h-full border-0 rounded-none" : "border-0 rounded-none"}>
             <CardContent className="h-full p-0">
               <Editor
-                height="100%"
+                height={scrollMode === "container" ? "100%" : editorHeight}
                 defaultLanguage="markdown"
                 value={content}
                 theme={monacoTheme}
                 onChange={handleEditorChange}
+                onMount={handleEditorDidMount}
                 options={{
                   readOnly: readOnly,
                   lineNumbers: "on",
@@ -82,9 +114,14 @@ export function MarkdownEditor({
                   wordWrap: "on",
                   scrollBeyondLastLine: false,
                   automaticLayout: true,
-                  padding: { top: 16, bottom: 16 },
+                  padding: scrollMode === "page" ? { top: 3, bottom: 16 } : { top: 16, bottom: 16 },
                   fontSize: 14,
-                  fontFamily: "monospace",
+                  fontFamily: scrollMode === "page" ? "Inter, Inter Fallback, monospace" : "monospace",
+                  overviewRulerLanes: scrollMode === "page" ? 0 : undefined,
+                  scrollbar: scrollMode === "page" ? {
+                    vertical: "hidden",
+                    handleMouseWheel: false,
+                  } : undefined,
                 }}
               />
             </CardContent>

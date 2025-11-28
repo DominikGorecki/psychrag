@@ -1,6 +1,5 @@
 ---
-description: Break a markdown PRD into vertical-slice implementation tickets (with unit tests and manual test plans) and create <file>.T00X.md ticket files beside it.
-argument-hint: [path/to/Feature.PRD.md]
+description: Break a markdown PRD into vertical-slice implementation tickets (with unit tests and manual test plans) and create <file>.T0X.md ticket files beside it.
 argument-hint: [prd-markdown-file]
 ---
 
@@ -47,7 +46,7 @@ Before writing any files, propose a plan in the chat.
 
 Create a table summarizing the ticket breakdown, with:
 
-- Ticket ID (T001, T002, T003, …).
+- Ticket ID (T01, T02, T03, …).
 - Title.
 - One-sentence outcome / value.
 - Slice type:
@@ -60,9 +59,9 @@ Example structure (adapt it, don’t copy verbatim):
 
 | ID   | Title                                         | Outcome                                           | Slice type                      | Size |
 |------|-----------------------------------------------|---------------------------------------------------|----------------------------------|------|
-| T001 | Implement create/update API for Foo entities  | Backend supports full Foo lifecycle               | Backend + DB                    | M    |
-| T002 | Build Foo management UI                       | Users can create/edit Foo via web UI              | Frontend + API integration      | M    |
-| T003 | Add analytics + feature flag for Foo rollout  | Safe, instrumented rollout behind a feature flag  | Cross-cutting (backend + client)| S    |
+| T01 | Implement create/update API for Foo entities  | Backend supports full Foo lifecycle               | Backend + DB                    | M    |
+| T02 | Build Foo management UI                       | Users can create/edit Foo via web UI              | Frontend + API integration      | M    |
+| T03 | Add analytics + feature flag for Foo rollout  | Safe, instrumented rollout behind a feature flag  | Cross-cutting (backend + client)| S    |
 
 Then:
 - Ask the user to confirm / tweak this plan.
@@ -76,15 +75,15 @@ When writing ticket files:
 - Let `BASE` be the PRD filename without the `.md` suffix (e.g. `FeatureX.PRD` → `FeatureX.PRD` or, if appropriate, strip `.PRD` as well to get `FeatureX`).
 - Create files in the SAME directory as the PRD, using:
 
-  - `<BASE>.T001.md`
-  - `<BASE>.T002.md`
-  - `<BASE>.T003.md`
+  - `<BASE>.T01.md`
+  - `<BASE>.T02.md`
+  - `<BASE>.T03.md`
   - …
 
 Examples:
 
-- PRD: `docs/FeatureX.PRD.md` → tickets: `docs/FeatureX.PRD.T001.md`, `docs/FeatureX.PRD.T002.md`, …
-- Or, if you infer that dropping `.PRD` better matches project convention, use `docs/FeatureX.T001.md`, `docs/FeatureX.T002.md`, …
+- PRD: `docs/FeatureX.PRD.md` → tickets: `docs/FeatureX.PRD.T01.md`, `docs/FeatureX.PRD.T02.md`, …
+- Or, if you infer that dropping `.PRD` better matches project convention, use `docs/FeatureX.T01.md`, `docs/FeatureX.T02.md`, …
 
 Be consistent within a single PRD.
 
@@ -163,18 +162,6 @@ Cover:
 
 If integration tests or component tests are realistic for this ticket, call them out explicitly and describe them.
 
-## Manual test plan (acceptance criteria)
-
-Write this so a manual tester can follow it without reading code.
-
-For each manual test case, provide:
-
-- **Preconditions:** data, user role, feature flags, environment.
-- **Steps:** numbered list, clear and minimal.
-- **Expected result:** precise, observable outcome (including UI details and side effects where relevant).
-
-Every acceptance criterion should map directly to one or more behaviors in the implementation plan.
-
 ## Dependencies and sequencing
 
 - List other tickets that must be done before / after this one.
@@ -212,7 +199,7 @@ When choosing what belongs in each ticket:
   - Clarify ambiguities with the user.
   - Present and refine a ticket plan.
 - When writing ticket files:
-  - Use the naming scheme `<PRD base>.T00X.md` in the same directory as the PRD.
+  - Use the naming scheme `<PRD base>.T0X.md` in the same directory as the PRD.
   - Make each file a complete, actionable, testable implementation spec.
   - Ensure each ticket includes both:
     - A concrete implementation plan (including unit tests).

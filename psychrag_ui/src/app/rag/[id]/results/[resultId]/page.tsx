@@ -94,9 +94,9 @@ export default function ResultDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <div className="border-b bg-card p-4 flex items-center justify-between">
+      <div className="border-b bg-card p-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <Button
             onClick={() => router.push(`/rag/${queryId}/results`)}
@@ -127,11 +127,12 @@ export default function ResultDetailPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-6 overflow-hidden flex flex-col">
+      <div className="p-6 flex flex-col">
         <MarkdownEditor 
           content={result?.response_text || ""} 
           readOnly={true}
           viewMode="both"
+          scrollMode="page"
         />
       </div>
     </div>

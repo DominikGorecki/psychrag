@@ -134,9 +134,9 @@ export default function InspectTitlesPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col min-h-screen">
       {/* Header with controls */}
-      <div className="border-b bg-card p-4 flex items-center justify-between">
+      <div className="border-b bg-card p-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           {/* Back button */}
           <Button
@@ -187,13 +187,13 @@ export default function InspectTitlesPage() {
       </div>
 
       {/* Main content area - editable markdown editor */}
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-full flex flex-col p-4 h-full">
+      <div className="flex-1 flex">
+        <div className="w-full flex flex-col p-4">
           <MarkdownEditor
             content={content}
             onChange={handleContentChange}
-            className="h-full"
             viewMode="markdown-only"
+            scrollMode="page"
           />
         </div>
       </div>

@@ -151,9 +151,9 @@ export default function InspectSanitizedPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] space-y-6">
+    <div className="flex flex-col min-h-screen space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between shrink-0">
+      <div className="flex items-center justify-between shrink-0 sticky top-0 z-10 bg-background/95 backdrop-blur py-2 border-b">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={handleBack}>
             <ChevronLeft className="h-4 w-4" />
@@ -209,17 +209,18 @@ export default function InspectSanitizedPage() {
       {modified && (
         <div className="rounded-lg border border-yellow-500 bg-yellow-50 p-3 shrink-0">
           <p className="text-sm text-yellow-800">
-            You have unsaved changes. Click "Save Changes" to update the file.
+            You have unsaved changes. Click &quot;Save Changes&quot; to update the file.
           </p>
         </div>
       )}
 
       {/* Content Editor */}
-      <div className="flex-1 min-h-0 border rounded-lg overflow-hidden">
+      <div className="rounded-lg">
         <MarkdownEditor 
           content={content} 
           onChange={setContent}
           viewMode="both"
+          scrollMode="page"
         />
       </div>
 

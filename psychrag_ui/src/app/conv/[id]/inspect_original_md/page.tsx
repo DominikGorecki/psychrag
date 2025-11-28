@@ -107,9 +107,9 @@ export default function InspectOriginalMarkdownPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Header */}
-      <div className="border-b bg-card p-4 flex items-center justify-between">
+    <div className="min-h-screen flex flex-col">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 border-b bg-card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <Button
             onClick={() => router.back()}
@@ -145,11 +145,13 @@ export default function InspectOriginalMarkdownPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-6 overflow-hidden flex flex-col">
-        <MarkdownEditor 
+      <div className="p-6">
+        {/* Read-only MarkdownEditor  */}
+          <MarkdownEditor 
           content={content} 
           onChange={setContent}
           viewMode="both"
+          scrollMode="page"
         />
       </div>
     </div>

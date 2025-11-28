@@ -378,6 +378,7 @@ export default function AddWorkPage() {
                     readOnly={true}
                     viewMode="markdown-only"
                     className="h-full"
+                    scrollMode="container"
                   />
                 </div>
               )}

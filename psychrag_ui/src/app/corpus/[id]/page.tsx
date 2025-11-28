@@ -90,9 +90,9 @@ export default function CorpusWorkViewerPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Header */}
-      <div className="border-b bg-card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+    <div className="min-h-screen flex flex-col">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 border-b bg-card p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <Button
             onClick={handleBack}
@@ -119,13 +119,14 @@ export default function CorpusWorkViewerPage() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 p-6 overflow-hidden flex flex-col">
+      {/* Content - natural scroll */}
+      <div className="p-6">
         <MarkdownEditor
           content={content}
           onChange={() => {}} // No-op: read-only
           viewMode="both"
           readOnly={true}
+          scrollMode="page"
         />
       </div>
     </div>

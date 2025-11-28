@@ -1,4 +1,4 @@
-# T005 - Fix double scrollbar in markdown viewers
+# T005 - Fix double scrollbar in markdown viewers - COMPLETE
 
 ## Context
 
