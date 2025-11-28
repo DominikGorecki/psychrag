@@ -184,9 +184,9 @@ export default function InspectPage() {
   if (!query) return null;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <div className="border-b bg-card p-4 flex items-center justify-between flex-shrink-0">
+      <div className="border-b bg-card p-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <Button
             onClick={() => router.push(`/rag/${queryId}`)}
@@ -217,7 +217,7 @@ export default function InspectPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-6 space-y-6">
+      <div className="p-6 space-y-6">
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
