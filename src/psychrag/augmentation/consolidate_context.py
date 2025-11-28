@@ -406,7 +406,7 @@ def consolidate_context(
                 'start_line': group.start_line,
                 'end_line': group.end_line,
                 'score': group.score,
-                'heading_chain': group.heading_chain
+                'heading_chain': ' > '.join(group.heading_chain) if group.heading_chain else None
             })
 
         query.clean_retrieval_context = context_data

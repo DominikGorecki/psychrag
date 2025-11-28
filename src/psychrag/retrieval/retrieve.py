@@ -38,6 +38,7 @@ class RetrievedChunk:
     start_line: int
     end_line: int
     level: str
+    heading_breadcrumbs: str | None = None
     dense_rank: int | None = None
     lexical_rank: int | None = None
     rrf_score: float = 0.0
@@ -712,6 +713,9 @@ def retrieve(
             # Enrich content
             enriched = _enrich_content(chunk, work) if work else chunk.content
 
+            # Option B: Keep breadcrumbs separate, reranker sees content only
+            # Breadcrumbs are stored in heading_breadcrumbs field and saved context
+
             # Get embedding as numpy array for MMR (if available)
             embedding = embeddings_map.get(chunk_id)
             np_embedding = None
@@ -727,6 +731,7 @@ def retrieve(
                 start_line=chunk.start_line,
                 end_line=chunk.end_line,
                 level=chunk.level,
+                heading_breadcrumbs=chunk.heading_breadcrumbs,
                 rrf_score=rrf_scores[chunk_id],
                 _embedding=np_embedding
             ))
@@ -763,6 +768,7 @@ def retrieve(
                 "parent_id": chunk.parent_id,
                 "work_id": chunk.work_id,
                 "content": chunk.content,
+                "heading_breadcrumbs": chunk.heading_breadcrumbs,
                 "enriched_content": chunk.enriched_content,
                 "start_line": chunk.start_line,
                 "end_line": chunk.end_line,

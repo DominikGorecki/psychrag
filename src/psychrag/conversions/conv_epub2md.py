@@ -201,13 +201,14 @@ def _extract_epub_to_html(epub_path: Path) -> str:
         # If no TOC headings were found, preserve existing headings
         # (They're already in the content, so no action needed)
 
-        # Remove internal anchor links (links to .html files or # anchors)
-        for a_tag in soup.find_all("a", href=True):
-            href = a_tag["href"]
-            # Remove links to internal HTML files or anchors
-            if href.startswith("#") or href.endswith(".html") or ".html#" in href:
-                # Replace anchor with its text content
-                a_tag.unwrap()
+        # Remove all links but preserve their text content
+        for a_tag in soup.find_all("a"):
+            # Replace anchor with its text content
+            a_tag.unwrap()
+
+        # Remove all images
+        for img_tag in soup.find_all("img"):
+            img_tag.decompose()
 
         # Extract body content
         body = soup.find("body")

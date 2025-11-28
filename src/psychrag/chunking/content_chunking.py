@@ -302,7 +302,8 @@ def _create_paragraph_chunks(
 
     Returns:
         List of chunk dictionaries with keys:
-        - content: Full chunk text with breadcrumb
+        - content: Chunk text (without breadcrumb)
+        - heading_breadcrumbs: Breadcrumb string (e.g., "H1 > H2 > H3") or None
         - start_line: First paragraph start line
         - end_line: Last paragraph end line
         - heading_line: Line number of heading (for parent lookup)
@@ -331,8 +332,8 @@ def _create_paragraph_chunks(
         paras = group['paragraphs']
 
         breadcrumb_text = _format_breadcrumb(breadcrumb)
-        breadcrumb_words = _count_words(breadcrumb_text) if breadcrumb_text else 0
-        available_words = MAX_WORDS - breadcrumb_words
+        # Breadcrumbs no longer count against MAX_WORDS (stored separately)
+        available_words = MAX_WORDS
 
         # Accumulator for combining paragraphs
         current_sentences = []
@@ -366,10 +367,10 @@ def _create_paragraph_chunks(
                 # Don't flush yet - keep accumulating
                 return
 
-            content = f"{breadcrumb_text}\n{chunk_text}" if breadcrumb_text else chunk_text
-
+            # Store content and breadcrumbs separately
             chunks.append({
-                'content': content,
+                'content': chunk_text,
+                'heading_breadcrumbs': breadcrumb_text if breadcrumb_text else None,
                 'start_line': current_start_line,
                 'end_line': current_end_line,
                 'heading_line': h_line,
@@ -477,10 +478,10 @@ def _create_table_chunks(
         h_line, breadcrumb, level = _find_heading_for_line(table_start, headings, heading_hierarchy)
         breadcrumb_text = _format_breadcrumb(breadcrumb)
 
-        content = f"{breadcrumb_text}\n{table_text}" if breadcrumb_text else table_text
-
+        # Store content and breadcrumbs separately
         chunks.append({
-            'content': content,
+            'content': table_text,
+            'heading_breadcrumbs': breadcrumb_text if breadcrumb_text else None,
             'start_line': table_start,
             'end_line': table_end,
             'heading_line': h_line,
@@ -503,10 +504,10 @@ def _create_figure_chunks(
         h_line, breadcrumb, level = _find_heading_for_line(fig_line, headings, heading_hierarchy)
         breadcrumb_text = _format_breadcrumb(breadcrumb)
 
-        content = f"{breadcrumb_text}\n{fig_text}" if breadcrumb_text else fig_text
-
+        # Store content and breadcrumbs separately
         chunks.append({
-            'content': content,
+            'content': fig_text,
+            'heading_breadcrumbs': breadcrumb_text if breadcrumb_text else None,
             'start_line': fig_line,
             'end_line': fig_line,
             'heading_line': h_line,
@@ -564,6 +565,9 @@ def _merge_small_chunks(chunks: list[dict], min_words: int = MIN_CHUNK_WORDS, ve
                 # Merge this small chunk with the previous pending small chunk
                 pending_merge['content'] += '\n\n' + chunk['content']
                 pending_merge['end_line'] = chunk['end_line']
+                # Keep the first breadcrumb (they should be the same under same heading)
+                if not pending_merge.get('heading_breadcrumbs') and chunk.get('heading_breadcrumbs'):
+                    pending_merge['heading_breadcrumbs'] = chunk['heading_breadcrumbs']
                 # Update word count check
                 merged_word_count = _count_words(pending_merge['content'])
                 if merged_word_count >= min_words:
@@ -581,6 +585,9 @@ def _merge_small_chunks(chunks: list[dict], min_words: int = MIN_CHUNK_WORDS, ve
                 if prev_chunk.get('vector_status') == 'to_vec':
                     prev_chunk['content'] += '\n\n' + chunk['content']
                     prev_chunk['end_line'] = chunk['end_line']
+                    # Keep the first breadcrumb (they should be the same under same heading)
+                    if not prev_chunk.get('heading_breadcrumbs') and chunk.get('heading_breadcrumbs'):
+                        prev_chunk['heading_breadcrumbs'] = chunk['heading_breadcrumbs']
                     merge_count += 1
                     if verbose:
                         new_word_count = _count_words(prev_chunk['content'])
@@ -597,6 +604,9 @@ def _merge_small_chunks(chunks: list[dict], min_words: int = MIN_CHUNK_WORDS, ve
                 # Merge pending small chunk with this chunk
                 chunk['content'] = pending_merge['content'] + '\n\n' + chunk['content']
                 chunk['start_line'] = pending_merge['start_line']
+                # Keep the first breadcrumb (they should be the same under same heading)
+                if not chunk.get('heading_breadcrumbs') and pending_merge.get('heading_breadcrumbs'):
+                    chunk['heading_breadcrumbs'] = pending_merge['heading_breadcrumbs']
                 merge_count += 1
                 if verbose:
                     new_word_count = _count_words(chunk['content'])
@@ -611,6 +621,9 @@ def _merge_small_chunks(chunks: list[dict], min_words: int = MIN_CHUNK_WORDS, ve
             # Merge with last chunk if it's a text chunk
             validated_chunks[-1]['content'] += '\n\n' + pending_merge['content']
             validated_chunks[-1]['end_line'] = pending_merge['end_line']
+            # Keep the first breadcrumb (they should be the same under same heading)
+            if not validated_chunks[-1].get('heading_breadcrumbs') and pending_merge.get('heading_breadcrumbs'):
+                validated_chunks[-1]['heading_breadcrumbs'] = pending_merge['heading_breadcrumbs']
             merge_count += 1
             if verbose:
                 new_word_count = _count_words(validated_chunks[-1]['content'])
@@ -766,6 +779,7 @@ def chunk_content(work_id: int, verbose: bool = False, min_chunk_words: int = MI
                 work_id=work_id,
                 level=level_str,
                 content=chunk_data['content'],
+                heading_breadcrumbs=chunk_data.get('heading_breadcrumbs'),
                 embedding=None,
                 start_line=chunk_data['start_line'],
                 end_line=chunk_data['end_line'],

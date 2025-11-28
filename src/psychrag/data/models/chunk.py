@@ -23,7 +23,8 @@ class Chunk(Base):
         parent_id: Reference to parent chunk (NULL for H1/top-level).
         work_id: Foreign key to the work this chunk belongs to.
         level: Hierarchy level (H1, H2, H3, H4, H5, sentence, chunk).
-        content: The actual text content of the chunk.
+        content: The actual text content of the chunk (without breadcrumb prefix).
+        heading_breadcrumbs: Breadcrumb trail of section headings (e.g., "H1 > H2 > H3").
         embedding: Vector embedding (768 dimensions).
         start_line: Line number where chunk begins in markdown.
         end_line: Line number where chunk ends in markdown.
@@ -47,6 +48,10 @@ class Chunk(Base):
     )
     level: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    heading_breadcrumbs: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True
+    )
     embedding: Mapped[Optional[list]] = mapped_column(Vector(768), nullable=True)
     start_line: Mapped[int] = mapped_column(Integer, nullable=False)
     end_line: Mapped[int] = mapped_column(Integer, nullable=False)

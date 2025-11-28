@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { MarkdownEditor } from "@/components/markdown-editor";
 import {
   AlertCircle,
   ChevronLeft,
@@ -162,6 +162,20 @@ export default function InspectTitlesPage() {
         {/* Action buttons in header */}
         <div className="flex items-center gap-2">
           <Button
+            onClick={handleSave}
+            disabled={!modified || saving}
+            size="sm"
+            className="gap-2"
+          >
+            {saving ? (
+              <Loader2Icon className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save
+          </Button>
+
+          <Button
             onClick={() => setHelpDialogOpen(true)}
             variant="outline"
             size="sm"
@@ -172,37 +186,16 @@ export default function InspectTitlesPage() {
         </div>
       </div>
 
-      {/* Main content area - editable textarea */}
-      <div className="flex-1 flex overflow-hidden" style={{ maxHeight: "calc(100vh - 180px)" }}>
-        <div className="w-full flex flex-col p-4">
-          <Textarea
-            value={content}
-            onChange={(e) => handleContentChange(e.target.value)}
-            className="flex-1 font-mono text-sm resize-none"
-            placeholder="1: # Chapter 1 Title&#10;&#10;23: ## Section Title&#10;&#10;..."
+      {/* Main content area - editable markdown editor */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="w-full flex flex-col p-4 h-full">
+          <MarkdownEditor
+            content={content}
+            onChange={handleContentChange}
+            className="h-full"
+            viewMode="markdown-only"
           />
         </div>
-      </div>
-
-      {/* Bottom action bar */}
-      <div className="border-t bg-card p-4 flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          {modified && <span>Unsaved changes</span>}
-        </div>
-
-        <Button
-          onClick={handleSave}
-          disabled={!modified || saving}
-          size="sm"
-          className="gap-2"
-        >
-          {saving ? (
-            <Loader2Icon className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          Save
-        </Button>
       </div>
 
       {/* Error display */}
