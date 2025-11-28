@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { TextStats } from "@/components/text-stats";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -342,7 +343,7 @@ export default function GeneratePage() {
         <div className="w-full flex flex-col p-4">
           {viewMode === "prompt" ? (
             <>
-              {/* Source count selector */}
+              {/* Source count selector and stats */}
               <div className="flex items-center gap-3 mb-3 pb-3 border-b">
                 <Label htmlFor="source-count" className="text-sm font-medium">
                   Sources to include:
@@ -369,6 +370,7 @@ export default function GeneratePage() {
                 {regenerating && (
                   <Loader2Icon className="h-4 w-4 animate-spin text-muted-foreground" />
                 )}
+                <TextStats text={promptData?.prompt || ""} className="ml-auto" />
               </div>
 
               <Textarea

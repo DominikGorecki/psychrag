@@ -295,12 +295,12 @@ export default function ConvertedFilePage() {
         <CardContent>
           <div className="space-y-3 text-sm">
             <p className="text-muted-foreground">
-              Once you've reviewed all necessary inspection items:
+              Once you&apos;ve reviewed all necessary inspection items:
             </p>
             <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
               <li>Verify the conversion quality using the inspection tools above</li>
               <li>Make any necessary manual corrections to the files</li>
-              <li>Click "Add to Database" to finalize the conversion</li>
+              <li>Click &quot;Add to Database&quot; to finalize the conversion</li>
             </ol>
             
             {/* Show readiness status */}

@@ -10,6 +10,7 @@ import {
   PlayCircle,
 } from "lucide-react";
 import { MarkdownEditor } from "@/components/markdown-editor";
+import { TextStats } from "@/components/text-stats";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -116,14 +117,19 @@ export default function ResultDetailPage() {
           </div>
         </div>
 
-        {/* Query Button */}
-        <Button
-          onClick={() => router.push(`/rag/${queryId}`)}
-          className="gap-1"
-        >
-          <PlayCircle className="h-4 w-4" />
-          Query
-        </Button>
+        <div className="flex items-center gap-4">
+          {/* Stats */}
+          <TextStats text={result?.response_text || ""} />
+
+          {/* Query Button */}
+          <Button
+            onClick={() => router.push(`/rag/${queryId}`)}
+            className="gap-1"
+          >
+            <PlayCircle className="h-4 w-4" />
+            Query
+          </Button>
+        </div>
       </div>
 
       {/* Content */}
