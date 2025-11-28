@@ -37,6 +37,7 @@ interface QueryListItem {
   id: number;
   original_query: string;
   created_at: string;
+  updated_at?: string;
   status: string;
   intent: string | null;
   entities_count: number;
@@ -544,7 +545,8 @@ export default function RAGPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[50%]">Query</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Date Created</TableHead>
+                  <TableHead>Date Modified</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -560,6 +562,9 @@ export default function RAGPage() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                       {formatDate(query.created_at)}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      {query.updated_at ? formatDate(query.updated_at) : "-"}
                     </TableCell>
                     <TableCell>
                       {getStatusBadge(query.status)}

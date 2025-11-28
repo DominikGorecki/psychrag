@@ -7,9 +7,9 @@ import { useEffect } from "react";
 export default function Home() {
   const router = useRouter();
 
-  // Redirect to Init page on load
+  // Redirect to Corpus page on load
   useEffect(() => {
-    router.push("/init");
+    router.push("/corpus");
   }, [router]);
 
   return (
@@ -17,7 +17,7 @@ export default function Home() {
       <Card className="w-[400px]">
         <CardHeader>
           <CardTitle>Welcome to PsychRAG</CardTitle>
-          <CardDescription>Redirecting to initialization dashboard...</CardDescription>
+          <CardDescription>Redirecting to corpus...</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex justify-center p-4">

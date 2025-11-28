@@ -21,6 +21,7 @@ class QueryListItem(BaseModel):
     id: int = Field(..., description="Query ID")
     original_query: str = Field(..., description="Original query text")
     created_at: datetime = Field(..., description="Creation timestamp")
+    updated_at: datetime = Field(..., description="Last update timestamp")
     status: str = Field(
         ...,
         description="Current status: needs_embeddings, needs_retrieval, needs_consolidation, ready"

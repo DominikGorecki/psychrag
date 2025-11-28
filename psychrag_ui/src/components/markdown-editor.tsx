@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import Editor, { OnMount } from "@monaco-editor/react";
+import type { editor } from "monaco-editor";
 
 interface MarkdownEditorProps {
   content: string;
@@ -26,7 +27,7 @@ export function MarkdownEditor({
 }: MarkdownEditorProps) {
   const [userTab, setUserTab] = useState<string>("rendered");
   const [editorHeight, setEditorHeight] = useState("100%");
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   
   // Force light theme (white background) as requested
   const monacoTheme = "light";

@@ -94,6 +94,7 @@ async def list_queries() -> QueryListResponse:
                 id=q.id,
                 original_query=q.original_query,
                 created_at=q.created_at,
+                updated_at=q.updated_at,
                 status=_get_query_status(q),
                 intent=q.intent,
                 entities_count=len(q.entities) if q.entities else 0

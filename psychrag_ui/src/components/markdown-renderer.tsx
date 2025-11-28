@@ -23,7 +23,8 @@ export function MarkdownRenderer({
         prose-p:leading-7 prose-p:mb-4
         prose-ul:my-4 prose-li:my-1
         prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border
-        break-words
+        break-words break-all
+        overflow-x-hidden
         ${className}`}
     >
       <ReactMarkdown 
