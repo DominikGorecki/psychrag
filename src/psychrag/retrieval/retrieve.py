@@ -62,16 +62,19 @@ class RetrievalResult:
 
 
 # Default parameters
-DEFAULT_DENSE_LIMIT = 15
-DEFAULT_LEXICAL_LIMIT = 10
-DEFAULT_RRF_K = 60
-DEFAULT_TOP_K_RRF = 60
-DEFAULT_TOP_N_FINAL = 12
-DEFAULT_ENTITY_BOOST = 0.05
-DEFAULT_MIN_CONTENT_LENGTH = 350    # characters (for enrichment)
-DEFAULT_CONTEXT_SENTENCES = 5
-DEFAULT_MIN_WORD_COUNT = 50         # minimum words in chunk.content to be included
+DEFAULT_DENSE_LIMIT = 19
+DEFAULT_LEXICAL_LIMIT = 5
+DEFAULT_RRF_K = 50                  #60
+DEFAULT_TOP_K_RRF = 75              #60
+DEFAULT_TOP_N_FINAL = 17
+DEFAULT_ENTITY_BOOST = 0.05   #0.05
+DEFAULT_MIN_CONTENT_LENGTH = 750    # characters (for enrichment)
+DEFAULT_ENRICH_LINES_ABOVE = 0      # lines to add above chunk when enriching
+DEFAULT_ENRICH_LINES_BELOW = 13     # lines to add below chunk when enriching
+DEFAULT_MIN_WORD_COUNT = 150         # minimum words in chunk.content to be included
 DEFAULT_MIN_CHAR_COUNT = 250        # minimum characters in chunk.content to be included
+# Default MMR parameters
+DEFAULT_MMR_LAMBDA = 0.7  #0.7 Balance between relevance (1.0) and diversity (0.0)
 
 
 def _meets_minimum_requirements(
@@ -190,7 +193,8 @@ def _compute_rrf_scores(
 def _enrich_content(
     chunk: Chunk,
     work: Work,
-    context_sentences: int = DEFAULT_CONTEXT_SENTENCES,
+    lines_above: int = DEFAULT_ENRICH_LINES_ABOVE,
+    lines_below: int = DEFAULT_ENRICH_LINES_BELOW,
     min_length: int = DEFAULT_MIN_CONTENT_LENGTH
 ) -> str:
     """Enrich short chunks with surrounding context from markdown file.
@@ -198,8 +202,9 @@ def _enrich_content(
     Args:
         chunk: The chunk to potentially enrich
         work: The work containing markdown_path
-        context_sentences: Number of sentences to add above/below
-        min_length: Minimum content length before enrichment
+        lines_above: Number of lines to add above chunk (default 0)
+        lines_below: Number of lines to add below chunk (default 13)
+        min_length: Minimum content length before enrichment (default 350)
 
     Returns:
         Enriched content or original content
@@ -227,12 +232,12 @@ def _enrich_content(
         return chunk.content
 
     # Get context lines (0-indexed)
-    start_idx = max(0, chunk.start_line - 1 - context_sentences)
-    end_idx = min(len(lines), chunk.end_line + context_sentences)
+    start_idx = max(0, chunk.start_line - 1 - lines_above)
+    end_idx = min(len(lines), chunk.end_line + lines_below)
 
     # Build enriched content
-    above_lines = lines[start_idx:chunk.start_line - 1] if chunk.start_line > 1 else []
-    below_lines = lines[chunk.end_line:end_idx] if chunk.end_line < len(lines) else []
+    above_lines = lines[start_idx:chunk.start_line - 1] if lines_above > 0 and chunk.start_line > 1 else []
+    below_lines = lines[chunk.end_line:end_idx] if lines_below > 0 and chunk.end_line < len(lines) else []
 
     parts = []
     if above_lines:
@@ -452,8 +457,6 @@ def _apply_intent_bias(
     return chunks
 
 
-# Default MMR parameters
-DEFAULT_MMR_LAMBDA = 0.7  # Balance between relevance (1.0) and diversity (0.0)
 
 
 def _cosine_similarity(vec1: np.ndarray, vec2: np.ndarray) -> float:

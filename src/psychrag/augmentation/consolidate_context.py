@@ -45,6 +45,8 @@ class ConsolidationResult:
 # Default parameters
 DEFAULT_COVERAGE_THRESHOLD = 0.5
 DEFAULT_LINE_GAP = 7
+DEFAULT_MIN_CONTENT_LENGTH = 350  # Minimum characters in content for final output
+DEFAULT_ENRICH_FROM_MD = True # Read content from markdown file during consolidation
 
 
 def _get_level_order(level: str) -> int:
@@ -60,7 +62,7 @@ def _get_heading_chain(
     parent_id: int | None,
     parents_map: dict
 ) -> list[str]:
-    """Walk up the parent tree to build heading breadcrumbs.
+    """Get heading breadcrumbs from parent chunk's heading_breadcrumbs field.
 
     Returns a list of heading texts from root (H1) to the immediate parent,
     providing hierarchical context for the chunk.
@@ -72,30 +74,18 @@ def _get_heading_chain(
     Returns:
         List of heading texts, e.g., ["Chapter 5: Therapy", "Schema Therapy", "Core Techniques"]
     """
-    chain = []
-    current_id = parent_id
+    if not parent_id or parent_id not in parents_map:
+        return []
 
-    while current_id and current_id in parents_map:
-        parent = parents_map[current_id]
+    parent = parents_map[parent_id]
 
-        # Extract heading text from first line of content
-        content = parent.content or ""
-        first_line = content.split('\n')[0].strip()
+    # Use heading_breadcrumbs field if available
+    if parent.heading_breadcrumbs:
+        # Split by " > " separator and return as list
+        return [h.strip() for h in parent.heading_breadcrumbs.split(' > ') if h.strip()]
 
-        # Remove markdown heading markers (# ## ### etc.)
-        if first_line.startswith('#'):
-            heading_text = first_line.lstrip('#').strip()
-        else:
-            heading_text = first_line
-
-        # Only include non-empty headings
-        if heading_text:
-            chain.insert(0, heading_text)  # Insert at beginning (root first)
-
-        # Move up to next parent
-        current_id = parent.parent_id
-
-    return chain
+    # Fallback: return empty list if no breadcrumbs
+    return []
 
 
 def _read_content_from_file(
@@ -133,7 +123,8 @@ def _calculate_coverage(
 def _merge_adjacent_items(
     items: list[dict],
     markdown_path: Path,
-    line_gap: int = DEFAULT_LINE_GAP
+    line_gap: int = DEFAULT_LINE_GAP,
+    enrich_from_md: bool = DEFAULT_ENRICH_FROM_MD
 ) -> list[dict]:
     """Merge items that are within line_gap of each other."""
     if not items:
@@ -152,19 +143,20 @@ def _merge_adjacent_items(
             current_group.append(item)
         else:
             # Finalize current group
-            merged.append(_finalize_group(current_group, markdown_path))
+            merged.append(_finalize_group(current_group, markdown_path, enrich_from_md))
             current_group = [item]
 
     # Finalize last group
     if current_group:
-        merged.append(_finalize_group(current_group, markdown_path))
+        merged.append(_finalize_group(current_group, markdown_path, enrich_from_md))
 
     return merged
 
 
 def _finalize_group(
     items: list[dict],
-    markdown_path: Path
+    markdown_path: Path,
+    enrich_from_md: bool = DEFAULT_ENRICH_FROM_MD
 ) -> dict:
     """Create a merged item from a group of items."""
     chunk_ids = []
@@ -178,16 +170,44 @@ def _finalize_group(
     end_line = max(item['end_line'] for item in items)
     score = max(item.get('score', item.get('final_score', 0)) for item in items)
 
-    # Read content from file
-    content = _read_content_from_file(markdown_path, start_line, end_line)
+    # Get content: either from file or from existing items
+    if enrich_from_md:
+        # Read content from markdown file
+        content = _read_content_from_file(markdown_path, start_line, end_line)
+    else:
+        # Use existing content from items (concatenate with newlines)
+        content = '\n\n'.join(item['content'] for item in items if item.get('content'))
 
-    # Get first line (heading) from first item
+    # Get heading from first item's heading_breadcrumbs
     first_item = items[0]
-    if 'content' in first_item:
-        first_line = first_item['content'].split('\n')[0]
-        # Only prepend if content doesn't already start with this heading
-        if not content.startswith(first_line):
-            content = first_line + '\n\n' + content
+    heading_to_prepend = None
+
+    if 'heading_breadcrumbs' in first_item and first_item['heading_breadcrumbs']:
+        breadcrumbs = first_item['heading_breadcrumbs']
+
+        # Handle both string and list formats
+        if isinstance(breadcrumbs, str):
+            breadcrumb_list = [h.strip() for h in breadcrumbs.split(' > ') if h.strip()]
+        elif isinstance(breadcrumbs, list):
+            breadcrumb_list = breadcrumbs
+        else:
+            breadcrumb_list = []
+
+        # Get the last (most specific) heading
+        if breadcrumb_list:
+            last_heading = breadcrumb_list[-1]
+
+            # Get level and construct markdown heading
+            level = first_item.get('level', 'chunk')
+            if level in ['H1', 'H2', 'H3', 'H4', 'H5']:
+                level_num = int(level[1])  # Extract number from 'H1', 'H2', etc.
+                heading_to_prepend = '#' * level_num + ' ' + last_heading
+            else:
+                heading_to_prepend = last_heading
+
+    # Only prepend if content doesn't already start with this heading
+    if heading_to_prepend and not content.startswith(heading_to_prepend):
+        content = heading_to_prepend + '\n\n' + content
 
     return {
         'chunk_ids': chunk_ids,
@@ -204,6 +224,8 @@ def consolidate_context(
     query_id: int,
     coverage_threshold: float = DEFAULT_COVERAGE_THRESHOLD,
     line_gap: int = DEFAULT_LINE_GAP,
+    min_content_length: int = DEFAULT_MIN_CONTENT_LENGTH,
+    enrich_from_md: bool = DEFAULT_ENRICH_FROM_MD,
     verbose: bool = False
 ) -> ConsolidationResult:
     """Consolidate retrieved context by grouping and merging chunks.
@@ -212,6 +234,8 @@ def consolidate_context(
         query_id: ID of the Query in the database
         coverage_threshold: Threshold for replacing with parent (default 0.5)
         line_gap: Max lines between chunks to merge (default 7)
+        min_content_length: Minimum characters in content for final output (default 350)
+        enrich_from_md: Read content from markdown file during consolidation (default False)
         verbose: Print progress information
 
     Returns:
@@ -241,14 +265,17 @@ def consolidate_context(
 
         # Verify content hashes
         for work_id, work in works_map.items():
-            if work.markdown_path and work.content_hash:
-                md_path = Path(work.markdown_path)
-                if md_path.exists():
+            if work.files and "sanitized" in work.files:
+                sanitized_info = work.files["sanitized"]
+                md_path = Path(sanitized_info["path"])
+                stored_hash = sanitized_info.get("hash")
+
+                if md_path.exists() and stored_hash:
                     current_hash = compute_file_hash(md_path)
-                    if current_hash != work.content_hash:
+                    if current_hash != stored_hash:
                         raise RuntimeError(
                             f"Content hash mismatch for work {work_id} ({work.title}). "
-                            f"File may have been modified. Cannot consolidate."
+                            f"Sanitized file may have been modified. Cannot consolidate."
                         )
 
         # Get all parent chunks we need
@@ -308,11 +335,12 @@ def consolidate_context(
 
             for (work_id, parent_id), group_items in groups.items():
                 work = works_map.get(work_id)
-                if not work or not work.markdown_path:
+                if not work or not work.files or "sanitized" not in work.files:
                     new_items.extend(group_items)
                     continue
 
-                md_path = Path(work.markdown_path)
+                sanitized_info = work.files["sanitized"]
+                md_path = Path(sanitized_info["path"])
                 if not md_path.exists():
                     new_items.extend(group_items)
                     continue
@@ -328,8 +356,8 @@ def consolidate_context(
                         parent.end_line
                     )
 
-                    if coverage >= coverage_threshold:
-                        # Replace with parent content
+                    if coverage >= coverage_threshold and enrich_from_md:
+                        # Replace with parent content (only if enrich_from_md is True)
                         content = _read_content_from_file(
                             md_path,
                             parent.start_line,
@@ -357,7 +385,7 @@ def consolidate_context(
                             print(f"  Replaced {len(group_items)} items with parent {parent_id} ({coverage:.0%} coverage)")
                     else:
                         # Merge adjacent items
-                        merged = _merge_adjacent_items(group_items, md_path, line_gap)
+                        merged = _merge_adjacent_items(group_items, md_path, line_gap, enrich_from_md)
                         if len(merged) < len(group_items):
                             processed = True
                             if verbose:
@@ -365,7 +393,7 @@ def consolidate_context(
                         new_items.extend(merged)
                 else:
                     # No parent, just merge adjacent
-                    merged = _merge_adjacent_items(group_items, md_path, line_gap)
+                    merged = _merge_adjacent_items(group_items, md_path, line_gap, enrich_from_md)
                     if len(merged) < len(group_items):
                         processed = True
                     new_items.extend(merged)
@@ -392,8 +420,15 @@ def consolidate_context(
         # Sort by score descending
         groups.sort(key=lambda x: x.score, reverse=True)
 
+        # Filter out groups with content shorter than minimum length
+        pre_filter_count = len(groups)
+        groups = [g for g in groups if len(g.content) >= min_content_length]
+
         if verbose:
             print(f"  Consolidated count: {len(groups)}")
+            if pre_filter_count > len(groups):
+                filtered_count = pre_filter_count - len(groups)
+                print(f"  Filtered out {filtered_count} items with content < {min_content_length} characters")
 
         # Save to database
         context_data = []
@@ -406,7 +441,7 @@ def consolidate_context(
                 'start_line': group.start_line,
                 'end_line': group.end_line,
                 'score': group.score,
-                'heading_chain': ' > '.join(group.heading_chain) if group.heading_chain else None
+                'heading_chain': group.heading_chain  # Store as list, not joined string
             })
 
         query.clean_retrieval_context = context_data
