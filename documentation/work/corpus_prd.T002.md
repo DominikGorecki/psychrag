@@ -1,4 +1,4 @@
-# T002 - Move Init/Status page into Settings and update navigation
+# T002 - Move Init/Status page into Settings and update navigation - COMPLETE
 
 ## Context
 

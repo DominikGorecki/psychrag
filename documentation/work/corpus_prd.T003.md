@@ -1,4 +1,4 @@
-# T003 - Corpus listing page with works and statistics
+# T003 - Corpus listing page with works and statistics - COMPLETE
 
 ## Context
 
