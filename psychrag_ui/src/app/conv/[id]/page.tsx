@@ -28,8 +28,6 @@ interface ReadinessResponse {
 const INSPECTION_LABELS: Record<string, string> = {
   inspect_style_hier: "Style vs Hier Comparison",
   inspect_toc_titles: "Table of Contents Titles (REQUIRED)",
-  inspect_titles: "Document Titles",
-  inspect_title_changes: "Title Changes Review",
   inspect_original_md: "Original Markdown (REQUIRED)",
 };
 
@@ -37,8 +35,6 @@ const INSPECTION_LABELS: Record<string, string> = {
 const INSPECTION_DESCRIPTIONS: Record<string, string> = {
   inspect_style_hier: "Compare style.md and hier.md versions side by side",
   inspect_toc_titles: "Review and edit table of contents titles",
-  inspect_titles: "Review extracted document titles",
-  inspect_title_changes: "Review changes made to titles",
   inspect_original_md: "View the original converted markdown file",
 };
 
@@ -222,7 +218,12 @@ export default function ConvertedFilePage() {
                 No inspection options available for this file.
               </div>
             ) : (
-              inspectionItems.map((item) => (
+              inspectionItems
+                .filter((item) =>
+                  item.name !== "inspect_titles" &&
+                  item.name !== "inspect_title_changes"
+                )
+                .map((item) => (
                 <div
                   key={item.name}
                   className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"

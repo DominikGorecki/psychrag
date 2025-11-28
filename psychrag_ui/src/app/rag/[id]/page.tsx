@@ -14,6 +14,7 @@ import {
   Check,
   MessageSquare,
   Eye,
+  List,
 } from "lucide-react";
 import {
   Dialog,
@@ -78,9 +79,13 @@ export default function GeneratePage() {
   const [availableSourceCount, setAvailableSourceCount] = useState<number>(0);
   const [regenerating, setRegenerating] = useState(false);
 
+  // Results state
+  const [hasResults, setHasResults] = useState(false);
+
   useEffect(() => {
     fetchAvailableSourceCount();
     fetchPrompt();
+    fetchResultsCount();
   }, [queryId]);
 
   const fetchAvailableSourceCount = async () => {
@@ -103,6 +108,23 @@ export default function GeneratePage() {
       console.error("Failed to fetch source count:", err);
       // Non-critical error - use fallback
       setAvailableSourceCount(5);
+    }
+  };
+
+  const fetchResultsCount = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/rag/queries/${queryId}/results`);
+
+      if (!response.ok) {
+        setHasResults(false);
+        return;
+      }
+
+      const data = await response.json();
+      setHasResults(data.results && data.results.length > 0);
+    } catch (err) {
+      console.error("Failed to fetch results count:", err);
+      setHasResults(false);
     }
   };
 
@@ -193,6 +215,8 @@ export default function GeneratePage() {
       setCopyDialogOpen(false);
       setGeneratedResponse(pastedResponse);
       setViewMode("response");
+      // Refresh results count since we just created a new result
+      await fetchResultsCount();
     } catch (err) {
       setOperationError(err instanceof Error ? err.message : "Failed to save response");
     } finally {
@@ -226,6 +250,8 @@ export default function GeneratePage() {
       setOperationSuccess(data.message || "Response generated and saved successfully");
       setGeneratedResponse(data.response_text);
       setViewMode("response");
+      // Refresh results count since we just created a new result
+      await fetchResultsCount();
     } catch (err) {
       setOperationError(err instanceof Error ? err.message : "Failed to run prompt");
     } finally {
@@ -295,6 +321,18 @@ export default function GeneratePage() {
           >
             <Eye className="h-4 w-4" />
             Inspect
+          </Button>
+
+          {/* Results */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/rag/${queryId}/results`)}
+            className="gap-1"
+            disabled={!hasResults}
+          >
+            <List className="h-4 w-4" />
+            Results
           </Button>
 
           {/* View toggle */}
