@@ -20,12 +20,12 @@ export function NavBar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex flex-col w-64 border-r min-h-screen bg-muted/30">
+    <div className="flex flex-col w-64 border-r min-h-screen bg-muted/30 sticky top-0 self-start">
       <div className="p-6">
         <h1 className="text-xl font-bold tracking-tight text-primary">PsychRAG UI</h1>
         <p className="text-xs text-muted-foreground mt-1">v0.1.0</p>
       </div>
-      <div className="flex-1 px-4 py-2 space-y-1">
+      <div className="flex-1 px-4 py-2 space-y-1 overflow-y-auto max-h-[calc(100vh-6rem)]">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
