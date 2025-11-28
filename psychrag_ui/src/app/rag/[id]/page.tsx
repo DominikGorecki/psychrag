@@ -26,6 +26,14 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -64,17 +72,46 @@ export default function GeneratePage() {
   // View mode: 'prompt' or 'response'
   const [viewMode, setViewMode] = useState<"prompt" | "response">("prompt");
 
+  // Source selection states
+  const [selectedSourceCount, setSelectedSourceCount] = useState<number>(5);
+  const [availableSourceCount, setAvailableSourceCount] = useState<number>(0);
+  const [regenerating, setRegenerating] = useState(false);
+
   useEffect(() => {
+    fetchAvailableSourceCount();
     fetchPrompt();
   }, [queryId]);
 
-  const fetchPrompt = async () => {
+  const fetchAvailableSourceCount = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/rag/queries/${queryId}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to load query details");
+      }
+
+      const data = await response.json();
+      const contextLength = data.clean_retrieval_context?.length || 0;
+      setAvailableSourceCount(contextLength);
+
+      // Adjust selected count if it exceeds available
+      if (selectedSourceCount > contextLength) {
+        setSelectedSourceCount(Math.min(5, contextLength));
+      }
+    } catch (err) {
+      console.error("Failed to fetch source count:", err);
+      // Non-critical error - use fallback
+      setAvailableSourceCount(5);
+    }
+  };
+
+  const fetchPrompt = async (topN: number = selectedSourceCount) => {
     try {
       setLoading(true);
       setError(null);
 
       const response = await fetch(
-        `${API_BASE_URL}/rag/queries/${queryId}/augment/prompt?top_n=5`
+        `${API_BASE_URL}/rag/queries/${queryId}/augment/prompt?top_n=${topN}`
       );
 
       if (!response.ok) {
@@ -91,6 +128,21 @@ export default function GeneratePage() {
       setError(err instanceof Error ? err.message : "Failed to load prompt");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSourceCountChange = async (value: string) => {
+    const newCount = parseInt(value, 10);
+    setSelectedSourceCount(newCount);
+    setRegenerating(true);
+    setOperationError(null);
+
+    try {
+      await fetchPrompt(newCount);
+    } catch (err) {
+      setOperationError("Failed to regenerate prompt with new source count");
+    } finally {
+      setRegenerating(false);
     }
   };
 
@@ -289,12 +341,43 @@ export default function GeneratePage() {
       <div className="flex-1 flex overflow-hidden" style={{ maxHeight: "calc(100vh - 220px)" }}>
         <div className="w-full flex flex-col p-4">
           {viewMode === "prompt" ? (
-            <Textarea
-              value={promptData?.prompt || ""}
-              readOnly
-              className="flex-1 font-mono text-sm resize-none select-text"
-              placeholder="Loading prompt..."
-            />
+            <>
+              {/* Source count selector */}
+              <div className="flex items-center gap-3 mb-3 pb-3 border-b">
+                <Label htmlFor="source-count" className="text-sm font-medium">
+                  Sources to include:
+                </Label>
+                <Select
+                  value={selectedSourceCount.toString()}
+                  onValueChange={handleSourceCountChange}
+                  disabled={loading || regenerating}
+                >
+                  <SelectTrigger id="source-count" className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: availableSourceCount }, (_, i) => i + 1).map(n => (
+                      <SelectItem key={n} value={n.toString()}>
+                        {n} {n === 1 ? 'source' : 'sources'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground">
+                  ({availableSourceCount} available)
+                </span>
+                {regenerating && (
+                  <Loader2Icon className="h-4 w-4 animate-spin text-muted-foreground" />
+                )}
+              </div>
+
+              <Textarea
+                value={promptData?.prompt || ""}
+                readOnly
+                className="flex-1 font-mono text-sm resize-none select-text"
+                placeholder={regenerating ? "Regenerating prompt..." : "Loading prompt..."}
+              />
+            </>
           ) : (
             <Card className="flex-1 overflow-hidden">
               <CardHeader className="pb-2">
@@ -322,7 +405,7 @@ export default function GeneratePage() {
           <div className="text-sm text-muted-foreground flex-1 mr-4">
             {viewMode === "prompt" ? (
               <p>
-                Context: {promptData?.context_count || 0} sources included.
+                Context: {promptData?.context_count || 0} of {availableSourceCount} sources included.
                 Run the prompt to generate a response.
               </p>
             ) : (
