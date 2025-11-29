@@ -29,6 +29,7 @@ from dataclasses import dataclass
 
 from psychrag.data.database import get_session
 from psychrag.data.models import Query
+from psychrag.data.template_loader import load_template
 
 
 @dataclass
@@ -59,6 +60,9 @@ def generate_expansion_prompt(query: str, n: int = 3) -> str:
     This function creates the prompt text without calling the LLM,
     allowing for manual execution of the prompt.
 
+    The prompt template is loaded from the database if available,
+    otherwise falls back to the hardcoded default.
+
     Args:
         query: The original user query.
         n: Number of alternative queries to generate (default 3).
@@ -66,7 +70,9 @@ def generate_expansion_prompt(query: str, n: int = 3) -> str:
     Returns:
         The complete prompt string to send to an LLM.
     """
-    return f"""You are a query expansion assistant for a psychology and cognitive science literature RAG system
+    # Define fallback template builder
+    def get_fallback_template():
+        return """You are a query expansion assistant for a psychology and cognitive science literature RAG system
 (textbooks, articles, lecture notes, and research summaries).
 
 Given a user query, you must:
@@ -141,6 +147,12 @@ DETAILED INSTRUCTIONS:
 Remember:
 - Output MUST be valid JSON matching the schema above.
 - Do not include any explanation or commentary outside the JSON."""
+
+    # Load template from database with fallback
+    template = load_template("query_expansion", get_fallback_template)
+
+    # Format template with variables
+    return template.format(query=query, n=n)
 
 
 def parse_expansion_response(response_text: str) -> ParsedExpansion:

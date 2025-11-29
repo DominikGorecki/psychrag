@@ -25,6 +25,7 @@ from ..data.database import get_session
 from ..data.models.chunk import Chunk
 from ..data.models.query import Query
 from ..data.models.work import Work
+from ..data.template_loader import load_template
 
 
 def _find_heading_from_parent(parent_id: int | None, session: Session) -> str | None:
@@ -160,24 +161,27 @@ Text:
 def generate_augmented_prompt(query_id: int, top_n: int = 5) -> str:
     """
     Generate complete RAG prompt with instructions, context, and question.
-    
+
     This function retrieves a query from the database, formats its retrieved
     contexts, and generates a comprehensive prompt for the LLM that includes:
     - Instructions on how to use the context
     - Formatted context blocks with citations
     - The original user question
     - Intent and entity metadata for guidance
-    
+
+    The prompt template is loaded from the database if available,
+    otherwise falls back to the hardcoded default.
+
     Args:
         query_id: ID of the query in the database
         top_n: Number of top contexts to include (default: 5)
-        
+
     Returns:
         Complete formatted prompt string ready for LLM
-        
+
     Raises:
         ValueError: If query_id not found in database
-        
+
     Example:
         >>> prompt = generate_augmented_prompt(query_id=42, top_n=5)
         >>> print(prompt)
@@ -185,24 +189,25 @@ def generate_augmented_prompt(query_id: int, top_n: int = 5) -> str:
     """
     # Get query and contexts
     query, top_contexts = get_query_with_context(query_id, top_n)
-    
+
     # Extract query data
     user_question = query.original_query
     intent = query.intent or "GENERAL"
     entities = query.entities or []
-    
+
     # Format entities as comma-separated string
     if isinstance(entities, list):
         entities_str = ", ".join(str(e) for e in entities) if entities else "None specified"
     else:
         entities_str = str(entities) if entities else "None specified"
-    
+
     # Format context blocks
     with get_session() as session:
         context_blocks = format_context_blocks(top_contexts, session)
-    
-    # Generate the complete prompt using the template
-    prompt = f"""You are an academic assistant that answers questions using a set of retrieved source passages
+
+    # Define fallback template builder
+    def get_fallback_template():
+        return """You are an academic assistant that answers questions using a set of retrieved source passages
 plus your own general knowledge when appropriate.
 
 Your job is to:
@@ -281,6 +286,15 @@ that our system uses to link back to the original document.
 USER QUESTION
 {user_question}
 """
-    
-    return prompt
+
+    # Load template from database with fallback
+    template = load_template("rag_augmentation", get_fallback_template)
+
+    # Format template with variables
+    return template.format(
+        intent=intent,
+        entities_str=entities_str,
+        context_blocks=context_blocks,
+        user_question=user_question
+    )
 

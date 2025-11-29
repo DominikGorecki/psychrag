@@ -36,12 +36,19 @@ if TYPE_CHECKING:
     from psychrag.chunking.bib_extractor import BibliographicInfo
 from psychrag.data.database import get_session
 from psychrag.data.models.work import Work
+from psychrag.data.template_loader import load_template
 from psychrag.sanitization.extract_titles import extract_titles_to_file, extract_titles_from_work, HashMismatchError
 from psychrag.utils.file_utils import compute_file_hash, set_file_readonly, set_file_writable, is_file_readonly
 
 
 def _build_prompt(titles_content: str, bib_info: BibliographicInfo | None) -> str:
     """Build the LLM prompt for analyzing titles.
+
+    This function creates the prompt for the LLM to analyze document headings
+    and suggest which sections to vectorize.
+
+    The prompt template is loaded from the database if available,
+    otherwise falls back to the hardcoded default.
 
     Args:
         titles_content: The titles codeblock content.
@@ -50,6 +57,7 @@ def _build_prompt(titles_content: str, bib_info: BibliographicInfo | None) -> st
     Returns:
         Formatted prompt string.
     """
+    # Build bibliographic section if available
     bib_section = ""
     if bib_info:
         bib_parts = []
@@ -63,14 +71,14 @@ def _build_prompt(titles_content: str, bib_info: BibliographicInfo | None) -> st
             bib_parts.append(f"Year: {bib_info.year}")
         if bib_info.publisher:
             bib_parts.append(f"Publisher: {bib_info.publisher}")
-        if bib_section:
+        if bib_parts:
             bib_section = "## Bibliographic Information\n" + "\n".join(bib_parts) + "\n\n"
 
-    prompt = f"""You are analyzing a document's heading structure to determine which sections contain valuable content worth vectorizing for a RAG (Retrieval Augmented Generation) system. Your goal is to include headings whose underlying sections contain explanatory, conceptual, or narrative content, and to exclude purely structural, navigational, or index-like sections.
-```
+    # Define fallback template builder
+    def get_fallback_template():
+        return """You are analyzing a document's heading structure to determine which sections contain valuable content worth vectorizing for a RAG (Retrieval Augmented Generation) system. Your goal is to include headings whose underlying sections contain explanatory, conceptual, or narrative content, and to exclude purely structural, navigational, or index-like sections.
 
-{bib_section}
-## Document Headings
+{bib_section}## Document Headings
 
 {titles_content}
 
@@ -165,52 +173,14 @@ Example:
 
 Do NOT include any other commentary, explanations, or text. Analyze the headings and provide only your final SKIP/VECTORIZE labels:"""
 
-#     prompt = f"""You are analyzing a document's heading structure to determine which sections contain valuable content worth vectorizing for a RAG (Retrieval Augmented Generation) system.
+    # Load template from database with fallback
+    template = load_template("vectorization_suggestions", get_fallback_template)
 
-# {bib_section}## Document Headings
-
-# {titles_content}
-
-# ## Task
-
-# For each heading line number, determine whether it should be:
-# - **VECTORIZE**: Contains valuable content that should be chunked and stored in a vector database
-# - **SKIP**: Contains non-valuable content like table of contents, indexes, references, bibliographies, appendices with reference data, or other structural/navigational content
-
-# ## Guidelines
-
-# 1. Content to SKIP:
-#    - Table of Contents (ToC)
-#    - Indexes (subject index, author index, etc.)
-#    - References and bibliographies
-#    - Appendices containing only reference data
-#    - Front matter (title pages, copyright, dedications)
-#    - Back matter with purely structural content
-
-# 2. Content to VECTORIZE:
-#    - Chapters with actual content
-#    - Sections explaining concepts, theories, or information
-#    - Any content that would be useful for answering questions about the subject matter
-
-# ## Output Format
-
-# Return ONLY a list in this exact format, one line per heading:
-# ```
-# [line_number]: [SKIP|VECTORIZE]
-# ```
-
-# Example:
-# ```
-# 10: SKIP
-# 13: SKIP
-# 18: VECTORIZE
-# 19: VECTORIZE
-# 20: VECTORIZE
-# ```
-
-# Analyze the headings and provide your recommendations:"""
-
-    return prompt
+    # Format template with variables
+    return template.format(
+        bib_section=bib_section,
+        titles_content=titles_content
+    )
 
 
 def _parse_heading_level(line: str) -> int:

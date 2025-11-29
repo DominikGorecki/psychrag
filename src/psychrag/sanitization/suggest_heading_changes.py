@@ -28,6 +28,7 @@ from pathlib import Path
 
 from psychrag.data.database import SessionLocal, get_session
 from psychrag.data.models import Work
+from psychrag.data.template_loader import load_template
 from psychrag.utils import compute_file_hash
 from psychrag.utils.file_utils import set_file_writable, set_file_readonly
 from .extract_titles import HashMismatchError
@@ -201,7 +202,23 @@ def suggest_heading_changes(titles_file: str | Path) -> Path:
 
 
 def _build_prompt(title: str, authors: str, toc: list, titles_codeblock: str) -> str:
-    """Build the prompt for the LLM."""
+    """Build the prompt for the LLM.
+
+    This function creates the prompt for the LLM to analyze document headings
+    and suggest hierarchy corrections.
+
+    The prompt template is loaded from the database if available,
+    otherwise falls back to the hardcoded default.
+
+    Args:
+        title: Document title
+        authors: Document authors
+        toc: Table of contents as list of dicts
+        titles_codeblock: The titles content from extracted file
+
+    Returns:
+        Formatted prompt string
+    """
 
     # Format ToC for the prompt
     toc_text = ""
@@ -216,7 +233,9 @@ def _build_prompt(title: str, authors: str, toc: list, titles_codeblock: str) ->
     else:
         toc_text = "No table of contents available"
 
-    return f"""You are an expert at analyzing document structure and markdown formatting.
+    # Define fallback template builder
+    def get_fallback_template():
+        return """You are an expert at analyzing document structure and markdown formatting.
 
 ## Task
 Analyze the headings from a markdown document and assign the correct heading levels so that:
@@ -327,7 +346,22 @@ Notes:
 
 Provide the complete list of mappings for **all** headings shown above."""
 
-#     return f"""You are an expert at analyzing document structure and markdown formatting.
+    # Load template from database with fallback
+    template = load_template("heading_hierarchy", get_fallback_template)
+
+    # Format template with variables
+    return template.format(
+        title=title,
+        authors=authors,
+        toc_text=toc_text,
+        titles_codeblock=titles_codeblock
+    )
+
+
+# Old commented-out code removed
+def _build_prompt_old(title: str, authors: str, toc: list, titles_codeblock: str) -> str:
+    """Old version - kept for reference."""
+    return f"""You are an expert at analyzing document structure and markdown formatting.
 
 # ## Task
 # Analyze the headings from a markdown document and suggest the correct heading levels based on the document's table of contents and proper hierarchical structure.
