@@ -1,3 +1,5 @@
+COMPLETE
+
 # T03: Settings UI - Templates tab with list and editor
 
 ## Context

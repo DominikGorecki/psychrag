@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircleIcon, Loader2Icon, AlertCircle, XCircle, CheckCircle2 } from "lucide-react";
+import { TemplatesTabContent } from "@/components/settings/templates-tab";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -64,7 +65,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const defaultTab = tabParam && ["init", "models", "database", "paths"].includes(tabParam)
+  const defaultTab = tabParam && ["init", "models", "database", "paths", "templates"].includes(tabParam)
     ? tabParam
     : "init";
 
@@ -339,6 +340,7 @@ export default function SettingsPage() {
           <TabsTrigger value="models">Models</TabsTrigger>
           <TabsTrigger value="database">Database</TabsTrigger>
           <TabsTrigger value="paths">Paths</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
         </TabsList>
 
         {/* Init/Status Tab */}
@@ -771,6 +773,11 @@ export default function SettingsPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Templates Tab */}
+        <TabsContent value="templates" className="mt-4">
+          <TemplatesTabContent />
         </TabsContent>
       </Tabs>
     </div>

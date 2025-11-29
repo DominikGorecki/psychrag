@@ -1,3 +1,5 @@
+COMPLETE
+
 # T01: Database schema and migration for prompt templates
 
 ## Context
@@ -23,7 +25,7 @@ The database has a `prompt_templates` table that supports versioned storage of L
   - Heading Hierarchy Corrections (from `src/psychrag/sanitization/suggest_heading_changes.py`)
 - Extract prompt strings and convert to LangChain PromptTemplate format with variables
 - Create SQLAlchemy model class in `/src/psychrag/data/models/` for ORM access
-- Update `/src/psychrag/data/init_db.py`so that table is created on fresh install -- migration sql query will be run manually 
+- Update `/src/psychrag/data/init_db.py`so that table is created on fresh install -- migration sql query will be run manually
 
 **Out of scope:**
 - API endpoints (handled in T02)
@@ -178,7 +180,7 @@ from .models.prompt_template import PromptTemplate  # noqa: F401
 
 This ensures the model is registered with SQLAlchemy's Base metadata.
 
-**Note**: The migration SQL file will be run manually or via a migration runner. The existing `init_db.py` pattern appears to use `Base.metadata.create_all()` which creates tables from models, but migrations should be applied separately. Verified this is the case.  
+**Note**: The migration SQL file will be run manually or via a migration runner. The existing `init_db.py` pattern appears to use `Base.metadata.create_all()` which creates tables from models, but migrations should be applied separately. Verified this is the case.
 
 #### 6. Validation and constraints
 

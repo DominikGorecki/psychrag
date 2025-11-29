@@ -28,6 +28,7 @@ from psychrag_api.routers import (
     rag,
     sanitization,
     settings,
+    templates,
     vectorization,
 )
 
@@ -110,6 +111,7 @@ app.add_middleware(
 # Include routers with prefixes
 app.include_router(init.router, prefix="/init", tags=["Init"])
 app.include_router(settings.router, prefix="/settings", tags=["Settings"])
+app.include_router(templates.router)  # Templates router has its own prefix
 app.include_router(conversion.router, prefix="/conv", tags=["Conversion"])
 app.include_router(sanitization.router, prefix="/sanitization", tags=["Sanitization"])
 app.include_router(chunking.router, prefix="/chunk", tags=["Chunking"])

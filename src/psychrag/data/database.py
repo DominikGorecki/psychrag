@@ -93,6 +93,31 @@ def get_session() -> Generator[Session, None, None]:
         session.close()
 
 
+def get_db_session() -> Generator[Session, None, None]:
+    """
+    FastAPI dependency for database sessions.
+
+    This is a plain generator function (not a context manager) that works
+    with FastAPI's Depends() system.
+
+    Usage:
+        @app.get("/items")
+        def get_items(session: Session = Depends(get_db_session)):
+            return session.query(Item).all()
+
+    Yields:
+        SQLAlchemy Session object.
+    """
+    session = SessionLocal()
+    try:
+        yield session
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
 def get_admin_database_url() -> str:
     """
     Get database URL using admin credentials.
