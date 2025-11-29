@@ -14,6 +14,11 @@ import { useToast } from "@/hooks/use-toast";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+interface PromptVariable {
+  variable_name: string;
+  variable_description: string;
+}
+
 interface TemplateVersion {
   id: number;
   function_tag: string;
@@ -23,6 +28,7 @@ interface TemplateVersion {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  variables?: PromptVariable[] | null;
 }
 
 // Human-readable labels for function tags
@@ -49,6 +55,7 @@ export default function TemplateEditorPage() {
   const [isDirty, setIsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activating, setActivating] = useState(false);
+  const [variables, setVariables] = useState<PromptVariable[] | null>(null);
 
   useEffect(() => {
     fetchVersions();
@@ -81,6 +88,11 @@ export default function TemplateEditorPage() {
       }
       const data: TemplateVersion[] = await response.json();
       setVersions(data);
+
+      // Extract variables from the first template (all versions share same variables)
+      if (data.length > 0 && data[0].variables) {
+        setVariables(data[0].variables);
+      }
 
       // Select the active version or the latest version
       const activeVersion = data.find((v) => v.is_active);
@@ -261,53 +273,94 @@ export default function TemplateEditorPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Version Selector */}
-          <div className="space-y-2">
-            <Label htmlFor="version">Version</Label>
-            <div className="flex items-center gap-4">
-              <Select
-                value={selectedVersion.toString()}
-                onValueChange={(value) =>
-                  setSelectedVersion(value === "new" ? "new" : parseInt(value))
-                }
-              >
-                <SelectTrigger id="version" className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="new">Add New Version</SelectItem>
-                  {versions.map((version) => (
-                    <SelectItem key={version.version} value={version.version.toString()}>
-                      <div className="flex items-center gap-2">
-                        v{version.version}
-                        {version.is_active && (
-                          <Badge variant="default" className="ml-2 text-xs">
-                            Active
-                          </Badge>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {isActive && selectedVersion !== "new" && (
-                <Badge variant="default">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Active Version
-                </Badge>
-              )}
-            </div>
-          </div>
+          {/* Two-card layout: Version/Title on left, Variables on right */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Left Card: Version and Title */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Template Info</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Version Selector */}
+                <div className="space-y-2">
+                  <Label htmlFor="version">Version</Label>
+                  <div className="flex items-center gap-4">
+                    <Select
+                      value={selectedVersion.toString()}
+                      onValueChange={(value) =>
+                        setSelectedVersion(value === "new" ? "new" : parseInt(value))
+                      }
+                    >
+                      <SelectTrigger id="version" className="w-[200px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="new">Add New Version</SelectItem>
+                        {versions.map((version) => (
+                          <SelectItem key={version.version} value={version.version.toString()}>
+                            <div className="flex items-center gap-2">
+                              v{version.version}
+                              {version.is_active && (
+                                <Badge variant="default" className="ml-2 text-xs">
+                                  Active
+                                </Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {isActive && selectedVersion !== "new" && (
+                      <Badge variant="default">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Active Version
+                      </Badge>
+                    )}
+                  </div>
+                </div>
 
-          {/* Title Input */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => handleTitleChange(e.target.value)}
-              placeholder="Enter template title"
-            />
+                {/* Title Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    value={title}
+                    onChange={(e) => handleTitleChange(e.target.value)}
+                    placeholder="Enter template title"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Right Card: Variables */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Template Variables</CardTitle>
+                <CardDescription>
+                  Variables available in this template
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {variables && variables.length > 0 ? (
+                  <div className="space-y-3">
+                    {variables.map((variable, index) => (
+                      <div key={index} className="border-l-2 border-primary pl-3">
+                        <code className="text-sm font-mono font-semibold text-primary">
+                          {`{${variable.variable_name}}`}
+                        </code>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {variable.variable_description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No variable metadata available for this template.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Template Content */}

@@ -11,6 +11,7 @@ from typing import List
 
 from psychrag.data.database import get_db_session
 from psychrag.data.models.prompt_template import PromptTemplate
+from psychrag.data.models.prompt_meta import PromptMeta
 from psychrag_api.schemas.templates import (
     PromptTemplateCreate,
     PromptTemplateUpdate,
@@ -18,6 +19,9 @@ from psychrag_api.schemas.templates import (
     FunctionTemplateSummary,
     TemplateSummary,
     TemplateListResponse,
+    PromptMetaCreate,
+    PromptMetaUpdate,
+    PromptMetaResponse,
 )
 
 router = APIRouter(prefix="/settings/templates", tags=["Settings"])
@@ -76,13 +80,14 @@ def get_templates_for_function(
     """Get all versions for a specific function tag.
 
     Returns all template versions for the given function_tag,
-    ordered by version number (newest first).
+    ordered by version number (newest first). Includes variable
+    metadata from prompt_meta if available.
 
     Args:
         function_tag: The function identifier (e.g., 'query_expansion')
 
     Returns:
-        List of template versions
+        List of template versions with variable metadata
 
     Raises:
         404: If no templates found for the function_tag
@@ -97,7 +102,28 @@ def get_templates_for_function(
             detail=f"No templates found for function_tag: {function_tag}"
         )
 
-    return templates
+    # Get prompt_meta for this function_tag
+    prompt_meta = session.query(PromptMeta).filter(
+        PromptMeta.function_tag == function_tag
+    ).first()
+
+    # Add variables to each template response
+    result = []
+    for template in templates:
+        template_dict = {
+            "id": template.id,
+            "function_tag": template.function_tag,
+            "version": template.version,
+            "title": template.title,
+            "template_content": template.template_content,
+            "is_active": template.is_active,
+            "created_at": template.created_at,
+            "updated_at": template.updated_at,
+            "variables": prompt_meta.variables if prompt_meta else None
+        }
+        result.append(template_dict)
+
+    return result
 
 
 @router.get("/{function_tag}/{version}", response_model=PromptTemplateResponse)

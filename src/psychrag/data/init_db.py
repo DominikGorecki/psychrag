@@ -27,6 +27,7 @@ from .database import Base, engine, get_admin_database_url
 from .models import Chunk, Query, Result, Work  # noqa: F401
 from .models.io_file import IOFile  # noqa: F401
 from .models.prompt_template import PromptTemplate  # noqa: F401
+from .models.prompt_meta import PromptMeta  # noqa: F401
 
 
 def create_database_and_user(verbose: bool = False) -> None:
@@ -237,6 +238,63 @@ def create_fulltext_search(verbose: bool = False) -> None:
         print("Full-text search infrastructure created successfully")
 
 
+def create_prompt_meta_table(verbose: bool = False) -> None:
+    """
+    Create prompt_meta table for storing prompt template metadata.
+
+    This table stores variable descriptions and other metadata for prompt templates,
+    with one record per function_tag.
+
+    Args:
+        verbose: If True, print progress information.
+    """
+    if verbose:
+        print("Creating prompt_meta table...")
+
+    with engine.connect() as conn:
+        # Create prompt_meta table
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS prompt_meta (
+                id SERIAL PRIMARY KEY,
+                function_tag VARCHAR(100) UNIQUE NOT NULL,
+                variables JSONB NOT NULL DEFAULT '[]'::jsonb,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+
+        # Create index on function_tag for efficient lookups
+        conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS idx_prompt_meta_function_tag
+            ON prompt_meta(function_tag)
+        """))
+
+        # Create trigger function for updated_at
+        conn.execute(text("""
+            CREATE OR REPLACE FUNCTION update_prompt_meta_updated_at()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                NEW.updated_at = CURRENT_TIMESTAMP;
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql
+        """))
+
+        # Create trigger
+        conn.execute(text("DROP TRIGGER IF EXISTS trigger_update_prompt_meta_updated_at ON prompt_meta"))
+        conn.execute(text("""
+            CREATE TRIGGER trigger_update_prompt_meta_updated_at
+                BEFORE UPDATE ON prompt_meta
+                FOR EACH ROW
+                EXECUTE FUNCTION update_prompt_meta_updated_at()
+        """))
+
+        conn.commit()
+
+    if verbose:
+        print("prompt_meta table created successfully")
+
+
 def init_database(verbose: bool = False) -> None:
     """
     Initialize the database: create database, user, tables, and indexes.
@@ -249,6 +307,7 @@ def init_database(verbose: bool = False) -> None:
     create_tables(verbose=verbose)
     create_vector_indexes(verbose=verbose)
     create_fulltext_search(verbose=verbose)
+    create_prompt_meta_table(verbose=verbose)
 
     if verbose:
         print("Database initialization complete")

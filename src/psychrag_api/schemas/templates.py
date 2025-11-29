@@ -6,7 +6,7 @@ Defines request and response models for template CRUD operations.
 
 from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 
 class PromptTemplateBase(BaseModel):
@@ -59,6 +59,7 @@ class PromptTemplateResponse(PromptTemplateBase):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    variables: Optional[List[Dict[str, str]]] = Field(default=None, description="Variable metadata from prompt_meta")
 
     class Config:
         from_attributes = True
@@ -82,3 +83,32 @@ class FunctionTemplateSummary(BaseModel):
 class TemplateListResponse(BaseModel):
     """Response for listing all template functions."""
     templates: List[FunctionTemplateSummary]
+
+
+class PromptVariable(BaseModel):
+    """Schema for a prompt template variable."""
+    variable_name: str = Field(..., min_length=1)
+    variable_description: str = Field(..., min_length=1)
+
+
+class PromptMetaCreate(BaseModel):
+    """Schema for creating prompt metadata."""
+    function_tag: str = Field(..., min_length=1, max_length=100)
+    variables: List[PromptVariable] = Field(default_factory=list)
+
+
+class PromptMetaUpdate(BaseModel):
+    """Schema for updating prompt metadata."""
+    variables: List[PromptVariable] = Field(default_factory=list)
+
+
+class PromptMetaResponse(BaseModel):
+    """Schema for prompt metadata response."""
+    id: int
+    function_tag: str
+    variables: List[Dict[str, Any]]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
