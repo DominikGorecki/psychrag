@@ -69,7 +69,8 @@ def _build_prompt(titles_content: str, bib_info: BibliographicInfo | None) -> st
     prompt = f"""You are analyzing a document's heading structure to determine which sections contain valuable content worth vectorizing for a RAG (Retrieval Augmented Generation) system. Your goal is to include headings whose underlying sections contain explanatory, conceptual, or narrative content, and to exclude purely structural, navigational, or index-like sections.
 ```
 
-{bib_section}## Document Headings
+{bib_section}
+## Document Headings
 
 {titles_content}
 

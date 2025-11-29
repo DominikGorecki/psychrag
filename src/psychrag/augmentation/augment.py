@@ -22,8 +22,49 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from ..data.database import get_session
+from ..data.models.chunk import Chunk
 from ..data.models.query import Query
 from ..data.models.work import Work
+
+
+def _find_heading_from_parent(parent_id: int | None, session: Session) -> str | None:
+    """
+    Walk up the parent_id chain to find the first chunk with heading content.
+
+    A chunk is considered to have a heading if its content starts with "#".
+
+    Args:
+        parent_id: The parent_id to start from
+        session: SQLAlchemy session for querying chunks
+
+    Returns:
+        The first line of content if it's a heading (starts with "#"), or None
+    """
+    if not parent_id:
+        return None
+
+    current_id = parent_id
+    visited = set()  # Prevent infinite loops
+
+    while current_id and current_id not in visited:
+        visited.add(current_id)
+
+        # Query the chunk
+        chunk = session.query(Chunk).filter(Chunk.id == current_id).first()
+        if not chunk:
+            break
+
+        # Check if content starts with "#"
+        if chunk.content:
+            first_line = chunk.content.split('\n', 1)[0].strip()
+            if first_line.startswith('#'):
+                # Remove the "#" symbols and return clean heading text
+                return first_line.lstrip('#').strip()
+
+        # Move to next parent
+        current_id = chunk.parent_id
+
+    return None
 
 
 def get_query_with_context(query_id: int, top_n: int = 5) -> tuple[Query, list]:
@@ -59,56 +100,60 @@ def get_query_with_context(query_id: int, top_n: int = 5) -> tuple[Query, list]:
 def format_context_blocks(contexts: list, session: Session) -> str:
     """
     Format contexts as markdown blocks with source citations and heading breadcrumbs.
-    
+
     Each context is formatted as:
     [S#] Source: {work_title} > {heading_chain} | (work_id={id}, start-line={start}, end-line={end})
     Text:
     {content_trimmed}
-    
+
     Args:
         contexts: List of context dicts with work_id, content, start_line, end_line, score, heading_chain
         session: SQLAlchemy session for querying works
-        
+
     Returns:
         Formatted markdown string with all context blocks
     """
     if not contexts:
         return "(No context available)"
-    
+
     blocks = []
-    
+
     for idx, context in enumerate(contexts, start=1):
         work_id = context.get('work_id')
         content = context.get('content', '')
         start_line = context.get('start_line', 0)
         end_line = context.get('end_line', 0)
         heading_chain = context.get('heading_chain', [])
-        
+        parent_id = context.get('parent_id')
+
         # Query work title
         work = session.query(Work).filter(Work.id == work_id).first()
         work_title = work.title if work else f"Unknown Work (id={work_id})"
-        
+
         # Build source path with heading breadcrumbs
         if heading_chain:
             # Join heading chain with " > " separator
             breadcrumb_path = " > ".join(heading_chain)
             source_path = f"{work_title} > {breadcrumb_path}"
         else:
-            # Fallback: use first line of content as section indicator
-            lines = content.split('\n', 1)
-            first_line = lines[0].strip() if lines else ""
-            source_path = f"{work_title} -- {first_line}" if first_line else work_title
-        
+            # Fallback: Walk up parent_id chain to find a heading
+            heading_text = _find_heading_from_parent(parent_id, session)
+            if heading_text:
+                source_path = f"{work_title} > {heading_text}"
+            else:
+                # Final fallback: just use work title
+                source_path = work_title
+
         # Trim content (remove leading empty lines)
         trimmed_content = content.strip()
-        
+
         # Format the block
         block = f"""[S{idx}] Source: {source_path} | (work_id={work_id}, start-line={start_line}, end-line={end_line})
 Text:
 {trimmed_content}"""
-        
+
         blocks.append(block)
-    
+
     return "\n\n".join(blocks)
 
 

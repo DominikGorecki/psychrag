@@ -1,3 +1,3 @@
 # Custom Queries PRD
 
-* Ability to customize on retrieval, consolidation, and  
+* Ability to branch off of an existing query (`/src/psychrag/data/models/query.py`) in order to customize on retrieval, consolidation, and augmentation.  
