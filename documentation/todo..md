@@ -17,6 +17,12 @@
 [ ] Semantic Chunking
 [ ] Lock Document -- simplify cleaning
 
+[ ] CONVERSION - Manual ToC LLM call not templated
+
+## TO-DO 
+[ ] Sanitization - Suggested title changes -- should be more visual--change from, to, etc. 
+
+
 ## TODO for UI
 
 [ ] Add a "Corpus" link below RAG -- have an HR

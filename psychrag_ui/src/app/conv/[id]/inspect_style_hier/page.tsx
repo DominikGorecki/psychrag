@@ -270,8 +270,8 @@ export default function InspectStyleHierPage() {
       // Success - close dialog
       setSelectionDialog({ open: false, fileType: null });
       
-      // Show success message
-      alert(`Successfully selected ${fileType}.md as the main file!`);
+      // Redirect back to the conversion page
+      router.push(`/conv/${fileId}`);
     } catch (err) {
       setSaveError(
         err instanceof Error ? err.message : "Failed to select file"

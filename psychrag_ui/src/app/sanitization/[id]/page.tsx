@@ -558,7 +558,7 @@ export default function WorkSanitizationPage() {
         </Button>
         
         {sanitizedExists && (
-          <Button onClick={() => router.push("/chunk")}>
+          <Button onClick={() => router.push(`/chunk/${workId}`)}>
             Continue to Chunking →
           </Button>
         )}

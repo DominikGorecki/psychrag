@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "psychrag"
+name = "VulcanLab"
 version = "0.1.0"
-description = "A Retrieval-Augmented Generation system for psychology literature"
+description = "A Retrieval-Augmented Generation workbench for academic literature"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
