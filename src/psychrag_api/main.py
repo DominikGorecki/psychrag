@@ -26,6 +26,7 @@ from psychrag_api.routers import (
     corpus,
     init,
     rag,
+    rag_config,
     sanitization,
     settings,
     templates,
@@ -89,6 +90,10 @@ app = FastAPI(
             "name": "RAG",
             "description": "Retrieval, Augmentation and Generation. Query documents and generate responses.",
         },
+        {
+            "name": "RAG Config",
+            "description": "RAG configuration preset management. Create, edit, and manage retrieval/consolidation/augmentation settings.",
+        },
     ],
     # Additional metadata
     contact={
@@ -118,6 +123,7 @@ app.include_router(chunking.router, prefix="/chunk", tags=["Chunking"])
 app.include_router(vectorization.router, prefix="/vec", tags=["Vectorization"])
 app.include_router(corpus.router, prefix="/corpus", tags=["Corpus"])
 app.include_router(rag.router, prefix="/rag", tags=["RAG"])
+app.include_router(rag_config.router, prefix="/api/rag-config", tags=["RAG Config"])
 
 
 @app.get("/", include_in_schema=False)
