@@ -4,8 +4,9 @@
 
 [ ] mini RAPTOR / mini PaperQA2 RCS [link](./raptor-miniQa2.md)
 [ ] branching off of query for customization 
-[ ] custom templates
+[x] custom templates
 [ ] Add corpus to `work`: psychology, philosophy, medicine, chemistry, etc.
+[ ] 
 
 ## Minor Improvements
 

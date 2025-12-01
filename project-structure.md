@@ -7,7 +7,7 @@ psychRAG/                  # Root folder (usually a Git repo)
 │       ├── core.py
 │       ├── utils.py
 │       ├── utils.py
-│       ├── vectorizing/       #scripts/library files for vectorizing chunks 
+│       ├── vectorization/       #scripts/library files for vectorizing chunks 
 │       ├── chunking/       #scripts/library files for chunking markdown files formats to markdown
 │           ├── __init__.py
 │           └── ... 

@@ -14,7 +14,7 @@ psychrag/                      # Root folder
 │       │   └── conv_epub2md.py
 │       ├── chunking/          # Markdown chunking utilities
 │       │   └── __init__.py
-│       ├── vectorizing/       # Embedding/vectorization utilities
+│       ├── vectorization/       # Embedding/vectorization utilities
 │       │   └── __init__.py
 │       └── data/              # Data models and schemas
 │           └── __init__.py
