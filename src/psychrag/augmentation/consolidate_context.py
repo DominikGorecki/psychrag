@@ -16,6 +16,7 @@ from pathlib import Path
 from psychrag.data.database import get_session
 from psychrag.data.models import Chunk, Query, Work
 from psychrag.utils.file_utils import compute_file_hash
+from psychrag.utils.rag_config_loader import get_default_config, get_config_by_name
 
 
 @dataclass
@@ -222,29 +223,49 @@ def _finalize_group(
 
 def consolidate_context(
     query_id: int,
-    coverage_threshold: float = DEFAULT_COVERAGE_THRESHOLD,
-    line_gap: int = DEFAULT_LINE_GAP,
-    min_content_length: int = DEFAULT_MIN_CONTENT_LENGTH,
-    enrich_from_md: bool = DEFAULT_ENRICH_FROM_MD,
+    coverage_threshold: float | None = None,
+    line_gap: int | None = None,
+    min_content_length: int | None = None,
+    enrich_from_md: bool | None = None,
+    config_preset: str | None = None,
     verbose: bool = False
 ) -> ConsolidationResult:
     """Consolidate retrieved context by grouping and merging chunks.
 
     Args:
         query_id: ID of the Query in the database
-        coverage_threshold: Threshold for replacing with parent (default 0.5)
-        line_gap: Max lines between chunks to merge (default 7)
-        min_content_length: Minimum characters in content for final output (default 350)
-        enrich_from_md: Read content from markdown file during consolidation (default False)
+        coverage_threshold: Threshold for replacing with parent. If None, uses config.
+        line_gap: Max lines between chunks to merge. If None, uses config.
+        min_content_length: Minimum characters in content for final output. If None, uses config.
+        enrich_from_md: Read content from markdown file during consolidation. If None, uses config.
+        config_preset: Name of RAG config preset to use. If None, uses default.
         verbose: Print progress information
 
     Returns:
         ConsolidationResult with consolidated groups
 
     Raises:
-        ValueError: If query not found or no retrieved context
+        ValueError: If query not found or no retrieved context, or if config preset not found
         RuntimeError: If markdown file hash doesn't match
     """
+    # Load configuration
+    if config_preset:
+        config = get_config_by_name(config_preset)
+    else:
+        config = get_default_config()
+
+    consolidation_params = config["consolidation"]
+
+    # Use provided parameters or fall back to config
+    coverage_threshold = coverage_threshold if coverage_threshold is not None else consolidation_params["coverage_threshold"]
+    line_gap = line_gap if line_gap is not None else consolidation_params["line_gap"]
+    min_content_length = min_content_length if min_content_length is not None else consolidation_params["min_content_length"]
+    enrich_from_md = enrich_from_md if enrich_from_md is not None else consolidation_params["enrich_from_md"]
+
+    if verbose:
+        print(f"Using RAG config preset: {config_preset or 'default'}")
+        print(f"  coverage_threshold={coverage_threshold}, line_gap={line_gap}, enrich_from_md={enrich_from_md}")
+
     with get_session() as session:
         # Fetch query
         query = session.query(Query).filter(Query.id == query_id).first()

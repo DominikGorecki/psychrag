@@ -26,6 +26,7 @@ from ..data.models.chunk import Chunk
 from ..data.models.query import Query
 from ..data.models.work import Work
 from ..data.template_loader import load_template
+from ..utils.rag_config_loader import get_default_config, get_config_by_name
 
 
 def _find_heading_from_parent(parent_id: int | None, session: Session) -> str | None:
@@ -68,29 +69,43 @@ def _find_heading_from_parent(parent_id: int | None, session: Session) -> str | 
     return None
 
 
-def get_query_with_context(query_id: int, top_n: int = 5) -> tuple[Query, list]:
+def get_query_with_context(
+    query_id: int,
+    top_n: int | None = None,
+    config_preset: str | None = None
+) -> tuple[Query, list]:
     """
     Fetch query from database with top N clean retrieval contexts.
-    
+
     Args:
         query_id: ID of the query to fetch
-        top_n: Number of top contexts to retrieve (default: 5)
-        
+        top_n: Number of top contexts to retrieve. If None, uses config default.
+        config_preset: Name of RAG config preset to use. If None, uses default.
+
     Returns:
         Tuple of (Query object, list of top N context dicts sorted by score)
         
     Raises:
-        ValueError: If query_id not found
+        ValueError: If query_id not found, or if config preset not found
     """
+    # Load configuration if top_n not provided
+    if top_n is None:
+        if config_preset:
+            config = get_config_by_name(config_preset)
+        else:
+            config = get_default_config()
+
+        top_n = config["augmentation"]["top_n_contexts"]
+
     with get_session() as session:
         query = session.query(Query).filter(Query.id == query_id).first()
-        
+
         if not query:
             raise ValueError(f"Query with id={query_id} not found")
-        
+
         # Get clean retrieval context and sort by score (descending)
         contexts = query.clean_retrieval_context or []
-        
+
         # Sort by score descending and take top N
         sorted_contexts = sorted(contexts, key=lambda x: x.get('score', 0), reverse=True)
         top_contexts = sorted_contexts[:top_n]
@@ -158,7 +173,11 @@ Text:
     return "\n\n".join(blocks)
 
 
-def generate_augmented_prompt(query_id: int, top_n: int = 5) -> str:
+def generate_augmented_prompt(
+    query_id: int,
+    top_n: int | None = None,
+    config_preset: str | None = None
+) -> str:
     """
     Generate complete RAG prompt with instructions, context, and question.
 
@@ -174,13 +193,14 @@ def generate_augmented_prompt(query_id: int, top_n: int = 5) -> str:
 
     Args:
         query_id: ID of the query in the database
-        top_n: Number of top contexts to include (default: 5)
+        top_n: Number of top contexts to include. If None, uses config default.
+        config_preset: Name of RAG config preset to use. If None, uses default.
 
     Returns:
         Complete formatted prompt string ready for LLM
 
     Raises:
-        ValueError: If query_id not found in database
+        ValueError: If query_id not found in database, or if config preset not found
 
     Example:
         >>> prompt = generate_augmented_prompt(query_id=42, top_n=5)
@@ -188,7 +208,7 @@ def generate_augmented_prompt(query_id: int, top_n: int = 5) -> str:
         You are an academic assistant...
     """
     # Get query and contexts
-    query, top_contexts = get_query_with_context(query_id, top_n)
+    query, top_contexts = get_query_with_context(query_id, top_n, config_preset)
 
     # Extract query data
     user_question = query.original_query

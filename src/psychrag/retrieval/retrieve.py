@@ -24,6 +24,7 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from psychrag.data.database import get_session
 from psychrag.data.models import Chunk, Query, Work
 from psychrag.utils.file_utils import compute_file_hash
+from psychrag.utils.rag_config_loader import get_default_config, get_config_by_name
 
 
 @dataclass
@@ -586,36 +587,66 @@ def _apply_mmr_diversity(
 
 def retrieve(
     query_id: int,
-    dense_limit: int = DEFAULT_DENSE_LIMIT,
-    lexical_limit: int = DEFAULT_LEXICAL_LIMIT,
-    rrf_k: int = DEFAULT_RRF_K,
-    top_k_rrf: int = DEFAULT_TOP_K_RRF,
-    top_n_final: int = DEFAULT_TOP_N_FINAL,
-    entity_boost: float = DEFAULT_ENTITY_BOOST,
-    min_word_count: int = DEFAULT_MIN_WORD_COUNT,
-    min_char_count: int = DEFAULT_MIN_CHAR_COUNT,
+    dense_limit: int | None = None,
+    lexical_limit: int | None = None,
+    rrf_k: int | None = None,
+    top_k_rrf: int | None = None,
+    top_n_final: int | None = None,
+    entity_boost: float | None = None,
+    min_word_count: int | None = None,
+    min_char_count: int | None = None,
+    config_preset: str | None = None,
     verbose: bool = False
 ) -> RetrievalResult:
     """Perform full retrieval pipeline for a query.
 
     Args:
         query_id: ID of the Query in the database
-        dense_limit: Max results per dense query (default 15)
-        lexical_limit: Max results per lexical query (default 10)
-        rrf_k: RRF constant (default 60)
-        top_k_rrf: Top candidates after RRF (default 60)
-        top_n_final: Final number of results (default 12)
-        entity_boost: Score boost per entity match (default 0.05)
-        min_word_count: Minimum words in chunk content (default 50)
-        min_char_count: Minimum characters in chunk content (default 250)
+        dense_limit: Max results per dense query. If None, uses config.
+        lexical_limit: Max results per lexical query. If None, uses config.
+        rrf_k: RRF constant. If None, uses config.
+        top_k_rrf: Top candidates after RRF. If None, uses config.
+        top_n_final: Final number of results. If None, uses config.
+        entity_boost: Score boost per entity match. If None, uses config.
+        min_word_count: Minimum words in chunk content. If None, uses config.
+        min_char_count: Minimum characters in chunk content. If None, uses config.
+        config_preset: Name of RAG config preset to use. If None, uses default.
         verbose: Print progress information
 
     Returns:
         RetrievalResult with retrieved chunks
 
     Raises:
-        ValueError: If query not found or not vectorized
+        ValueError: If query not found or not vectorized, or if config preset not found
     """
+    # Load configuration
+    if config_preset:
+        config = get_config_by_name(config_preset)
+    else:
+        config = get_default_config()
+
+    retrieval_params = config["retrieval"]
+
+    # Use provided parameters or fall back to config
+    dense_limit = dense_limit if dense_limit is not None else retrieval_params["dense_limit"]
+    lexical_limit = lexical_limit if lexical_limit is not None else retrieval_params["lexical_limit"]
+    rrf_k = rrf_k if rrf_k is not None else retrieval_params["rrf_k"]
+    top_k_rrf = top_k_rrf if top_k_rrf is not None else retrieval_params["top_k_rrf"]
+    top_n_final = top_n_final if top_n_final is not None else retrieval_params["top_n_final"]
+    entity_boost = entity_boost if entity_boost is not None else retrieval_params["entity_boost"]
+    min_word_count = min_word_count if min_word_count is not None else retrieval_params["min_word_count"]
+    min_char_count = min_char_count if min_char_count is not None else retrieval_params["min_char_count"]
+    min_content_length = retrieval_params["min_content_length"]
+    enrich_lines_above = retrieval_params["enrich_lines_above"]
+    enrich_lines_below = retrieval_params["enrich_lines_below"]
+    mmr_lambda = retrieval_params["mmr_lambda"]
+    reranker_batch_size = retrieval_params["reranker_batch_size"]
+    reranker_max_length = retrieval_params["reranker_max_length"]
+
+    if verbose:
+        print(f"Using RAG config preset: {config_preset or 'default'}")
+        print(f"  dense_limit={dense_limit}, lexical_limit={lexical_limit}, top_n_final={top_n_final}")
+
     with get_session() as session:
         # Fetch query
         query = session.query(Query).filter(Query.id == query_id).first()
@@ -714,7 +745,12 @@ def retrieve(
             work = works_map.get(chunk.work_id)
 
             # Enrich content
-            enriched = _enrich_content(chunk, work) if work else chunk.content
+            enriched = _enrich_content(
+                chunk, work,
+                lines_above=enrich_lines_above,
+                lines_below=enrich_lines_below,
+                min_length=min_content_length
+            ) if work else chunk.content
 
             # Option B: Keep breadcrumbs separate, reranker sees content only
             # Breadcrumbs are stored in heading_breadcrumbs field and saved context
@@ -743,7 +779,12 @@ def retrieve(
             print(f"  Reranking {len(retrieved_chunks)} candidates...")
 
         # BGE reranking
-        retrieved_chunks = _rerank_chunks(query.original_query, retrieved_chunks)
+        retrieved_chunks = _rerank_chunks(
+            query.original_query,
+            retrieved_chunks,
+            batch_size=reranker_batch_size,
+            max_length=reranker_max_length
+        )
 
         # Apply entity bias
         entities = query.entities or []
@@ -758,7 +799,7 @@ def retrieve(
         # Apply MMR diversity for final selection
         if verbose:
             print(f"  Applying MMR diversity selection...")
-        final_chunks = _apply_mmr_diversity(retrieved_chunks, top_n_final)
+        final_chunks = _apply_mmr_diversity(retrieved_chunks, top_n_final, lambda_param=mmr_lambda)
 
         if verbose:
             print(f"  Final selection: {len(final_chunks)} chunks (with diversity)")
