@@ -230,10 +230,10 @@ async def embed_query(query_id: int) -> EmbedResponse:
     summary="Run retrieval",
     description="Run dense + lexical retrieval with RRF fusion and reranking.",
 )
-async def retrieve_query(query_id: int) -> RetrieveOperationResponse:
+async def retrieve_query(query_id: int, config_preset: str | None = None) -> RetrieveOperationResponse:
     """Run retrieval for a query."""
     try:
-        result = retrieve(query_id=query_id, verbose=False)
+        result = retrieve(query_id=query_id, config_preset=config_preset, verbose=False)
 
         return RetrieveOperationResponse(
             query_id=result.query_id,
@@ -256,10 +256,10 @@ async def retrieve_query(query_id: int) -> RetrieveOperationResponse:
     summary="Run consolidation",
     description="Consolidate retrieved context by grouping and merging chunks.",
 )
-async def consolidate_query(query_id: int) -> ConsolidateResponse:
+async def consolidate_query(query_id: int, config_preset: str | None = None) -> ConsolidateResponse:
     """Run consolidation for a query."""
     try:
-        result = consolidate_context(query_id=query_id, verbose=False)
+        result = consolidate_context(query_id=query_id, config_preset=config_preset, verbose=False)
 
         return ConsolidateResponse(
             query_id=result.query_id,
@@ -289,20 +289,36 @@ async def consolidate_query(query_id: int) -> ConsolidateResponse:
     summary="Get augmented prompt",
     description="Get the full augmented RAG prompt for a query.",
 )
-async def get_augment_prompt(query_id: int, top_n: int = 5) -> AugmentPromptResponse:
+async def get_augment_prompt(
+    query_id: int,
+    top_n: int | None = None,
+    config_preset: str | None = None
+) -> AugmentPromptResponse:
     """Get the augmented prompt for a query."""
     try:
-        prompt = generate_augmented_prompt(query_id=query_id, top_n=top_n)
+        prompt = generate_augmented_prompt(query_id=query_id, top_n=top_n, config_preset=config_preset)
 
         with get_session() as session:
             query = session.query(Query).filter(Query.id == query_id).first()
             context_count = len(query.clean_retrieval_context or [])
 
+            # If top_n was not specified, get it from the config that was used
+            if top_n is None:
+                if config_preset:
+                    from psychrag.utils.rag_config_loader import get_config_by_name
+                    config = get_config_by_name(config_preset)
+                else:
+                    from psychrag.utils.rag_config_loader import get_default_config
+                    config = get_default_config()
+                actual_top_n = config["augmentation"]["top_n_contexts"]
+            else:
+                actual_top_n = top_n
+
             return AugmentPromptResponse(
                 query_id=query_id,
                 original_query=query.original_query,
                 prompt=prompt,
-                context_count=min(context_count, top_n)
+                context_count=min(context_count, actual_top_n)
             )
     except ValueError as e:
         raise HTTPException(
@@ -319,12 +335,14 @@ async def get_augment_prompt(query_id: int, top_n: int = 5) -> AugmentPromptResp
 )
 async def run_augment(
     query_id: int,
-    request: AugmentRunRequest = AugmentRunRequest()
+    request: AugmentRunRequest = AugmentRunRequest(),
+    top_n: int | None = None,
+    config_preset: str | None = None
 ) -> AugmentRunResponse:
     """Run augmented prompt with LLM and save result."""
     try:
         # Generate the prompt
-        prompt = generate_augmented_prompt(query_id=query_id, top_n=5)
+        prompt = generate_augmented_prompt(query_id=query_id, top_n=top_n, config_preset=config_preset)
 
         # Create LangChain chat with FULL model and search
         stack = create_langchain_chat(tier=ModelTier.FULL, search=True, temperature=0.2)

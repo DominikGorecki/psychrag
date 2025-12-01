@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircleIcon, Loader2Icon, AlertCircle, XCircle, CheckCircle2 } from "lucide-react";
 import { TemplatesTabContent } from "@/components/settings/templates-tab";
+import { RagConfigTab } from "@/components/settings/rag-config-tab";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -65,7 +66,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const defaultTab = tabParam && ["init", "models", "database", "paths", "templates"].includes(tabParam)
+  const defaultTab = tabParam && ["init", "models", "database", "paths", "templates", "rag"].includes(tabParam)
     ? tabParam
     : "init";
 
@@ -341,6 +342,7 @@ export default function SettingsPage() {
           <TabsTrigger value="database">Database</TabsTrigger>
           <TabsTrigger value="paths">Paths</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
+          <TabsTrigger value="rag">RAG Settings</TabsTrigger>
         </TabsList>
 
         {/* Init/Status Tab */}
@@ -778,6 +780,11 @@ export default function SettingsPage() {
         {/* Templates Tab */}
         <TabsContent value="templates" className="mt-4">
           <TemplatesTabContent />
+        </TabsContent>
+
+        {/* RAG Settings Tab */}
+        <TabsContent value="rag" className="mt-4">
+          <RagConfigTab />
         </TabsContent>
       </Tabs>
     </div>

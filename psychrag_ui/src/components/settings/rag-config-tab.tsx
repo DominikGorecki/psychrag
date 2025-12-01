@@ -1,193 +1,3 @@
-COMPLETE
-
-# T05: RAG Settings UI tab with preset management
-
-**Note**: Frontend tests for this component are tracked in [T06](prd-rag-settings.T06.md).
-
-## Context
-
-- **PRD**: [prd-rag-settings.md](prd-rag-settings.md)
-- **PRD Sections**: Technical Specification → Frontend Implementation (lines 387-558)
-- **User value**: Provides an intuitive web interface for managing RAG configuration presets, allowing users to tune retrieval/consolidation/augmentation parameters without editing JSON or SQL.
-
-## Outcome
-
-When this ticket is done:
-- Settings page has a new "RAG Settings" tab
-- Users can view, create, edit, duplicate, and delete RAG config presets via UI
-- Preset selector dropdown allows switching between presets
-- Three collapsible sections organize parameters: Retrieval, Consolidation, Augmentation
-- All 20+ parameters have appropriate inputs (number fields, sliders, toggles) with validation
-- Default preset indicator shows which preset is active
-- Save/Reset buttons provide clear state management
-- Error messages guide users when validation fails or operations fail
-
-## Scope
-
-### In scope:
-- Create TypeScript types in `psychrag_ui/src/types/rag-config.ts`
-- Create component `psychrag_ui/src/components/settings/rag-config-tab.tsx`
-- Update `psychrag_ui/src/app/settings/page.tsx` to add RAG Settings tab
-- Implement preset management UI:
-  - Preset selector dropdown
-  - Create, rename, duplicate, delete presets
-  - Set preset as default
-- Implement parameter editing UI:
-  - Three accordion sections (Retrieval, Consolidation, Augmentation)
-  - Number inputs with min/max validation
-  - Sliders for float parameters (mmr_lambda, entity_boost, coverage_threshold)
-  - Toggle switches for boolean parameters
-  - Tooltips with parameter descriptions
-- State management for form data and API calls
-- Error handling and user feedback
-
-### Out of scope:
-- Frontend unit tests (moved to T06)
-- Per-query config override UI (future enhancement)
-- Config import/export (future enhancement)
-- Config versioning/history UI (future enhancement)
-- Parameter recommendations/presets wizard (future enhancement)
-- A/B testing UI (future enhancement)
-
-## Implementation plan
-
-### Frontend - TypeScript Types
-
-**File**: `psychrag_ui/src/types/rag-config.ts`
-
-1. **Create comprehensive type definitions**:
-
-```typescript
-/**
- * TypeScript types for RAG configuration management.
- * Matches backend Pydantic schemas.
- */
-
-export interface RagConfig {
-  id: number;
-  preset_name: string;
-  is_default: boolean;
-  description: string | null;
-  config: RagConfigParams;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface RagConfigParams {
-  retrieval: RetrievalParams;
-  consolidation: ConsolidationParams;
-  augmentation: AugmentationParams;
-}
-
-export interface RetrievalParams {
-  dense_limit: number;
-  lexical_limit: number;
-  rrf_k: number;
-  top_k_rrf: number;
-  top_n_final: number;
-  entity_boost: number;
-  min_word_count: number;
-  min_char_count: number;
-  min_content_length: number;
-  enrich_lines_above: number;
-  enrich_lines_below: number;
-  mmr_lambda: number;
-  reranker_batch_size: number;
-  reranker_max_length: number;
-}
-
-export interface ConsolidationParams {
-  coverage_threshold: number;
-  line_gap: number;
-  min_content_length: number;
-  enrich_from_md: boolean;
-}
-
-export interface AugmentationParams {
-  top_n_contexts: number;
-}
-
-// Request types
-export interface RagConfigCreateRequest {
-  preset_name: string;
-  description?: string;
-  is_default: boolean;
-  config: RagConfigParams;
-}
-
-export interface RagConfigUpdateRequest {
-  description?: string;
-  config?: RagConfigParams;
-}
-
-// Validation constraints (matches backend)
-export const PARAM_CONSTRAINTS = {
-  retrieval: {
-    dense_limit: { min: 1, max: 100, default: 19, description: "Max results per dense vector query" },
-    lexical_limit: { min: 1, max: 50, default: 5, description: "Max results per lexical (BM25) query" },
-    rrf_k: { min: 1, max: 100, default: 50, description: "RRF constant for rank fusion" },
-    top_k_rrf: { min: 1, max: 200, default: 75, description: "Top candidates after RRF fusion" },
-    top_n_final: { min: 1, max: 50, default: 17, description: "Final number of results after MMR" },
-    entity_boost: { min: 0.0, max: 0.5, default: 0.05, step: 0.01, description: "Score boost per entity match" },
-    min_word_count: { min: 0, max: 1000, default: 150, description: "Minimum words in chunk (0 to disable)" },
-    min_char_count: { min: 0, max: 5000, default: 250, description: "Minimum characters in chunk (0 to disable)" },
-    min_content_length: { min: 0, max: 5000, default: 750, description: "Min content length before enrichment" },
-    enrich_lines_above: { min: 0, max: 50, default: 0, description: "Lines to add above chunk when enriching" },
-    enrich_lines_below: { min: 0, max: 50, default: 13, description: "Lines to add below chunk when enriching" },
-    mmr_lambda: { min: 0.0, max: 1.0, default: 0.7, step: 0.01, description: "MMR balance: relevance (1.0) vs diversity (0.0)" },
-    reranker_batch_size: { min: 1, max: 32, default: 8, description: "Batch size for BGE reranker inference" },
-    reranker_max_length: { min: 128, max: 1024, default: 512, description: "Max token length for reranker" },
-  },
-  consolidation: {
-    coverage_threshold: { min: 0.0, max: 1.0, default: 0.5, step: 0.01, description: "% of parent coverage to replace with parent" },
-    line_gap: { min: 0, max: 50, default: 7, description: "Max lines between chunks to merge them" },
-    min_content_length: { min: 0, max: 5000, default: 350, description: "Min characters for final output inclusion" },
-    enrich_from_md: { default: true, description: "Read content from markdown during consolidation" },
-  },
-  augmentation: {
-    top_n_contexts: { min: 1, max: 20, default: 5, description: "Number of top contexts to include in prompt" },
-  },
-} as const;
-
-// Helper to get default config
-export function getDefaultConfig(): RagConfigParams {
-  return {
-    retrieval: {
-      dense_limit: PARAM_CONSTRAINTS.retrieval.dense_limit.default,
-      lexical_limit: PARAM_CONSTRAINTS.retrieval.lexical_limit.default,
-      rrf_k: PARAM_CONSTRAINTS.retrieval.rrf_k.default,
-      top_k_rrf: PARAM_CONSTRAINTS.retrieval.top_k_rrf.default,
-      top_n_final: PARAM_CONSTRAINTS.retrieval.top_n_final.default,
-      entity_boost: PARAM_CONSTRAINTS.retrieval.entity_boost.default,
-      min_word_count: PARAM_CONSTRAINTS.retrieval.min_word_count.default,
-      min_char_count: PARAM_CONSTRAINTS.retrieval.min_char_count.default,
-      min_content_length: PARAM_CONSTRAINTS.retrieval.min_content_length.default,
-      enrich_lines_above: PARAM_CONSTRAINTS.retrieval.enrich_lines_above.default,
-      enrich_lines_below: PARAM_CONSTRAINTS.retrieval.enrich_lines_below.default,
-      mmr_lambda: PARAM_CONSTRAINTS.retrieval.mmr_lambda.default,
-      reranker_batch_size: PARAM_CONSTRAINTS.retrieval.reranker_batch_size.default,
-      reranker_max_length: PARAM_CONSTRAINTS.retrieval.reranker_max_length.default,
-    },
-    consolidation: {
-      coverage_threshold: PARAM_CONSTRAINTS.consolidation.coverage_threshold.default,
-      line_gap: PARAM_CONSTRAINTS.consolidation.line_gap.default,
-      min_content_length: PARAM_CONSTRAINTS.consolidation.min_content_length.default,
-      enrich_from_md: PARAM_CONSTRAINTS.consolidation.enrich_from_md.default,
-    },
-    augmentation: {
-      top_n_contexts: PARAM_CONSTRAINTS.augmentation.top_n_contexts.default,
-    },
-  };
-}
-```
-
-### Frontend - RAG Config Tab Component
-
-**File**: `psychrag_ui/src/components/settings/rag-config-tab.tsx`
-
-2. **Create main component** (this is a large component, breaking into sections):
-
-```typescript
 "use client";
 
 import { useEffect, useState } from "react";
@@ -638,7 +448,7 @@ export function RagConfigTab() {
                                 {key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
                               </Label>
                               <span className="text-sm text-muted-foreground">
-                                {value.toFixed(2)}
+                                {typeof value === "number" ? value.toFixed(2) : "0.00"}
                               </span>
                             </div>
                             <Slider
@@ -646,8 +456,8 @@ export function RagConfigTab() {
                               min={constraint.min}
                               max={constraint.max}
                               step={constraint.step}
-                              value={[value as number]}
-                              onValueChange={([v]) => updateRetrievalParam(typedKey, v as any)}
+                              value={[typeof value === "number" ? value : constraint.default]}
+                              onValueChange={([v]) => updateRetrievalParam(typedKey, v as never)}
                             />
                             <p className="text-xs text-muted-foreground">
                               {constraint.description}
@@ -667,10 +477,13 @@ export function RagConfigTab() {
                             type="number"
                             min={constraint.min}
                             max={constraint.max}
-                            value={value as number}
-                            onChange={(e) =>
-                              updateRetrievalParam(typedKey, parseInt(e.target.value) as any)
-                            }
+                            value={value ?? ""}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value);
+                              if (!isNaN(val)) {
+                                updateRetrievalParam(typedKey, val as never);
+                              }
+                            }}
                           />
                           <p className="text-xs text-muted-foreground">
                             {constraint.description}
@@ -694,14 +507,18 @@ export function RagConfigTab() {
                       <div className="flex justify-between">
                         <Label>Coverage Threshold</Label>
                         <span className="text-sm text-muted-foreground">
-                          {currentConfig.consolidation.coverage_threshold.toFixed(2)}
+                          {typeof currentConfig.consolidation.coverage_threshold === "number"
+                            ? currentConfig.consolidation.coverage_threshold.toFixed(2)
+                            : "0.00"}
                         </span>
                       </div>
                       <Slider
                         min={PARAM_CONSTRAINTS.consolidation.coverage_threshold.min}
                         max={PARAM_CONSTRAINTS.consolidation.coverage_threshold.max}
                         step={PARAM_CONSTRAINTS.consolidation.coverage_threshold.step}
-                        value={[currentConfig.consolidation.coverage_threshold]}
+                        value={[typeof currentConfig.consolidation.coverage_threshold === "number"
+                          ? currentConfig.consolidation.coverage_threshold
+                          : PARAM_CONSTRAINTS.consolidation.coverage_threshold.default]}
                         onValueChange={([v]) => updateConsolidationParam("coverage_threshold", v)}
                       />
                       <p className="text-xs text-muted-foreground">
@@ -716,10 +533,13 @@ export function RagConfigTab() {
                         type="number"
                         min={PARAM_CONSTRAINTS.consolidation.line_gap.min}
                         max={PARAM_CONSTRAINTS.consolidation.line_gap.max}
-                        value={currentConfig.consolidation.line_gap}
-                        onChange={(e) =>
-                          updateConsolidationParam("line_gap", parseInt(e.target.value))
-                        }
+                        value={currentConfig.consolidation.line_gap ?? ""}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (!isNaN(val)) {
+                            updateConsolidationParam("line_gap", val);
+                          }
+                        }}
                       />
                       <p className="text-xs text-muted-foreground">
                         {PARAM_CONSTRAINTS.consolidation.line_gap.description}
@@ -733,10 +553,13 @@ export function RagConfigTab() {
                         type="number"
                         min={PARAM_CONSTRAINTS.consolidation.min_content_length.min}
                         max={PARAM_CONSTRAINTS.consolidation.min_content_length.max}
-                        value={currentConfig.consolidation.min_content_length}
-                        onChange={(e) =>
-                          updateConsolidationParam("min_content_length", parseInt(e.target.value))
-                        }
+                        value={currentConfig.consolidation.min_content_length ?? ""}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value);
+                          if (!isNaN(val)) {
+                            updateConsolidationParam("min_content_length", val);
+                          }
+                        }}
                       />
                       <p className="text-xs text-muted-foreground">
                         {PARAM_CONSTRAINTS.consolidation.min_content_length.description}
@@ -776,10 +599,13 @@ export function RagConfigTab() {
                       type="number"
                       min={PARAM_CONSTRAINTS.augmentation.top_n_contexts.min}
                       max={PARAM_CONSTRAINTS.augmentation.top_n_contexts.max}
-                      value={currentConfig.augmentation.top_n_contexts}
-                      onChange={(e) =>
-                        updateAugmentationParam("top_n_contexts", parseInt(e.target.value))
-                      }
+                      value={currentConfig.augmentation.top_n_contexts ?? ""}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val)) {
+                          updateAugmentationParam("top_n_contexts", val);
+                        }
+                      }}
                     />
                     <p className="text-xs text-muted-foreground">
                       {PARAM_CONSTRAINTS.augmentation.top_n_contexts.description}
@@ -871,7 +697,7 @@ export function RagConfigTab() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Preset</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{selectedPresetName}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{selectedPresetName}&quot;? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -885,231 +711,3 @@ export function RagConfigTab() {
     </div>
   );
 }
-```
-
-### Frontend - Settings Page Update
-
-**File**: `psychrag_ui/src/app/settings/page.tsx`
-
-3. **Add RAG Settings tab**:
-
-```typescript
-// Add import at top
-import { RagConfigTab } from "@/components/settings/rag-config-tab";
-
-// Update defaultTab to include "rag"
-const defaultTab = tabParam && ["init", "models", "database", "paths", "templates", "rag"].includes(tabParam)
-  ? tabParam
-  : "init";
-
-// Add tab trigger in TabsList (around line 343)
-<TabsList>
-  <TabsTrigger value="init">Init/Status</TabsTrigger>
-  <TabsTrigger value="models">Models</TabsTrigger>
-  <TabsTrigger value="database">Database</TabsTrigger>
-  <TabsTrigger value="paths">Paths</TabsTrigger>
-  <TabsTrigger value="templates">Templates</TabsTrigger>
-  <TabsTrigger value="rag">RAG Settings</TabsTrigger>  {/* Add this */}
-</TabsList>
-
-// Add tab content after Templates tab (around line 780)
-<TabsContent value="rag" className="mt-4">
-  <RagConfigTab />
-</TabsContent>
-```
-
-## Unit tests
-
-**File**: `psychrag_ui/src/components/settings/__tests__/rag-config-tab.test.tsx`
-
-Create tests for the component (using React Testing Library):
-
-```typescript
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { RagConfigTab } from "../rag-config-tab";
-
-// Mock fetch
-global.fetch = jest.fn();
-
-describe("RagConfigTab", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it("renders loading state", () => {
-    (global.fetch as jest.Mock).mockImplementation(() => new Promise(() => {}));
-    render(<RagConfigTab />);
-    expect(screen.getByRole("progressbar")).toBeInTheDocument();
-  });
-
-  it("fetches and displays presets", async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => [
-        {
-          id: 1,
-          preset_name: "Default",
-          is_default: true,
-          description: "Default config",
-          config: { retrieval: {}, consolidation: {}, augmentation: {} },
-        },
-      ],
-    });
-
-    render(<RagConfigTab />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Default")).toBeInTheDocument();
-    });
-  });
-
-  it("handles preset selection", async () => {
-    // Test preset switching
-  });
-
-  it("validates parameter inputs", async () => {
-    // Test min/max validation
-  });
-
-  it("handles save operation", async () => {
-    // Test save flow
-  });
-
-  it("handles delete operation", async () => {
-    // Test delete flow
-  });
-});
-```
-
-## Manual test plan
-
-### Prerequisites:
-1. Backend API running with T03 endpoints
-2. At least one default RAG config preset in database
-3. Frontend dev server running: `npm run dev`
-
-### Test scenarios:
-
-**1. View presets**
-- Navigate to Settings → RAG Settings tab
-- Expected: See preset selector with at least "Default" preset
-- Expected: Default preset has star icon indicator
-
-**2. View parameters**
-- Select a preset
-- Expected: See three accordion sections (Retrieval, Consolidation, Augmentation)
-- Expand Retrieval section
-- Expected: See ~14 parameter inputs with current values
-
-**3. Edit parameters**
-- Change `dense_limit` from 19 to 25
-- Expected: Save button becomes enabled
-- Expected: Form shows unsaved changes indicator
-
-**4. Save changes**
-- Click "Save Changes"
-- Expected: Success message appears
-- Expected: Changes persist after refresh
-
-**5. Reset changes**
-- Change a parameter
-- Click "Reset"
-- Expected: Parameter reverts to saved value
-- Expected: Save button becomes disabled
-
-**6. Create new preset**
-- Click "Duplicate" icon button
-- Enter name "Fast"
-- Enter description "Faster retrieval with fewer candidates"
-- Click "Create"
-- Expected: New preset appears in dropdown
-- Expected: New preset is selected automatically
-
-**7. Set as default**
-- Select non-default preset
-- Click star icon button
-- Expected: Preset becomes default (star appears in dropdown)
-- Expected: Old default loses default status
-
-**8. Delete preset**
-- Select non-default preset
-- Click "Delete Preset"
-- Confirm deletion
-- Expected: Preset removed from list
-- Expected: Default preset auto-selected
-
-**9. Validation errors**
-- Try to set `dense_limit` to 999 (exceeds max 100)
-- Expected: Input shows validation error or reverts
-- Try to create preset with empty name
-- Expected: Error message shown
-
-**10. Slider controls**
-- Adjust `mmr_lambda` slider
-- Expected: Value updates smoothly
-- Expected: Value displays next to slider (e.g., "0.75")
-
-**11. Toggle controls**
-- Toggle `enrich_from_md` switch
-- Expected: Switch changes state
-- Expected: Save button enabled
-
-**12. Delete default protection**
-- Select default preset
-- Expected: Delete button hidden or disabled
-
-## Dependencies and sequencing
-
-### Dependencies:
-- **Requires**: T03 (API endpoints must be complete)
-- **Optional**: T04 (integration - not required for UI development/testing)
-
-### Sequencing notes:
-- Can start development after T03 API is deployed to test environment
-- This is the final ticket in the sequence
-- Once complete, full end-to-end flow is available: UI → API → Database → RAG pipeline
-
-## Clarifications and assumptions
-
-### Assumptions:
-1. **UI framework**: Using existing shadcn/ui components (Button, Input, Select, Slider, Switch, Accordion)
-2. **State management**: Using React useState (no global state like Redux needed)
-3. **API calls**: Using fetch API directly (no axios or other HTTP client)
-4. **Error handling**: Displaying errors in Alert components, not toast notifications
-5. **Validation**: Client-side validation matches backend Pydantic constraints
-6. **Unsaved changes**: Track changes but don't warn on navigation (user responsibility)
-7. **Preset duplication**: "New Preset" button duplicates current config, not cloning existing preset
-8. **Float display**: Show 2 decimal places for float parameters (mmr_lambda, entity_boost, etc.)
-
-### Open questions (non-blocking):
-1. Should we add a "Discard changes" confirmation dialog when switching presets with unsaved changes?
-2. Should we add preset export/import buttons (download/upload JSON)?
-3. Should we add a "Restore defaults" button to reset to PRD default values?
-4. Should we add parameter tooltips with more detailed explanations?
-5. Should we add visual indicators for which parameters differ from default?
-6. Should we add preset search/filter if user has many presets?
-
-### Implementer notes:
-
-> **Before implementing**:
-> - Review existing settings components (`templates-tab.tsx`) for code style consistency
-> - Ensure T03 API is deployed and accessible
-> - Test all API endpoints in Swagger UI first
-> - Set up shadcn/ui components if not already installed
-
-> **During implementation**:
-> - Build component incrementally: preset selector → parameters → actions
-> - Test each section individually before moving to next
-> - Use TypeScript strictly - don't use `any` types
-> - Ensure all inputs are controlled components (value + onChange)
-> - Test validation on every parameter input
-> - Handle loading, error, and success states for all API calls
-
-> **After implementation**:
-> - Test entire flow multiple times
-> - Test with slow network (throttle in DevTools)
-> - Test error cases: API errors, validation errors
-> - Verify all buttons are properly disabled during loading
-> - Test keyboard navigation and accessibility
-> - Verify responsive design (mobile, tablet, desktop)
-> - Test with actual backend API, not just mocks
