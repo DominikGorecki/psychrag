@@ -1,3 +1,5 @@
+COMPLETE
+
 # T01: Database schema and migration for RAG config
 
 ## Context

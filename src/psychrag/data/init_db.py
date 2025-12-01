@@ -295,6 +295,138 @@ def create_prompt_meta_table(verbose: bool = False) -> None:
         print("prompt_meta table created successfully")
 
 
+def create_default_rag_config(verbose: bool = False) -> None:
+    """
+    Create rag_config table and default preset if none exists.
+
+    This function is idempotent - it creates the table if needed and only
+    inserts the default preset if the table is empty.
+
+    Args:
+        verbose: If True, print progress information.
+    """
+    if verbose:
+        print("Creating RAG config table and default preset...")
+
+    with engine.connect() as conn:
+        # Create rag_config table
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS rag_config (
+                id SERIAL PRIMARY KEY,
+                preset_name VARCHAR(100) UNIQUE NOT NULL,
+                is_default BOOLEAN NOT NULL DEFAULT FALSE,
+                description TEXT,
+                config JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+
+        # Create indexes
+        conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS idx_rag_config_preset_name ON rag_config(preset_name)
+        """))
+        conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS idx_rag_config_is_default ON rag_config(is_default) WHERE is_default = TRUE
+        """))
+
+        # Create trigger function for updated_at
+        conn.execute(text("""
+            CREATE OR REPLACE FUNCTION update_rag_config_updated_at()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                NEW.updated_at = CURRENT_TIMESTAMP;
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql
+        """))
+
+        # Create trigger for updated_at
+        conn.execute(text("DROP TRIGGER IF EXISTS trigger_update_rag_config_updated_at ON rag_config"))
+        conn.execute(text("""
+            CREATE TRIGGER trigger_update_rag_config_updated_at
+                BEFORE UPDATE ON rag_config
+                FOR EACH ROW
+                EXECUTE FUNCTION update_rag_config_updated_at()
+        """))
+
+        # Create trigger function to enforce single default
+        conn.execute(text("""
+            CREATE OR REPLACE FUNCTION ensure_single_default_rag_config()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF NEW.is_default = TRUE THEN
+                    UPDATE rag_config SET is_default = FALSE WHERE id != NEW.id;
+                END IF;
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql
+        """))
+
+        # Create trigger to enforce single default
+        conn.execute(text("DROP TRIGGER IF EXISTS trigger_ensure_single_default_rag_config ON rag_config"))
+        conn.execute(text("""
+            CREATE TRIGGER trigger_ensure_single_default_rag_config
+                AFTER INSERT OR UPDATE ON rag_config
+                FOR EACH ROW
+                WHEN (NEW.is_default = TRUE)
+                EXECUTE FUNCTION ensure_single_default_rag_config()
+        """))
+
+        # Check if any presets exist
+        result = conn.execute(text("SELECT COUNT(*) FROM rag_config"))
+        count = result.scalar()
+
+        if count > 0:
+            if verbose:
+                print("RAG config presets already exist, skipping default creation")
+        else:
+            # Insert default preset with balanced settings
+            conn.execute(text("""
+                INSERT INTO rag_config (preset_name, is_default, description, config)
+                VALUES (
+                    'Default',
+                    TRUE,
+                    'Default RAG configuration with balanced settings for general-purpose queries',
+                    :config
+                )
+            """), {"config": """{
+                "retrieval": {
+                    "dense_limit": 19,
+                    "lexical_limit": 5,
+                    "rrf_k": 50,
+                    "top_k_rrf": 75,
+                    "top_n_final": 17,
+                    "entity_boost": 0.05,
+                    "min_word_count": 150,
+                    "min_char_count": 250,
+                    "min_content_length": 750,
+                    "enrich_lines_above": 0,
+                    "enrich_lines_below": 13,
+                    "mmr_lambda": 0.7,
+                    "reranker_batch_size": 8,
+                    "reranker_max_length": 512
+                },
+                "consolidation": {
+                    "coverage_threshold": 0.5,
+                    "line_gap": 7,
+                    "min_content_length": 350,
+                    "enrich_from_md": true
+                },
+                "augmentation": {
+                    "top_n_contexts": 5
+                }
+            }"""})
+
+            if verbose:
+                print("Default RAG config preset created successfully")
+
+        conn.commit()
+
+    if verbose:
+        print("RAG config table and preset setup complete")
+
+
 def init_database(verbose: bool = False) -> None:
     """
     Initialize the database: create database, user, tables, and indexes.
@@ -308,6 +440,7 @@ def init_database(verbose: bool = False) -> None:
     create_vector_indexes(verbose=verbose)
     create_fulltext_search(verbose=verbose)
     create_prompt_meta_table(verbose=verbose)
+    create_default_rag_config(verbose=verbose)
 
     if verbose:
         print("Database initialization complete")
