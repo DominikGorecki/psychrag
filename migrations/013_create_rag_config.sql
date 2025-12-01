@@ -1,5 +1,6 @@
 -- Migration 013: Create rag_config table for RAG configuration presets
 -- This table stores configuration presets for retrieval, consolidation, and augmentation parameters
+-- NOTE: This migration should be run as the application user to ensure proper ownership
 
 CREATE TABLE IF NOT EXISTS rag_config (
     id SERIAL PRIMARY KEY,
@@ -87,3 +88,10 @@ COMMENT ON TABLE rag_config IS 'RAG configuration presets for retrieval, consoli
 COMMENT ON COLUMN rag_config.preset_name IS 'Unique human-readable name for the preset';
 COMMENT ON COLUMN rag_config.is_default IS 'Whether this preset is the default (only one can be true)';
 COMMENT ON COLUMN rag_config.config IS 'JSONB configuration with retrieval, consolidation, and augmentation sections';
+
+-- If this migration was run by an admin, transfer ownership to app user
+-- Note: Replace 'psych_rag' with your actual app user if different
+-- Uncomment and run if needed:
+-- ALTER FUNCTION update_rag_config_updated_at() OWNER TO psych_rag;
+-- ALTER FUNCTION ensure_single_default_rag_config() OWNER TO psych_rag;
+-- ALTER SEQUENCE rag_config_id_seq OWNER TO psych_rag;

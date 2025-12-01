@@ -2,9 +2,6 @@
 Unit tests for RAG config database schema and constraints.
 
 Tests table structure, triggers, and data integrity.
-
-Note: These tests will work once T02 (RagConfig model) is implemented.
-Until then, some tests using the model will be skipped.
 """
 
 import pytest
@@ -12,13 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from psychrag.data.database import engine, get_session
-
-# Try to import RagConfig model (will fail until T02 is complete)
-try:
-    from psychrag.data.models.rag_config import RagConfig
-    HAS_MODEL = True
-except ImportError:
-    HAS_MODEL = False
+from psychrag.data.models.rag_config import RagConfig
 
 
 class TestRagConfigSchema:
@@ -134,6 +125,10 @@ class TestRagConfigConstraints:
             conn.execute(text("DELETE FROM rag_config WHERE preset_name IN ('TestDefault1', 'TestDefault2')"))
             conn.commit()
 
+            # Restore Default preset as default (trigger unset it)
+            conn.execute(text("UPDATE rag_config SET is_default = TRUE WHERE preset_name = 'Default'"))
+            conn.commit()
+
     def test_updated_at_trigger(self):
         """Test that updated_at is automatically set on UPDATE."""
         import time
@@ -188,7 +183,7 @@ class TestDefaultPresetSeed:
 
             assert row is not None
             assert row[0] == 'Default'
-            assert row[1] is True
+            assert row[1] == True  # Use equality check, not identity check
             assert row[2] is not None
 
     def test_default_preset_has_all_params(self):
@@ -236,9 +231,8 @@ class TestDefaultPresetSeed:
             assert config["augmentation"]["top_n_contexts"] == 5
 
 
-@pytest.mark.skipif(not HAS_MODEL, reason="RagConfig model not yet implemented (T02)")
 class TestRagConfigWithModel:
-    """Tests using the RagConfig SQLAlchemy model (requires T02)."""
+    """Tests using the RagConfig SQLAlchemy model."""
 
     def test_preset_name_unique_constraint_with_model(self):
         """Test that duplicate preset names are rejected using model."""
@@ -298,6 +292,12 @@ class TestRagConfigWithModel:
                 RagConfig.preset_name.in_(["TestDefaultModel1", "TestDefaultModel2"])
             ).delete()
             session.commit()
+
+            # Restore Default preset as default (trigger unset it)
+            default_preset = session.query(RagConfig).filter(RagConfig.preset_name == "Default").first()
+            if default_preset:
+                default_preset.is_default = True
+                session.commit()
 
     def test_model_create_and_retrieve(self):
         """Test creating and retrieving a RagConfig instance."""

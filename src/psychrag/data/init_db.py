@@ -24,7 +24,7 @@ from psychrag.config import load_config
 from .database import Base, engine, get_admin_database_url
 
 # Import all models to register them with Base
-from .models import Chunk, Query, Result, Work  # noqa: F401
+from .models import Chunk, Query, Result, Work, RagConfig  # noqa: F401
 from .models.io_file import IOFile  # noqa: F401
 from .models.prompt_template import PromptTemplate  # noqa: F401
 from .models.prompt_meta import PromptMeta  # noqa: F401
@@ -234,6 +234,20 @@ def create_fulltext_search(verbose: bool = False) -> None:
 
         conn.commit()
 
+    # Transfer ownership to app user
+    db_config = load_config().database
+    app_user = db_config.app_user
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(text(f'ALTER FUNCTION chunks_content_tsvector_trigger() OWNER TO "{app_user}"'))
+            conn.commit()
+            if verbose:
+                print(f"Transferred ownership of full-text search function to {app_user}")
+    except Exception as e:
+        if verbose:
+            print(f"Note: Could not transfer ownership (this is okay if running as app user): {e}")
+
     if verbose:
         print("Full-text search infrastructure created successfully")
 
@@ -290,6 +304,21 @@ def create_prompt_meta_table(verbose: bool = False) -> None:
         """))
 
         conn.commit()
+
+    # Transfer ownership to app user
+    db_config = load_config().database
+    app_user = db_config.app_user
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(text(f'ALTER FUNCTION update_prompt_meta_updated_at() OWNER TO "{app_user}"'))
+            conn.execute(text(f'ALTER SEQUENCE IF EXISTS prompt_meta_id_seq OWNER TO "{app_user}"'))
+            conn.commit()
+            if verbose:
+                print(f"Transferred ownership of prompt_meta objects to {app_user}")
+    except Exception as e:
+        if verbose:
+            print(f"Note: Could not transfer ownership (this is okay if running as app user): {e}")
 
     if verbose:
         print("prompt_meta table created successfully")
@@ -422,6 +451,30 @@ def create_default_rag_config(verbose: bool = False) -> None:
                 print("Default RAG config preset created successfully")
 
         conn.commit()
+
+    # Transfer ownership to app user to ensure proper permissions
+    # This is necessary if init_db was run with admin credentials
+    db_config = load_config().database
+    app_user = db_config.app_user
+
+    try:
+        with engine.connect() as conn:
+            # Transfer function ownership
+            conn.execute(text(f'ALTER FUNCTION update_rag_config_updated_at() OWNER TO "{app_user}"'))
+            conn.execute(text(f'ALTER FUNCTION ensure_single_default_rag_config() OWNER TO "{app_user}"'))
+
+            # Transfer sequence ownership
+            conn.execute(text(f'ALTER SEQUENCE IF EXISTS rag_config_id_seq OWNER TO "{app_user}"'))
+
+            conn.commit()
+
+            if verbose:
+                print(f"Transferred ownership of RAG config objects to {app_user}")
+    except Exception as e:
+        # If we can't transfer ownership (e.g., not running as admin), that's okay
+        # as long as the app user has usage permissions
+        if verbose:
+            print(f"Note: Could not transfer ownership (this is okay if running as app user): {e}")
 
     if verbose:
         print("RAG config table and preset setup complete")
