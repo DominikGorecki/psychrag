@@ -47,7 +47,7 @@ output/
 
 # Logs
 *.log
-llm_logs/
+logs/
 
 # Environment variables
 .env

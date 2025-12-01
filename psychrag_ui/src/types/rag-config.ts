@@ -63,8 +63,8 @@ export interface RagConfigUpdateRequest {
 // Validation constraints (matches backend)
 export const PARAM_CONSTRAINTS = {
   retrieval: {
-    dense_limit: { min: 1, max: 100, default: 19, description: "Max results per dense vector query" },
-    lexical_limit: { min: 1, max: 50, default: 5, description: "Max results per lexical (BM25) query" },
+    dense_limit: { min: 0, max: 100, default: 19, description: "Max results per dense vector query (0 to disable)" },
+    lexical_limit: { min: 0, max: 50, default: 5, description: "Max results per lexical (BM25) query (0 to disable)" },
     rrf_k: { min: 1, max: 100, default: 50, description: "RRF constant for rank fusion" },
     top_k_rrf: { min: 1, max: 200, default: 75, description: "Top candidates after RRF fusion" },
     top_n_final: { min: 1, max: 50, default: 17, description: "Final number of results after MMR" },

@@ -20,7 +20,7 @@ from datetime import datetime
 from pathlib import Path
 
 # Directory for LLM logs
-LLM_LOGS_DIR = Path("llm_logs")
+LLM_LOGS_DIR = Path("logs")
 
 
 def _log_llm_interaction(prompt: str, response_text: str, filename_prefix: str = "suggest_from_toc") -> None:

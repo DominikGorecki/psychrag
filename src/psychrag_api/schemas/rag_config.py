@@ -18,8 +18,8 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 class RetrievalParams(BaseModel):
     """Retrieval stage parameters with validation constraints."""
 
-    dense_limit: int = Field(19, ge=1, le=100, description="Max results per dense vector query")
-    lexical_limit: int = Field(5, ge=1, le=50, description="Max results per lexical (BM25) query")
+    dense_limit: int = Field(19, ge=0, le=100, description="Max results per dense vector query (0 to disable)")
+    lexical_limit: int = Field(5, ge=0, le=50, description="Max results per lexical (BM25) query (0 to disable)")
     rrf_k: int = Field(50, ge=1, le=100, description="RRF constant for rank fusion")
     top_k_rrf: int = Field(75, ge=1, le=200, description="Top candidates after RRF fusion")
     top_n_final: int = Field(17, ge=1, le=50, description="Final number of results after MMR")

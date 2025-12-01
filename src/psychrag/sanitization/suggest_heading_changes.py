@@ -34,7 +34,7 @@ from psychrag.utils.file_utils import set_file_writable, set_file_readonly
 from .extract_titles import HashMismatchError
 
 # Directory for LLM logs
-LLM_LOGS_DIR = Path("llm_logs")
+LLM_LOGS_DIR = Path("logs")
 
 
 def _log_llm_interaction(prompt: str, response_text: str, filename_prefix: str = "suggest_heading") -> None:
