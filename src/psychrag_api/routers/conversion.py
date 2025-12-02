@@ -22,6 +22,7 @@ from psychrag_api.schemas.conversion import (
     ConversionStatusResponse,
     ConvertFileRequest,
     ConvertFileResponse,
+    DeleteConversionResponse,
     FileContentResponse,
     FileContentUpdateRequest,
     FileMetricsSchema,
@@ -46,6 +47,7 @@ from psychrag.data.database import get_session
 from psychrag.data.models.io_file import IOFile
 from psychrag.sanitization.extract_titles import extract_titles
 from psychrag.sanitization.apply_title_edits import apply_title_edits
+from psychrag.sanitization.delete_conversion import delete_conversion
 
 router = APIRouter()
 
@@ -1376,4 +1378,55 @@ async def update_original_markdown(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error updating file content: {str(e)}",
+        ) from e
+
+
+@router.delete(
+    "/delete/{io_file_id}",
+    response_model=DeleteConversionResponse,
+    summary="Delete conversion and associated files",
+    description="Delete all files associated with a conversion and remove the database entry.",
+    responses={
+        200: {"description": "Conversion deleted successfully"},
+        404: {"description": "File not found"},
+        500: {"description": "Error deleting conversion"},
+    },
+)
+async def delete_conversion_endpoint(io_file_id: int) -> DeleteConversionResponse:
+    """
+    Delete a conversion and all associated files.
+
+    This endpoint:
+    1. Deletes ALL files in the output directory with the same base name
+    2. Deletes the io_file database entry
+
+    Warning: This operation is not recoverable.
+
+    Args:
+        io_file_id: ID of the file in the io_files table
+
+    Returns:
+        DeleteConversionResponse with deletion details
+    """
+    try:
+        result = delete_conversion(io_file_id=io_file_id, verbose=False)
+
+        return DeleteConversionResponse(
+            success=result["success"],
+            message=result["message"],
+            deleted_files=result["deleted_files"],
+            io_file_deleted=result["io_file_deleted"],
+        )
+
+    except ValueError as e:
+        # File not found
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        ) from e
+    except Exception as e:
+        # Other errors
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting conversion: {str(e)}",
         ) from e

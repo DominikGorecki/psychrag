@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, CheckCircle2, Eye, Loader2Icon, PlayCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, Eye, Loader2Icon, PlayCircle, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -48,10 +56,15 @@ export default function ConvertedFilePage() {
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState<string | null>(null); // Track which item is being generated
   const [generateError, setGenerateError] = useState<string | null>(null);
-  
+
   // Readiness state
   const [readiness, setReadiness] = useState<ReadinessResponse | null>(null);
   const [checkingReadiness, setCheckingReadiness] = useState(false);
+
+  // Delete state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInspectionOptions();
@@ -145,6 +158,28 @@ export default function ConvertedFilePage() {
 
   const handleAddToDatabase = () => {
     router.push(`/conv/${fileId}/add`);
+  };
+
+  const handleDelete = async () => {
+    try {
+      setDeleting(true);
+      setDeleteError(null);
+
+      const response = await fetch(`${API_BASE_URL}/conv/delete/${fileId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Delete failed: ${response.statusText}`);
+      }
+
+      // Success - redirect to conversion list
+      router.push("/conv");
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Delete failed");
+      setDeleting(false);
+    }
   };
 
   if (loading) {
@@ -352,6 +387,93 @@ export default function ConvertedFilePage() {
           </div>
         </CardContent>
       </Card>
+
+      <Card className="border-destructive">
+        <CardHeader>
+          <CardTitle className="text-destructive">Danger Zone</CardTitle>
+          <CardDescription>
+            Permanently delete this conversion and all associated files
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {deleteError && (
+            <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <p className="text-sm">{deleteError}</p>
+              </div>
+            </div>
+          )}
+          <div className="flex items-start gap-3">
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground mb-2">
+                This will permanently delete all files associated with this conversion from the output directory and remove the database entry.
+              </p>
+              <p className="text-sm font-semibold text-destructive">
+                This action cannot be undone.
+              </p>
+            </div>
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeleteDialog(true)}
+              className="gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Conversion?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete all files associated with this conversion and remove the database entry.
+              This action is not recoverable.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4">
+              <p className="text-sm font-medium text-destructive mb-2">
+                The following will be deleted:
+              </p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• All files in output directory with base name matching this conversion</li>
+                <li>• Database entry for this conversion</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="gap-2"
+            >
+              {deleting ? (
+                <>
+                  <Loader2Icon className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4" />
+                  Delete Permanently
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

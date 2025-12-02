@@ -595,3 +595,38 @@ class AddWorkResponse(BaseModel):
         }
 
 
+class DeleteConversionResponse(BaseModel):
+    """Response after deleting a conversion."""
+
+    success: bool = Field(
+        ...,
+        description="Whether the conversion was successfully deleted",
+        example=True,
+    )
+    message: str = Field(
+        ...,
+        description="Status message",
+        example="Successfully deleted 5 files and database entry",
+    )
+    deleted_files: list[str] = Field(
+        default_factory=list,
+        description="List of filenames that were deleted",
+        example=["test.pdf", "test.md", "test.style.md", "test.hier.md", "test.toc_titles.md"],
+    )
+    io_file_deleted: bool = Field(
+        ...,
+        description="Whether the database entry was deleted",
+        example=True,
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "Successfully deleted 5 files and database entry for test",
+                "deleted_files": ["test.pdf", "test.md", "test.style.md", "test.hier.md", "test.toc_titles.md"],
+                "io_file_deleted": True,
+            }
+        }
+
+
