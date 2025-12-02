@@ -630,3 +630,106 @@ class DeleteConversionResponse(BaseModel):
         }
 
 
+class ParseCitationRequest(BaseModel):
+    """Request to parse a citation with LLM."""
+
+    citation_text: str = Field(
+        ...,
+        min_length=10,
+        description="The citation text to parse",
+        examples=[
+            "Friston, K. (2012). Prediction, perception and agency. International Journal of Psychophysiology, 83(2), 248-252."
+        ],
+    )
+    citation_format: str = Field(
+        ...,
+        description="Citation format: APA, MLA, or Chicago",
+        examples=["APA"],
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "citation_text": "Friston, K. (2012). Prediction, perception and agency. International Journal of Psychophysiology, 83(2), 248-252.",
+                "citation_format": "APA",
+            }
+        }
+
+
+class ParseCitationResponse(BaseModel):
+    """Response from LLM citation parsing."""
+
+    success: bool = Field(
+        ...,
+        description="Whether parsing was successful",
+        example=True,
+    )
+    title: str | None = Field(
+        default=None,
+        description="Extracted title",
+    )
+    authors: list[str] | None = Field(
+        default=None,
+        description="List of author names",
+    )
+    year: int | None = Field(
+        default=None,
+        description="Publication year",
+    )
+    publisher: str | None = Field(
+        default=None,
+        description="Publisher name",
+    )
+    isbn: str | None = Field(
+        default=None,
+        description="ISBN",
+    )
+    doi: str | None = Field(
+        default=None,
+        description="DOI",
+    )
+    container_title: str | None = Field(
+        default=None,
+        description="Journal or book title",
+    )
+    volume: str | None = Field(
+        default=None,
+        description="Volume number",
+    )
+    issue: str | None = Field(
+        default=None,
+        description="Issue number",
+    )
+    pages: str | None = Field(
+        default=None,
+        description="Page range",
+    )
+    url: str | None = Field(
+        default=None,
+        description="URL",
+    )
+    work_type: str | None = Field(
+        default=None,
+        description="Type of work",
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "title": "Prediction, perception and agency",
+                "authors": ["Friston, K."],
+                "year": 2012,
+                "publisher": None,
+                "isbn": None,
+                "doi": None,
+                "container_title": "International Journal of Psychophysiology",
+                "volume": "83",
+                "issue": "2",
+                "pages": "248-252",
+                "url": None,
+                "work_type": "article",
+            }
+        }
+
+

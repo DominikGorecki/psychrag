@@ -33,6 +33,8 @@ from psychrag_api.schemas.conversion import (
     InspectionItemSchema,
     IOFolderDataResponse,
     ManualPromptResponse,
+    ParseCitationRequest,
+    ParseCitationResponse,
     ReadinessCheckResponse,
     SupportedFormatsResponse,
 )
@@ -1220,6 +1222,70 @@ async def add_to_database(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error adding work to database: {str(e)}",
+        ) from e
+
+
+@router.post(
+    "/parse-citation-llm",
+    response_model=ParseCitationResponse,
+    summary="Parse citation using LLM",
+    description="Use LLM to parse a citation string and extract bibliographic metadata.",
+    responses={
+        200: {"description": "Citation parsed successfully"},
+        400: {"description": "Invalid citation text or format"},
+        500: {"description": "LLM parsing error"},
+    },
+)
+async def parse_citation_llm(
+    request: ParseCitationRequest
+) -> ParseCitationResponse:
+    """
+    Parse a citation string using LLM.
+
+    This endpoint uses the LIGHT tier LLM to extract bibliographic
+    metadata from citation text in APA, MLA, or Chicago formats.
+
+    Args:
+        request: Citation text and format
+
+    Returns:
+        ParseCitationResponse with extracted fields
+    """
+    try:
+        from psychrag.utils.llm_citation_parser import parse_citation_with_llm
+
+        # Parse citation
+        citation = parse_citation_with_llm(
+            citation_text=request.citation_text,
+            citation_format=request.citation_format,
+        )
+
+        # Convert to response schema
+        return ParseCitationResponse(
+            success=True,
+            title=citation.title,
+            authors=citation.authors,
+            year=citation.year,
+            publisher=citation.publisher,
+            isbn=citation.isbn,
+            doi=citation.doi,
+            container_title=citation.container_title,
+            volume=citation.volume,
+            issue=citation.issue,
+            pages=citation.pages,
+            url=citation.url,
+            work_type=citation.work_type,
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Citation parsing error: {str(e)}",
         ) from e
 
 

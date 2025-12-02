@@ -83,6 +83,8 @@ export default function AddWorkPage() {
   const [citationStyle, setCitationStyle] = useState<CitationStyle>("MLA");
   const [citationText, setCitationText] = useState<string>("");
   const [citationError, setCitationError] = useState<string | null>(null);
+  const [llmParsing, setLlmParsing] = useState(false);
+  const [llmError, setLlmError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchMarkdown = async () => {
@@ -540,10 +542,10 @@ export default function AddWorkPage() {
     }
 
     setCitationError(null);
-    
+
     try {
       const parsed = parseCitation(citationText.trim(), citationStyle);
-      
+
       // Fill form fields
       if (parsed.title) {
         handleFieldChange("title", parsed.title);
@@ -560,13 +562,74 @@ export default function AddWorkPage() {
       if (parsed.edition) {
         handleFieldChange("edition", parsed.edition);
       }
-      
+
       // Close dialog and reset
       setCitationDialogOpen(false);
       setCitationText("");
       setCitationError(null);
     } catch (error) {
       setCitationError("Failed to parse citation. Please check the format.");
+    }
+  };
+
+  const handleLlmParse = async () => {
+    if (!citationText.trim()) {
+      setCitationError("Please paste a citation");
+      return;
+    }
+
+    setLlmParsing(true);
+    setLlmError(null);
+    setCitationError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/conv/parse-citation-llm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          citation_text: citationText.trim(),
+          citation_format: citationStyle,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Failed to parse citation with LLM");
+      }
+
+      const parsed = await response.json();
+
+      // Fill form fields (similar to handleCitationApply)
+      if (parsed.title) {
+        handleFieldChange("title", parsed.title);
+      }
+      // Join authors array to string
+      if (parsed.authors && Array.isArray(parsed.authors)) {
+        handleFieldChange("authors", parsed.authors.join(", "));
+      }
+      if (parsed.year) {
+        handleFieldChange("year", parsed.year.toString());
+      }
+      if (parsed.publisher) {
+        handleFieldChange("publisher", parsed.publisher);
+      }
+      if (parsed.isbn) {
+        handleFieldChange("isbn", parsed.isbn);
+      }
+      // Map volume/issue to edition field if present
+      if (parsed.volume || parsed.issue) {
+        const edition = [parsed.volume, parsed.issue].filter(Boolean).join(".");
+        handleFieldChange("edition", edition);
+      }
+
+      // Close dialog and reset
+      setCitationDialogOpen(false);
+      setCitationText("");
+      setLlmError(null);
+    } catch (error) {
+      setLlmError(error instanceof Error ? error.message : "Failed to parse citation");
+    } finally {
+      setLlmParsing(false);
     }
   };
 
@@ -845,22 +908,53 @@ export default function AddWorkPage() {
                 </div>
               </div>
             )}
+
+            {llmError && (
+              <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200 dark:bg-yellow-900/20">
+                <div className="flex items-start gap-2 text-yellow-800 dark:text-yellow-200">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium">LLM Parsing Error</p>
+                    <p className="text-sm">{llmError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setCitationDialogOpen(false);
-                setCitationText("");
-                setCitationError(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleCitationApply}>
-              Apply
-            </Button>
+          <DialogFooter className="flex justify-between items-center">
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={handleLlmParse}
+                disabled={llmParsing}
+              >
+                {llmParsing ? (
+                  <>
+                    <Loader2Icon className="h-4 w-4 animate-spin mr-2" />
+                    Parsing with AI...
+                  </>
+                ) : (
+                  "LLM Parse"
+                )}
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCitationDialogOpen(false);
+                  setCitationText("");
+                  setCitationError(null);
+                  setLlmError(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleCitationApply}>
+                Apply (Regex)
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

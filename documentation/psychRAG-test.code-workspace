@@ -3,9 +3,6 @@
 		{
 			"name": "psychRAG-test",
 			"path": ".."
-		},
-		{
-			"path": "../src/psychrag"
 		}
 	],
 	"settings": {}

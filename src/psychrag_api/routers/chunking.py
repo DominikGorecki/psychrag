@@ -94,7 +94,7 @@ def _get_file_status(work: Work, file_key: str) -> FileStatusInfo:
 async def list_works_for_chunking() -> WorkListResponse:
     """List all works that have sanitized files."""
     with get_session() as session:
-        works = session.query(Work).all()
+        works = session.query(Work).order_by(Work.updated_at.desc()).all()
     
         work_items = []
         for work in works:

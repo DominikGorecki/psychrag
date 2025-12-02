@@ -20,12 +20,7 @@
 [ ] CONVERSION - Manual ToC LLM call not templated
 
 ## TO-DO 
-[ ] Sanitization - Suggested title changes -- should be more visual--change from, to, etc. 
-
-
-## TODO for UI
-
-[ ] Add a "Corpus" link below RAG -- have an HR
+[x] Sanitization - Suggested title changes -- should be more visual--change from, to, etc. 
 
 ## Going over process e2e manually
 
@@ -35,4 +30,4 @@
 [ ] Template settings edit should indicate where the template is used
 [ ] Add sources to the results page
 [ ] For results I want to track the LLM used -- manual input show drop-down
-[ ]
+[ ] On vectorize suggestion page--option to set everything as vectorize (generate automatically)
