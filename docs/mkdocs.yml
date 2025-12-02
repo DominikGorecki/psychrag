@@ -1,0 +1,9 @@
+site_name: VulcanLab 
+docs_dir: .                     # ← crucial line
+theme:
+  name: material
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+repo_url: https://github.com/DominikGorecki/psychrag
+edit_uri: edit/main/docs/

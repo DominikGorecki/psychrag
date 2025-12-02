@@ -1,0 +1,4 @@
+mkdocs-material>=9.5
+mkdocstrings[python]
+mkdocs-gen-files
+mkdocs-literate-nav
