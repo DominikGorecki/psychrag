@@ -6,8 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, CheckCircle2, ChevronLeft, Loader2Icon } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronLeft, Loader2Icon, FileText } from "lucide-react";
 import { MarkdownEditor } from "@/components/markdown-editor";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -28,6 +38,22 @@ interface FormData {
 interface FormErrors {
   title?: string;
   year?: string;
+}
+
+interface AddWorkResponse {
+  success: boolean;
+  message: string;
+  work_id: number;
+}
+
+type CitationStyle = "MLA" | "APA" | "Chicago";
+
+interface ParsedCitation {
+  title: string;
+  authors: string;
+  year: string;
+  publisher: string;
+  edition: string;
 }
 
 export default function AddWorkPage() {
@@ -51,6 +77,12 @@ export default function AddWorkPage() {
 
   const [markdownContent, setMarkdownContent] = useState<string>("");
   const [loadingContent, setLoadingContent] = useState(true);
+
+  // Citation dialog state
+  const [citationDialogOpen, setCitationDialogOpen] = useState(false);
+  const [citationStyle, setCitationStyle] = useState<CitationStyle>("MLA");
+  const [citationText, setCitationText] = useState<string>("");
+  const [citationError, setCitationError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchMarkdown = async () => {
@@ -143,14 +175,14 @@ export default function AddWorkPage() {
         throw new Error(errorData.detail || `Failed to add work: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data: AddWorkResponse = await response.json();
       
       // Show success message
       setSuccess(true);
       
-      // Navigate back to conv page after a short delay
+      // Navigate to sanitization page for the new work after a short delay
       setTimeout(() => {
-        router.push(`/conv/${fileId}`);
+        router.push(`/sanitization/${data.work_id}`);
       }, 2000);
       
     } catch (err) {
@@ -176,6 +208,368 @@ export default function AddWorkPage() {
     }
   };
 
+  // Citation parsing functions
+  const parseMLACitation = (citation: string): ParsedCitation => {
+    const result: ParsedCitation = {
+      title: "",
+      authors: "",
+      year: "",
+      publisher: "",
+      edition: "",
+    };
+
+    // MLA: Author(s). "Title." Journal/Publisher Volume.Issue (Year): Pages.
+    // Example: Friston, Karl. "Prediction, perception and agency." International Journal of Psychophysiology 83.2 (2012): 248-252.
+    // Multiple authors: Smith, John, and Jane Doe. "Title." Journal 1.2 (2020): 1-10.
+
+    const trimmed = citation.trim();
+    
+    // Extract year: look for (YYYY) pattern
+    const yearMatch = trimmed.match(/\((\d{4})\)/);
+    if (yearMatch) {
+      result.year = yearMatch[1];
+    }
+
+    // Handle both straight and curly quotes
+    // Split by first period followed by space to separate author from title
+    // Match: Author(s). "Title." Rest
+    // Try to find the pattern: Author. "Title." Rest
+    const authorMatch = trimmed.match(/^(.+?)\.\s*(.+)$/);
+    if (authorMatch) {
+      const authors = authorMatch[1].trim();
+      const afterAuthors = authorMatch[2].trim();
+      
+      // Try to find quoted title
+      const quoteMatch = afterAuthors.match(/^(["'""])(.+?)\1\.\s*(.+)$/);
+      if (quoteMatch) {
+        result.authors = authors;
+        // Title is in group 2, extract it cleanly
+        result.title = quoteMatch[2].trim();
+        
+        // Rest is in group 3
+        let rest = quoteMatch[3].trim();
+        // Remove any leading quotes or spaces
+        rest = rest.replace(/^["'""\s]+/, "").trim();
+        
+        // Extract volume.issue pattern before year (e.g., "83.2 (2012)")
+        const volumeIssueMatch = rest.match(/(.+?)\s+(\d+\.\d+)\s*\(/);
+        if (volumeIssueMatch) {
+          result.publisher = volumeIssueMatch[1].trim();
+          result.edition = volumeIssueMatch[2].trim();
+        } else {
+          // Try without issue number (e.g., "83 (2012)")
+          const volumeMatch = rest.match(/(.+?)\s+(\d+)\s*\(/);
+          if (volumeMatch) {
+            result.publisher = volumeMatch[1].trim();
+            result.edition = volumeMatch[2].trim();
+          } else {
+            // Just publisher, no volume
+            result.publisher = rest.replace(/\s*\(.*$/, "").trim();
+          }
+        }
+      } else {
+        // No quoted title found, try fallback
+        const noQuoteMatch = trimmed.match(/^(.+?)\.\s*(.+?)\.\s*(.+)$/);
+        if (noQuoteMatch) {
+          result.authors = noQuoteMatch[1].trim();
+          const titleRest = noQuoteMatch[2];
+          const titleMatch = titleRest.match(/^(.+?)(?:\s+\d|,\s*(?:Inc|Press|Publishers|Books|University|College))/i);
+          if (titleMatch) {
+            result.title = titleMatch[1].trim();
+          } else {
+            result.title = titleRest.trim();
+          }
+          const rest = noQuoteMatch[3];
+          const volumeIssueMatch = rest.match(/(.+?)\s+(\d+\.\d+)\s*\(/);
+          if (volumeIssueMatch) {
+            result.publisher = volumeIssueMatch[1].trim();
+            result.edition = volumeIssueMatch[2].trim();
+          } else {
+            const volumeMatch = rest.match(/(.+?)\s+(\d+)\s*\(/);
+            if (volumeMatch) {
+              result.publisher = volumeMatch[1].trim();
+              result.edition = volumeMatch[2].trim();
+            } else {
+              result.publisher = rest.replace(/\s*\(.*$/, "").trim();
+            }
+          }
+        }
+      }
+    } else {
+      // Fallback: try without quotes (for book titles in italics or plain text)
+      // Pattern: Author(s). Title. Publisher/Journal Volume (Year)
+      const noQuoteMatch = trimmed.match(/^(.+?)\.\s*(.+?)\.\s*(.+)$/);
+      if (noQuoteMatch) {
+        result.authors = noQuoteMatch[1].trim();
+        
+        // Try to find title (usually ends before volume number or publisher)
+        const titleRest = noQuoteMatch[2];
+        // Title might end before a number (volume) or before common publisher words
+        const titleMatch = titleRest.match(/^(.+?)(?:\s+\d|,\s*(?:Inc|Press|Publishers|Books|University|College))/i);
+        if (titleMatch) {
+          result.title = titleMatch[1].trim();
+        } else {
+          result.title = titleRest.trim();
+        }
+        
+        const rest = noQuoteMatch[3];
+        // Extract volume.issue pattern before year
+        const volumeIssueMatch = rest.match(/(.+?)\s+(\d+\.\d+)\s*\(/);
+        if (volumeIssueMatch) {
+          result.publisher = volumeIssueMatch[1].trim();
+          result.edition = volumeIssueMatch[2].trim();
+        } else {
+          const volumeMatch = rest.match(/(.+?)\s+(\d+)\s*\(/);
+          if (volumeMatch) {
+            result.publisher = volumeMatch[1].trim();
+            result.edition = volumeMatch[2].trim();
+          } else {
+            result.publisher = rest.replace(/\s*\(.*$/, "").trim();
+          }
+        }
+      }
+    }
+
+    return result;
+  };
+
+  const parseAPACitation = (citation: string): ParsedCitation => {
+    const result: ParsedCitation = {
+      title: "",
+      authors: "",
+      year: "",
+      publisher: "",
+      edition: "",
+    };
+
+    // APA: Author(s). (Year). Title. Journal/Publisher, Volume(Issue), Pages.
+    // Example: Friston, K. (2012). Prediction, perception and agency. International Journal of Psychophysiology, 83(2), 248-252.
+    // Multiple authors: Smith, J., & Doe, J. (2020). Title. Journal, 1(2), 1-10.
+
+    const trimmed = citation.trim();
+    
+    // Extract year: look for (YYYY) pattern
+    const yearMatch = trimmed.match(/\((\d{4})\)/);
+    if (yearMatch) {
+      result.year = yearMatch[1];
+    }
+
+    // Split by first period followed by space and (Year)
+    // Pattern: Author(s). (Year). Title. Publisher, Volume(Issue), Pages
+    const authorMatch = trimmed.match(/^(.+?)\.\s*\(/);
+    if (authorMatch) {
+      result.authors = authorMatch[1].trim();
+      
+      // Extract title: between ). and the comma before publisher
+      // Pattern: ). Title. Publisher,
+      const titleMatch = trimmed.match(/\)\.\s*(.+?)\.\s*(.+?),/);
+      if (titleMatch) {
+        result.title = titleMatch[1].trim();
+        
+        // Extract publisher and volume(issue)
+        // Pattern: Publisher, Volume(Issue) or Publisher, Volume
+        const pubVolMatch = trimmed.match(/\)\.\s*.+?\.\s*(.+?),\s*(\d+)\((\d+)\)/);
+        if (pubVolMatch) {
+          result.publisher = pubVolMatch[1].trim();
+          result.edition = `${pubVolMatch[2]}.${pubVolMatch[3]}`;
+        } else {
+          // Try without issue: Publisher, Volume
+          const pubVolMatch2 = trimmed.match(/\)\.\s*.+?\.\s*(.+?),\s*(\d+)/);
+          if (pubVolMatch2) {
+            result.publisher = pubVolMatch2[1].trim();
+            result.edition = pubVolMatch2[2].trim();
+          } else {
+            // Just get publisher (for books)
+            const pubMatch = trimmed.match(/\)\.\s*.+?\.\s*(.+?),/);
+            if (pubMatch) {
+              result.publisher = pubMatch[1].trim();
+            }
+          }
+        }
+      } else {
+        // Fallback: try to extract title without the comma pattern
+        const titleMatch2 = trimmed.match(/\)\.\s*(.+?)\.\s*(.+)$/);
+        if (titleMatch2) {
+          result.title = titleMatch2[1].trim();
+          result.publisher = titleMatch2[2].replace(/,\s*\d+.*$/, "").trim();
+        }
+      }
+    }
+
+    return result;
+  };
+
+  const parseChicagoCitation = (citation: string): ParsedCitation => {
+    const result: ParsedCitation = {
+      title: "",
+      authors: "",
+      year: "",
+      publisher: "",
+      edition: "",
+    };
+
+    // Chicago: Author(s). "Title." Journal/Publisher Volume, no. Issue (Year): Pages.
+    // Example: Friston, Karl. "Prediction, perception and agency." International Journal of Psychophysiology 83, no. 2 (2012): 248-252.
+    // Multiple authors: Smith, John, and Jane Doe. "Title." Journal 1, no. 2 (2020): 1-10.
+
+    const trimmed = citation.trim();
+    
+    // Extract year: look for (YYYY) pattern
+    const yearMatch = trimmed.match(/\((\d{4})\)/);
+    if (yearMatch) {
+      result.year = yearMatch[1];
+    }
+
+    // Handle both straight and curly quotes
+    // Split by first period followed by space to separate author from title
+    // Match: Author(s). "Title." Rest
+    // Try to find the pattern: Author. "Title." Rest
+    const authorMatch = trimmed.match(/^(.+?)\.\s*(.+)$/);
+    if (authorMatch) {
+      const authors = authorMatch[1].trim();
+      const afterAuthors = authorMatch[2].trim();
+      
+      // Try to find quoted title
+      const quoteMatch = afterAuthors.match(/^(["'""])(.+?)\1\.\s*(.+)$/);
+      if (quoteMatch) {
+        result.authors = authors;
+        // Title is in group 2, extract it cleanly
+        result.title = quoteMatch[2].trim();
+        
+        // Rest is in group 3
+        let rest = quoteMatch[3].trim();
+        // Remove any leading quotes or spaces
+        rest = rest.replace(/^["'""\s]+/, "").trim();
+        
+        // Extract volume, no. issue pattern before year
+        // Pattern: Publisher Volume, no. Issue (Year)
+        const volumeIssueMatch = rest.match(/(.+?)\s+(\d+),\s*no\.\s*(\d+)\s*\(/i);
+        if (volumeIssueMatch) {
+          result.publisher = volumeIssueMatch[1].trim();
+          result.edition = `${volumeIssueMatch[2]}.${volumeIssueMatch[3]}`;
+        } else {
+          // Try without "no." (some Chicago citations omit it)
+          const volumeMatch = rest.match(/(.+?)\s+(\d+)\s*\(/);
+          if (volumeMatch) {
+            result.publisher = volumeMatch[1].trim();
+            result.edition = volumeMatch[2].trim();
+          } else {
+            // Just publisher (for books)
+            result.publisher = rest.replace(/\s*\(.*$/, "").trim();
+          }
+        }
+      } else {
+        // No quoted title found, try fallback
+        const noQuoteMatch = trimmed.match(/^(.+?)\.\s*(.+?)\.\s*(.+)$/);
+        if (noQuoteMatch) {
+          result.authors = noQuoteMatch[1].trim();
+          const titleRest = noQuoteMatch[2];
+          const titleMatch = titleRest.match(/^(.+?)(?:\s+\d|,\s*(?:Inc|Press|Publishers|Books|University|College))/i);
+          if (titleMatch) {
+            result.title = titleMatch[1].trim();
+          } else {
+            result.title = titleRest.trim();
+          }
+          const rest = noQuoteMatch[3];
+          const volumeIssueMatch = rest.match(/(.+?)\s+(\d+),\s*no\.\s*(\d+)\s*\(/i);
+          if (volumeIssueMatch) {
+            result.publisher = volumeIssueMatch[1].trim();
+            result.edition = `${volumeIssueMatch[2]}.${volumeIssueMatch[3]}`;
+          } else {
+            const volumeMatch = rest.match(/(.+?)\s+(\d+)\s*\(/);
+            if (volumeMatch) {
+              result.publisher = volumeMatch[1].trim();
+              result.edition = volumeMatch[2].trim();
+            } else {
+              result.publisher = rest.replace(/\s*\(.*$/, "").trim();
+            }
+          }
+        }
+      }
+    } else {
+      // Fallback: try without quotes (for book titles in italics or plain text)
+      const noQuoteMatch = trimmed.match(/^(.+?)\.\s*(.+?)\.\s*(.+)$/);
+      if (noQuoteMatch) {
+        result.authors = noQuoteMatch[1].trim();
+        const titleRest = noQuoteMatch[2];
+        // Title might end before a number (volume) or before common publisher words
+        const titleMatch = titleRest.match(/^(.+?)(?:\s+\d|,\s*(?:Inc|Press|Publishers|Books|University|College))/i);
+        if (titleMatch) {
+          result.title = titleMatch[1].trim();
+        } else {
+          result.title = titleRest.trim();
+        }
+        
+        const rest = noQuoteMatch[3];
+        const volumeIssueMatch = rest.match(/(.+?)\s+(\d+),\s*no\.\s*(\d+)\s*\(/i);
+        if (volumeIssueMatch) {
+          result.publisher = volumeIssueMatch[1].trim();
+          result.edition = `${volumeIssueMatch[2]}.${volumeIssueMatch[3]}`;
+        } else {
+          const volumeMatch = rest.match(/(.+?)\s+(\d+)\s*\(/);
+          if (volumeMatch) {
+            result.publisher = volumeMatch[1].trim();
+            result.edition = volumeMatch[2].trim();
+          } else {
+            result.publisher = rest.replace(/\s*\(.*$/, "").trim();
+          }
+        }
+      }
+    }
+
+    return result;
+  };
+
+  const parseCitation = (citation: string, style: CitationStyle): ParsedCitation => {
+    switch (style) {
+      case "MLA":
+        return parseMLACitation(citation);
+      case "APA":
+        return parseAPACitation(citation);
+      case "Chicago":
+        return parseChicagoCitation(citation);
+      default:
+        return { title: "", authors: "", year: "", publisher: "", edition: "" };
+    }
+  };
+
+  const handleCitationApply = () => {
+    if (!citationText.trim()) {
+      setCitationError("Please paste a citation");
+      return;
+    }
+
+    setCitationError(null);
+    
+    try {
+      const parsed = parseCitation(citationText.trim(), citationStyle);
+      
+      // Fill form fields
+      if (parsed.title) {
+        handleFieldChange("title", parsed.title);
+      }
+      if (parsed.authors) {
+        handleFieldChange("authors", parsed.authors);
+      }
+      if (parsed.year) {
+        handleFieldChange("year", parsed.year);
+      }
+      if (parsed.publisher) {
+        handleFieldChange("publisher", parsed.publisher);
+      }
+      if (parsed.edition) {
+        handleFieldChange("edition", parsed.edition);
+      }
+      
+      // Close dialog and reset
+      setCitationDialogOpen(false);
+      setCitationText("");
+      setCitationError(null);
+    } catch (error) {
+      setCitationError("Failed to parse citation. Please check the format.");
+    }
+  };
+
   if (success) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -192,15 +586,26 @@ export default function AddWorkPage() {
     <div className="container max-w-[95vw] py-8">
       {/* Header */}
       <div className="mb-6">
-        <Button
-          onClick={handleCancel}
-          variant="ghost"
-          size="sm"
-          className="gap-1 mb-4"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back
-        </Button>
+        <div className="flex items-start justify-between mb-4">
+          <Button
+            onClick={handleCancel}
+            variant="ghost"
+            size="sm"
+            className="gap-1"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </Button>
+          <Button
+            onClick={() => setCitationDialogOpen(true)}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            Citation
+          </Button>
+        </div>
         
         <h1 className="text-3xl font-bold tracking-tight">Add to Database</h1>
         <p className="text-muted-foreground mt-2">
@@ -386,6 +791,79 @@ export default function AddWorkPage() {
           </Card>
         </div>
       </div>
+
+      {/* Citation Dialog */}
+      <Dialog open={citationDialogOpen} onOpenChange={setCitationDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Parse Citation</DialogTitle>
+            <DialogDescription>
+              Paste a citation below and select the citation style to automatically fill the form fields.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="citation-style">Citation Style</Label>
+              <Select value={citationStyle} onValueChange={(value) => setCitationStyle(value as CitationStyle)}>
+                <SelectTrigger id="citation-style">
+                  <SelectValue placeholder="Select citation style" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MLA">MLA</SelectItem>
+                  <SelectItem value="APA">APA</SelectItem>
+                  <SelectItem value="Chicago">Chicago</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="citation-text">Citation Text</Label>
+              <Textarea
+                id="citation-text"
+                placeholder={`Paste ${citationStyle} citation here...\n\nExample:\n${
+                  citationStyle === "MLA"
+                    ? 'Friston, Karl. "Prediction, perception and agency." International Journal of Psychophysiology 83.2 (2012): 248-252.'
+                    : citationStyle === "APA"
+                    ? "Friston, K. (2012). Prediction, perception and agency. International Journal of Psychophysiology, 83(2), 248-252."
+                    : 'Friston, Karl. "Prediction, perception and agency." International Journal of Psychophysiology 83, no. 2 (2012): 248-252.'
+                }`}
+                value={citationText}
+                onChange={(e) => {
+                  setCitationText(e.target.value);
+                  setCitationError(null);
+                }}
+                className="min-h-32 font-mono text-sm"
+              />
+            </div>
+
+            {citationError && (
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                <div className="flex items-start gap-2 text-destructive">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm">{citationError}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCitationDialogOpen(false);
+                setCitationText("");
+                setCitationError(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCitationApply}>
+              Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
