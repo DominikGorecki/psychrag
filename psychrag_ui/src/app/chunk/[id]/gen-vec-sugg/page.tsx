@@ -127,9 +127,9 @@ export default function GenVecSuggestionsPage() {
       setOperationSuccess(data.message || "Vec suggestions saved successfully");
       setCopyDialogOpen(false);
       
-      // Redirect back to workflow page
+      // Redirect to vec-suggestions page
       setTimeout(() => {
-        router.push(`/chunk/${workId}`);
+        router.push(`/chunk/${workId}/vec-suggestions`);
       }, 1500);
     } catch (err) {
       setOperationError(err instanceof Error ? err.message : "Failed to save vec suggestions");
@@ -163,9 +163,9 @@ export default function GenVecSuggestionsPage() {
       const data = await response.json();
       setOperationSuccess(data.message || "Vec suggestions generated successfully");
       
-      // Redirect back to workflow page
+      // Redirect to vec-suggestions page
       setTimeout(() => {
-        router.push(`/chunk/${workId}`);
+        router.push(`/chunk/${workId}/vec-suggestions`);
       }, 1500);
     } catch (err) {
       setOperationError(err instanceof Error ? err.message : "Failed to run prompt");
