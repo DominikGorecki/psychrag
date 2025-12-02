@@ -32,3 +32,4 @@
 [ ] Make adding to DB easier -- pass in citation? 
 [ ] After added to DB should open up `/sanitization/15`
 [x] Manual ToC Extraction on `/conv/148/inspect_toc_titles` should have a template in settings
+[ ] Template settings edit should indicate where the template is used

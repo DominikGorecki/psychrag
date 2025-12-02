@@ -46,7 +46,7 @@ export default function WorkSanitizationPage() {
     fetchWorkDetail();
   }, [workId]);
 
-  const fetchWorkDetail = async () => {
+  const fetchWorkDetail = async (): Promise<WorkDetailResponse | null> => {
     try {
       setLoading(true);
       setError(null);
@@ -62,8 +62,10 @@ export default function WorkSanitizationPage() {
 
       const data: WorkDetailResponse = await response.json();
       setWorkDetail(data);
+      return data;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load work detail");
+      return null;
     } finally {
       setLoading(false);
     }
@@ -95,8 +97,15 @@ export default function WorkSanitizationPage() {
       const data = await response.json();
       setOperationSuccess(data.message || "Titles extracted successfully");
       
-      // Refresh work detail
-      await fetchWorkDetail();
+      // Refresh work detail and check if titles are ready
+      const updatedWorkDetail = await fetchWorkDetail();
+      
+      // Navigate to titles inspect page if extraction completed successfully
+      if (updatedWorkDetail && updatedWorkDetail.titles.exists && updatedWorkDetail.titles.hash_match) {
+        setTimeout(() => {
+          router.push(`/sanitization/${workId}/titles`);
+        }, 500);
+      }
     } catch (err) {
       setOperationError(err instanceof Error ? err.message : "Failed to extract titles");
     } finally {
