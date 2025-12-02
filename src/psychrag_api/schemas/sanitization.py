@@ -499,3 +499,76 @@ class AddSanitizedMarkdownResponse(BaseModel):
     message: str | None = Field(None, description="Success or error message")
 
 
+# Interactive title changes table schemas
+
+class HeadingRow(BaseModel):
+    """A single row in the heading changes table."""
+
+    line_num: int = Field(..., description="Line number in markdown file")
+    original_heading: str = Field(..., description="Original heading level (H1-H6)")
+    original_title: str = Field(..., description="Original title text")
+    suggested_action: str = Field(..., description="Suggested action (H1-H6 or REMOVE)")
+    suggested_title: str = Field(..., description="Suggested title text")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "line_num": 157,
+                "original_heading": "H2",
+                "original_title": "Cognitive Psychology and the Brain",
+                "suggested_action": "H1",
+                "suggested_title": "1 Cognitive Psychology and the Brain"
+            }
+        }
+
+
+class HeadingTableResponse(BaseModel):
+    """Response containing table data for title changes."""
+
+    work_id: int = Field(..., description="Work ID")
+    source_file: str = Field(..., description="Relative path to source markdown")
+    rows: list[HeadingRow] = Field(..., description="All heading rows merged with changes")
+    filename: str = Field(..., description="Title changes filename")
+    hash: str = Field(..., description="Current hash of title_changes file")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "work_id": 1,
+                "source_file": "./test3.md",
+                "rows": [
+                    {
+                        "line_num": 157,
+                        "original_heading": "H2",
+                        "original_title": "Cognitive Psychology and the Brain",
+                        "suggested_action": "H1",
+                        "suggested_title": "1 Cognitive Psychology and the Brain"
+                    }
+                ],
+                "filename": "test3.title_changes.md",
+                "hash": "abc123def456..."
+            }
+        }
+
+
+class UpdateHeadingTableRequest(BaseModel):
+    """Request to update title changes from table data."""
+
+    rows: list[HeadingRow] = Field(..., description="Updated heading rows")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "rows": [
+                    {
+                        "line_num": 157,
+                        "original_heading": "H2",
+                        "original_title": "Cognitive Psychology and the Brain",
+                        "suggested_action": "H1",
+                        "suggested_title": "1 Cognitive Psychology and the Brain"
+                    }
+                ]
+            }
+        }
+
+

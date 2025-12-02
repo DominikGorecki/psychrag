@@ -65,6 +65,10 @@ from psychrag_api.schemas.sanitization import (
     UpdateTitleChangesContentRequest,
     AddSanitizedMarkdownRequest,
     AddSanitizedMarkdownResponse,
+    # Interactive table schemas
+    HeadingRow,
+    HeadingTableResponse,
+    UpdateHeadingTableRequest,
 )
 
 router = APIRouter()
@@ -1039,7 +1043,7 @@ async def suggest_changes(request: SuggestChangesRequest) -> SuggestChangesRespo
 async def apply_changes(request: ApplyChangesRequest) -> ApplyChangesResponse:
     """
     Apply heading changes to document.
-    
+
     Legacy endpoint - consider using work-based endpoints instead.
     """
     # TODO: Implement using psychrag.sanitization.apply_title_changes
@@ -1049,3 +1053,198 @@ async def apply_changes(request: ApplyChangesRequest) -> ApplyChangesResponse:
         backup_path="/output/backup/document_backup.md",
         message=f"Stub: Would apply {len(request.changes)} changes",
     )
+
+
+# Interactive title changes table endpoints
+
+@router.get(
+    "/work/{work_id}/title-changes/table",
+    response_model=HeadingTableResponse,
+    summary="Get title changes as interactive table data",
+    description="Fetch all headings from source markdown merged with title changes suggestions for table display.",
+)
+async def get_title_changes_table(work_id: int) -> HeadingTableResponse:
+    """
+    Get title changes as structured table data (all headings merged).
+
+    Returns ALL headings from the source markdown file, with:
+    - Lines in title_changes.md: use their suggested action/title
+    - Lines NOT in title_changes.md: default to original heading/title (NO_CHANGE)
+
+    This provides complete document context for the interactive table editor.
+    """
+    from psychrag.sanitization.title_changes_interactive import get_title_changes_table_data
+    from psychrag.utils.file_utils import compute_file_hash
+
+    try:
+        # Get merged table data from module
+        table_data = get_title_changes_table_data(
+            work_id=work_id,
+            source_key="original_markdown"
+        )
+
+        # Get title_changes file info for hash and filename
+        with get_session() as session:
+            work = session.query(Work).filter(Work.id == work_id).first()
+
+            if not work:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Work with ID {work_id} not found"
+                )
+
+            # Get title_changes file info (may not exist yet)
+            title_changes_key = "title_changes"
+            if title_changes_key in work.files:
+                title_changes_info = work.files[title_changes_key]
+                filename = Path(title_changes_info["path"]).name
+                file_hash = title_changes_info["hash"]
+            else:
+                # File doesn't exist yet - use placeholder values
+                filename = f"work_{work_id}.title_changes.md"
+                file_hash = ""
+
+        return HeadingTableResponse(
+            work_id=table_data["work_id"],
+            source_file=table_data["source_file"],
+            rows=table_data["rows"],
+            filename=filename,
+            hash=file_hash
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except HashMismatchError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"File hash mismatch: {str(e)}"
+        )
+
+
+@router.put(
+    "/work/{work_id}/title-changes/table",
+    response_model=HeadingTableResponse,
+    summary="Save title changes from interactive table data",
+    description="Update title changes file from table data. Only actual changes are saved to the file.",
+)
+async def update_title_changes_table(
+    work_id: int,
+    request: UpdateHeadingTableRequest
+) -> HeadingTableResponse:
+    """
+    Save table data back to .title_changes.md file.
+
+    The backend filters rows to only save actual changes:
+    - Only rows where suggested_action != original_heading OR suggested_title != original_title
+    - If all rows are NO_CHANGE, creates empty changes section (valid state)
+    """
+    from psychrag.sanitization.title_changes_interactive import reconstruct_title_changes_markdown
+    from psychrag.utils.file_utils import (
+        compute_file_hash,
+        set_file_writable,
+        set_file_readonly,
+        is_file_readonly
+    )
+
+    try:
+        with get_session() as session:
+            work = session.query(Work).filter(Work.id == work_id).first()
+
+            if not work:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Work with ID {work_id} not found"
+                )
+
+            if not work.files:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Work {work_id} has no files metadata"
+                )
+
+            # Get source_file path from first row or construct from work files
+            if not request.rows:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="No rows provided in request"
+                )
+
+            # Determine source file from work.files
+            if "original_markdown" in work.files:
+                markdown_path = Path(work.files["original_markdown"]["path"])
+                source_file = f"./{markdown_path.name}"
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Work does not have original_markdown in files metadata"
+                )
+
+            # Convert Pydantic models to dicts for module function
+            rows_data = [row.model_dump() for row in request.rows]
+
+            # Reconstruct markdown content
+            markdown_content = reconstruct_title_changes_markdown(
+                source_file=source_file,
+                rows=rows_data
+            )
+
+            # Determine title_changes file path
+            title_changes_key = "title_changes"
+            if title_changes_key in work.files:
+                # Update existing file
+                title_changes_path = Path(work.files[title_changes_key]["path"])
+            else:
+                # Create new file
+                output_dir = markdown_path.parent
+                title_changes_path = output_dir / f"{markdown_path.stem}.title_changes.md"
+
+            # Make file writable if it exists and is read-only
+            if title_changes_path.exists() and is_file_readonly(title_changes_path):
+                set_file_writable(title_changes_path)
+
+            # Write content
+            title_changes_path.write_text(markdown_content, encoding='utf-8')
+
+            # Set read-only
+            set_file_readonly(title_changes_path)
+
+            # Compute new hash
+            new_hash = compute_file_hash(title_changes_path)
+
+            # Update work.files metadata
+            updated_files = dict(work.files) if work.files else {}
+            updated_files[title_changes_key] = {
+                "path": str(title_changes_path.resolve()),
+                "hash": new_hash
+            }
+            work.files = updated_files
+
+            session.commit()
+            session.refresh(work)
+
+            return HeadingTableResponse(
+                work_id=work_id,
+                source_file=source_file,
+                rows=request.rows,
+                filename=title_changes_path.name,
+                hash=new_hash
+            )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
