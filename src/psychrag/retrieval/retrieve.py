@@ -14,7 +14,9 @@ Usage:
 """
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
+import json
 
 import numpy as np
 import torch
@@ -25,6 +27,11 @@ from psychrag.data.database import get_session
 from psychrag.data.models import Chunk, Query, Work
 from psychrag.utils.file_utils import compute_file_hash
 from psychrag.utils.rag_config_loader import get_default_config, get_config_by_name
+
+
+# Logging configuration
+ENABLE_LOGGING = True  # Set to True to enable detailed JSON logging
+LOGS_DIR = Path("logs")
 
 
 @dataclass
@@ -76,6 +83,56 @@ DEFAULT_MIN_WORD_COUNT = 150         # minimum words in chunk.content to be incl
 DEFAULT_MIN_CHAR_COUNT = 250        # minimum characters in chunk.content to be included
 # Default MMR parameters
 DEFAULT_MMR_LAMBDA = 0.7  #0.7 Balance between relevance (1.0) and diversity (0.0)
+
+
+def _serialize_chunk_for_log(chunk: RetrievedChunk) -> dict:
+    """Serialize a RetrievedChunk to a JSON-serializable dict."""
+    return {
+        "id": chunk.id,
+        "parent_id": chunk.parent_id,
+        "work_id": chunk.work_id,
+        "content": chunk.content,
+        "enriched_content": chunk.enriched_content,
+        "start_line": chunk.start_line,
+        "end_line": chunk.end_line,
+        "level": chunk.level,
+        "heading_breadcrumbs": chunk.heading_breadcrumbs,
+        "dense_rank": chunk.dense_rank,
+        "lexical_rank": chunk.lexical_rank,
+        "rrf_score": chunk.rrf_score,
+        "rerank_score": chunk.rerank_score,
+        "entity_boost": chunk.entity_boost,
+        "final_score": chunk.final_score,
+    }
+
+
+def _log_retrieval_stage(
+    query_id: int,
+    stage: str,
+    data: dict,
+    log_data: dict
+) -> None:
+    """Log a retrieval stage to the log_data dict."""
+    if not ENABLE_LOGGING:
+        return
+    
+    log_data["stages"][stage] = {
+        "timestamp": datetime.now().isoformat(),
+        **data
+    }
+
+
+def _save_retrieval_log(query_id: int, log_data: dict) -> None:
+    """Save retrieval log to JSON file."""
+    if not ENABLE_LOGGING:
+        return
+    
+    LOGS_DIR.mkdir(exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = LOGS_DIR / f"retrieve_query_{query_id}_{timestamp}.json"
+    
+    with open(log_file, 'w', encoding='utf-8') as f:
+        json.dump(log_data, f, indent=2, ensure_ascii=False)
 
 
 def _meets_minimum_requirements(
@@ -647,6 +704,25 @@ def retrieve(
         print(f"Using RAG config preset: {config_preset or 'default'}")
         print(f"  dense_limit={dense_limit}, lexical_limit={lexical_limit}, top_n_final={top_n_final}")
 
+    # Initialize logging
+    log_data = {
+        "query_id": query_id,
+        "timestamp": datetime.now().isoformat(),
+        "config": {
+            "preset": config_preset or "default",
+            "dense_limit": dense_limit,
+            "lexical_limit": lexical_limit,
+            "rrf_k": rrf_k,
+            "top_k_rrf": top_k_rrf,
+            "top_n_final": top_n_final,
+            "entity_boost": entity_boost,
+            "min_word_count": min_word_count,
+            "min_char_count": min_char_count,
+            "mmr_lambda": mmr_lambda,
+        },
+        "stages": {}
+    }
+
     with get_session() as session:
         # Fetch query
         query = session.query(Query).filter(Query.id == query_id).first()
@@ -658,6 +734,13 @@ def retrieve(
 
         if verbose:
             print(f"Retrieving for query {query_id}: {query.original_query[:50]}...")
+
+        # Log query info
+        log_data["query"] = {
+            "original_query": query.original_query,
+            "intent": query.intent,
+            "entities": query.entities or [],
+        }
 
         # Collect all embeddings
         embeddings = []
@@ -684,23 +767,57 @@ def retrieve(
 
         # Dense retrieval
         dense_results = []
-        for emb in embeddings:
+        num_original = 1 if query.embedding_original is not None else 0
+        num_mqe = len(mqe_embeddings)
+        for idx, emb in enumerate(embeddings):
             results = _dense_search(session, emb, dense_limit)
             dense_results.append(results)
+            if ENABLE_LOGGING:
+                # Determine query type based on position
+                if idx == 0 and num_original > 0:
+                    query_type = "original"
+                elif idx < num_original + num_mqe:
+                    query_type = "mqe"
+                else:
+                    query_type = "hyde"
+                
+                log_data.setdefault("dense_queries", []).append({
+                    "query_index": idx,
+                    "query_type": query_type,
+                    "results": [{"chunk_id": chunk_id, "rank": rank} for chunk_id, rank in results]
+                })
 
         total_dense = sum(len(r) for r in dense_results)
         if verbose:
             print(f"  Dense retrieval: {total_dense} candidates")
+        
+        _log_retrieval_stage(query_id, "dense_retrieval", {
+            "total_candidates": total_dense,
+            "num_queries": len(embeddings),
+            "all_chunk_ids": list(set(chunk_id for results in dense_results for chunk_id, _ in results))
+        }, log_data)
 
         # Lexical retrieval (not using HyDE)
         lexical_results = []
-        for text in query_texts:
+        for idx, text in enumerate(query_texts):
             results = _lexical_search(session, text, lexical_limit)
             lexical_results.append(results)
+            if ENABLE_LOGGING:
+                log_data.setdefault("lexical_queries", []).append({
+                    "query_index": idx,
+                    "query_text": text[:200],  # Truncate for logging
+                    "results": [{"chunk_id": chunk_id, "rank": rank} for chunk_id, rank in results]
+                })
 
         total_lexical = sum(len(r) for r in lexical_results)
         if verbose:
             print(f"  Lexical retrieval: {total_lexical} candidates")
+        
+        _log_retrieval_stage(query_id, "lexical_retrieval", {
+            "total_candidates": total_lexical,
+            "num_queries": len(query_texts),
+            "all_chunk_ids": list(set(chunk_id for results in lexical_results for chunk_id, _ in results))
+        }, log_data)
 
         # RRF fusion
         all_results = dense_results + lexical_results
@@ -712,6 +829,13 @@ def retrieve(
 
         if verbose:
             print(f"  RRF fusion: {len(rrf_scores)} unique candidates -> top {len(top_ids)}")
+        
+        _log_retrieval_stage(query_id, "rrf_fusion", {
+            "unique_candidates": len(rrf_scores),
+            "top_k_rrf": top_k_rrf,
+            "selected_chunk_ids": top_ids,
+            "rrf_scores": {str(chunk_id): score for chunk_id, score in rrf_scores.items() if chunk_id in top_ids}
+        }, log_data)
 
         # Fetch chunk data
         chunks_data = session.query(Chunk).filter(Chunk.id.in_(top_ids)).all()
@@ -721,10 +845,19 @@ def retrieve(
             c for c in chunks_data
             if _meets_minimum_requirements(c.content, min_word_count, min_char_count)
         ]
+        filtered_out_ids = [c.id for c in chunks_data if c not in filtered_chunks]
 
         if verbose and len(filtered_chunks) < len(chunks_data):
             filtered_count = len(chunks_data) - len(filtered_chunks)
             print(f"  Filtered out {filtered_count} chunks below minimum length requirements")
+        
+        _log_retrieval_stage(query_id, "filtering", {
+            "before_count": len(chunks_data),
+            "after_count": len(filtered_chunks),
+            "filtered_out_chunk_ids": filtered_out_ids,
+            "min_word_count": min_word_count,
+            "min_char_count": min_char_count
+        }, log_data)
 
         # Build maps with embeddings for MMR diversity
         chunks_map = {c.id: c for c in filtered_chunks}
@@ -785,13 +918,29 @@ def retrieve(
             batch_size=reranker_batch_size,
             max_length=reranker_max_length
         )
+        
+        _log_retrieval_stage(query_id, "reranking", {
+            "num_candidates": len(retrieved_chunks),
+            "chunks": [_serialize_chunk_for_log(chunk) for chunk in retrieved_chunks]
+        }, log_data)
 
         # Apply entity bias
         entities = query.entities or []
         retrieved_chunks = _apply_entity_bias(retrieved_chunks, entities, entity_boost)
+        
+        _log_retrieval_stage(query_id, "entity_bias", {
+            "entities": entities,
+            "boost_per_entity": entity_boost,
+            "chunks": [_serialize_chunk_for_log(chunk) for chunk in retrieved_chunks]
+        }, log_data)
 
         # Apply intent bias
         retrieved_chunks = _apply_intent_bias(retrieved_chunks, query.intent)
+        
+        _log_retrieval_stage(query_id, "intent_bias", {
+            "intent": query.intent,
+            "chunks": [_serialize_chunk_for_log(chunk) for chunk in retrieved_chunks]
+        }, log_data)
 
         # Sort by final_score before MMR
         retrieved_chunks.sort(key=lambda x: x.final_score, reverse=True)
@@ -799,7 +948,19 @@ def retrieve(
         # Apply MMR diversity for final selection
         if verbose:
             print(f"  Applying MMR diversity selection...")
+        
+        chunks_before_mmr = [_serialize_chunk_for_log(chunk) for chunk in retrieved_chunks]
         final_chunks = _apply_mmr_diversity(retrieved_chunks, top_n_final, lambda_param=mmr_lambda)
+        
+        _log_retrieval_stage(query_id, "mmr_diversity", {
+            "lambda": mmr_lambda,
+            "top_n": top_n_final,
+            "before_count": len(retrieved_chunks),
+            "after_count": len(final_chunks),
+            "selected_chunk_ids": [chunk.id for chunk in final_chunks],
+            "chunks_before_mmr": chunks_before_mmr,
+            "final_chunks": [_serialize_chunk_for_log(chunk) for chunk in final_chunks]
+        }, log_data)
 
         if verbose:
             print(f"  Final selection: {len(final_chunks)} chunks (with diversity)")
@@ -828,6 +989,9 @@ def retrieve(
 
         if verbose:
             print(f"  Saved {len(context_data)} results to query.retrieved_context")
+
+        # Save log file
+        _save_retrieval_log(query_id, log_data)
 
         return RetrievalResult(
             query_id=query_id,

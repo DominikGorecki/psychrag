@@ -17,7 +17,10 @@ Functions:
     generate_augmented_prompt(query_id, top_n) - Generate complete RAG prompt
 """
 
+from datetime import datetime
+from pathlib import Path
 from typing import Optional
+import json
 
 from sqlalchemy.orm import Session
 
@@ -27,6 +30,11 @@ from ..data.models.query import Query
 from ..data.models.work import Work
 from ..data.template_loader import load_template
 from ..utils.rag_config_loader import get_default_config, get_config_by_name
+
+
+# Logging configuration
+ENABLE_LOGGING = True  # Set to True to enable detailed JSON logging
+LOGS_DIR = Path("logs")
 
 
 def _find_heading_from_parent(parent_id: int | None, session: Session) -> str | None:
@@ -67,6 +75,19 @@ def _find_heading_from_parent(parent_id: int | None, session: Session) -> str | 
         current_id = chunk.parent_id
 
     return None
+
+
+def _save_augmentation_log(query_id: int, log_data: dict) -> None:
+    """Save augmentation log to JSON file."""
+    if not ENABLE_LOGGING:
+        return
+    
+    LOGS_DIR.mkdir(exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file = LOGS_DIR / f"augment_query_{query_id}_{timestamp}.json"
+    
+    with open(log_file, 'w', encoding='utf-8') as f:
+        json.dump(log_data, f, indent=2, ensure_ascii=False)
 
 
 def get_query_with_context(
@@ -207,6 +228,16 @@ def generate_augmented_prompt(
         >>> print(prompt)
         You are an academic assistant...
     """
+    # Initialize logging
+    log_data = {
+        "query_id": query_id,
+        "timestamp": datetime.now().isoformat(),
+        "config": {
+            "preset": config_preset or "default",
+            "top_n": top_n,
+        }
+    }
+
     # Get query and contexts
     query, top_contexts = get_query_with_context(query_id, top_n, config_preset)
 
@@ -214,6 +245,15 @@ def generate_augmented_prompt(
     user_question = query.original_query
     intent = query.intent or "GENERAL"
     entities = query.entities or []
+
+    # Log query info
+    if ENABLE_LOGGING:
+        log_data["query"] = {
+            "original_query": user_question,
+            "intent": intent,
+            "entities": entities,
+        }
+        log_data["selected_contexts"] = top_contexts
 
     # Format entities as comma-separated string
     if isinstance(entities, list):
@@ -224,6 +264,9 @@ def generate_augmented_prompt(
     # Format context blocks
     with get_session() as session:
         context_blocks = format_context_blocks(top_contexts, session)
+        
+        if ENABLE_LOGGING:
+            log_data["formatted_context_blocks"] = context_blocks
 
     # Define fallback template builder
     def get_fallback_template():
@@ -311,10 +354,17 @@ USER QUESTION
     template = load_template("rag_augmentation", get_fallback_template)
 
     # Format template with variables
-    return template.format(
+    prompt = template.format(
         intent=intent,
         entities_str=entities_str,
         context_blocks=context_blocks,
         user_question=user_question
     )
+    
+    # Log final prompt
+    if ENABLE_LOGGING:
+        log_data["final_prompt"] = prompt
+        _save_augmentation_log(query_id, log_data)
+    
+    return prompt
 
