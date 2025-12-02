@@ -144,3 +144,73 @@ class RunVecSuggestionsResponse(BaseModel):
     success: bool = Field(..., description="Whether generation was successful")
     message: str = Field(..., description="Status message")
     output_path: str = Field(..., description="Path to the created vec_suggestions file")
+
+
+# Interactive Vec Suggestions Table Schemas
+
+class VecSuggestionRow(BaseModel):
+    """A single row in the vec suggestions table."""
+    line_num: int = Field(..., description="Line number in sanitized markdown file")
+    heading: str = Field(..., description="Full heading text with markdown symbols")
+    decision: str = Field(..., description="Vectorization decision (VECTORIZE or SKIP)")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "line_num": 155,
+                "heading": "# 1 Cognitive Psychology and the Brain",
+                "decision": "VECTORIZE"
+            }
+        }
+
+
+class VecSuggestionsTableResponse(BaseModel):
+    """Response containing table data for vec suggestions."""
+    work_id: int = Field(..., description="Work ID")
+    rows: list[VecSuggestionRow] = Field(..., description="All heading rows merged with decisions")
+    filename: str = Field(..., description="Vec suggestions filename")
+    hash: str = Field(..., description="Current hash of vec_suggestions file")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "work_id": 3,
+                "rows": [
+                    {
+                        "line_num": 155,
+                        "heading": "# 1 Cognitive Psychology and the Brain",
+                        "decision": "VECTORIZE"
+                    },
+                    {
+                        "line_num": 649,
+                        "heading": "## 2.9 References",
+                        "decision": "SKIP"
+                    }
+                ],
+                "filename": "test3.sanitized.vec_sugg.md",
+                "hash": "abc123def456..."
+            }
+        }
+
+
+class UpdateVecSuggestionsTableRequest(BaseModel):
+    """Request to update vec suggestions from table data."""
+    rows: list[VecSuggestionRow] = Field(..., description="Updated vec suggestion rows")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "rows": [
+                    {
+                        "line_num": 155,
+                        "heading": "# 1 Cognitive Psychology and the Brain",
+                        "decision": "VECTORIZE"
+                    },
+                    {
+                        "line_num": 649,
+                        "heading": "## 2.9 References",
+                        "decision": "SKIP"
+                    }
+                ]
+            }
+        }

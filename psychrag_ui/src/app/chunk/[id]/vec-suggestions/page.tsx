@@ -3,7 +3,21 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   AlertCircle,
   ChevronLeft,
@@ -22,14 +36,28 @@ import {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-export default function InspectVecSuggestionsPage() {
+interface VecSuggestionRow {
+  line_num: number;
+  heading: string;
+  decision: string; // "VECTORIZE" or "SKIP"
+}
+
+interface VecSuggestionsTableData {
+  work_id: number;
+  rows: VecSuggestionRow[];
+  filename: string;
+  hash: string;
+}
+
+export default function VecSuggestionsTablePage() {
   const params = useParams();
   const router = useRouter();
   const workId = params.id as string;
 
-  // Content states
-  const [content, setContent] = useState("");
-  const [originalContent, setOriginalContent] = useState("");
+  // Data states
+  const [tableData, setTableData] = useState<VecSuggestionsTableData | null>(null);
+  const [originalRows, setOriginalRows] = useState<VecSuggestionRow[]>([]);
+  const [currentRows, setCurrentRows] = useState<VecSuggestionRow[]>([]);
   const [modified, setModified] = useState(false);
 
   // Loading states
@@ -43,40 +71,55 @@ export default function InspectVecSuggestionsPage() {
   // Dialog states
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
 
-  // Fetch file content on mount
+  // Fetch table data on mount
   useEffect(() => {
-    fetchFileContent();
+    fetchTableData();
   }, [workId]);
 
-  // Track content modifications
+  // Track modifications
   useEffect(() => {
-    setModified(content !== originalContent);
-  }, [content, originalContent]);
+    if (originalRows.length > 0 && currentRows.length > 0) {
+      const isModified = JSON.stringify(originalRows) !== JSON.stringify(currentRows);
+      setModified(isModified);
+    }
+  }, [originalRows, currentRows]);
 
-  const fetchFileContent = async () => {
+  const fetchTableData = async () => {
     try {
       setLoading(true);
       setError(null);
 
       const response = await fetch(
-        `${API_BASE_URL}/chunk/work/${workId}/vec-suggestions/content`
+        `${API_BASE_URL}/chunk/work/${workId}/vec-suggestions/table`
       );
 
       if (!response.ok) {
         if (response.status === 404) {
-          throw new Error("Vector suggestions file not found. Generate it first.");
+          throw new Error("Vec suggestions not found. Please generate them first.");
         }
-        throw new Error(`Failed to load file: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to load table: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      setContent(data.content);
-      setOriginalContent(data.content);
+      const data: VecSuggestionsTableData = await response.json();
+      setTableData(data);
+      setOriginalRows(data.rows);
+      setCurrentRows(data.rows);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load file");
+      setError(err instanceof Error ? err.message : "Failed to load table data");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDecisionChange = (lineNum: number, newDecision: string) => {
+    setCurrentRows((prev) =>
+      prev.map((row) =>
+        row.line_num === lineNum
+          ? { ...row, decision: newDecision }
+          : row
+      )
+    );
   };
 
   const handleSave = async () => {
@@ -85,42 +128,34 @@ export default function InspectVecSuggestionsPage() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/chunk/work/${workId}/vec-suggestions/content`,
+        `${API_BASE_URL}/chunk/work/${workId}/vec-suggestions/table`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content }),
+          body: JSON.stringify({ rows: currentRows }),
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Failed to save file");
+        throw new Error(errorData.detail || "Failed to save changes");
       }
 
-      // Update original content to match saved content
-      setOriginalContent(content);
+      const updatedData: VecSuggestionsTableData = await response.json();
+      setTableData(updatedData);
+      setOriginalRows(updatedData.rows);
+      setCurrentRows(updatedData.rows);
       setModified(false);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Failed to save file");
+      setSaveError(err instanceof Error ? err.message : "Failed to save changes");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleBack = () => {
-    if (modified) {
-      const confirmLeave = confirm(
-        "You have unsaved changes. Are you sure you want to leave?"
-      );
-      if (!confirmLeave) return;
-    }
-    router.push(`/chunk/${workId}`);
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+      <div className="flex items-center justify-center h-screen">
         <Loader2Icon className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -128,171 +163,190 @@ export default function InspectVecSuggestionsPage() {
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Error</h2>
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center space-y-4">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+          <p className="text-destructive">{error}</p>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={fetchTableData}>Retry</Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/chunk/${workId}`)}
+            >
+              Back
+            </Button>
           </div>
-        </div>
-        <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
-          <div className="flex items-center gap-3 text-destructive">
-            <AlertCircle className="h-5 w-5" />
-            <p>{error}</p>
-          </div>
-          <Button onClick={fetchFileContent} variant="outline" className="mt-4">
-            Retry
-          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
+    <div className="flex flex-col h-screen">
+      {/* Header with controls */}
+      <div className="border-b bg-card p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {/* Back button */}
+          <Button
+            onClick={() => router.push(`/chunk/${workId}`)}
+            variant="ghost"
+            size="sm"
+            className="gap-1"
+          >
             <ChevronLeft className="h-4 w-4" />
+            Back
           </Button>
+
+          <div className="border-l h-8" />
+
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">
-              Vector Embedding Suggestions
-            </h2>
-            <p className="text-muted-foreground">
-              View and edit vectorization decisions for each heading
+            <h1 className="text-2xl font-bold">Vec Suggestions</h1>
+            <p className="text-sm text-muted-foreground">
+              Work ID:{" "}
+              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{workId}</code>
             </p>
           </div>
         </div>
+
+        {/* Action buttons in header */}
         <div className="flex items-center gap-2">
           <Button
+            onClick={() => setHelpDialogOpen(true)}
             variant="outline"
             size="sm"
-            onClick={() => setHelpDialogOpen(true)}
+            className="w-9 h-9 p-0"
           >
-            <HelpCircle className="h-4 w-4 mr-2" />
-            Help
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!modified || saving}
-            size="sm"
-            className="gap-2"
-          >
-            {saving ? (
-              <Loader2Icon className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            {saving ? "Saving..." : "Save Changes"}
+            <HelpCircle className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {/* Save Error Alert */}
-      {saveError && (
-        <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
-          <div className="flex items-center gap-3 text-destructive">
-            <AlertCircle className="h-5 w-5" />
-            <div>
-              <p className="font-medium">Failed to save</p>
-              <p className="text-sm">{saveError}</p>
+      {/* Main content area - interactive table */}
+      <div
+        className="flex-1 flex overflow-hidden"
+        style={{ maxHeight: "calc(100vh - 180px)" }}
+      >
+        <div className="w-full flex flex-col p-4 overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-20">Line</TableHead>
+                <TableHead className="w-2/3">Title</TableHead>
+                <TableHead className="w-1/3">Embed Vec Sugg</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {currentRows.map((row) => (
+                <TableRow key={row.line_num}>
+                  <TableCell className="font-mono text-sm">{row.line_num}</TableCell>
+                  <TableCell className="text-sm">{row.heading}</TableCell>
+                  <TableCell>
+                    <Select
+                      value={row.decision}
+                      onValueChange={(val) => handleDecisionChange(row.line_num, val)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="VECTORIZE">Vectorize</SelectItem>
+                        <SelectItem value="SKIP">Skip</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          {currentRows.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              <p>No headings found in the document.</p>
             </div>
-          </div>
+          )}
         </div>
-      )}
-
-      {/* Modified Indicator */}
-      {modified && (
-        <div className="rounded-lg border border-yellow-500 bg-yellow-50 p-3">
-          <p className="text-sm text-yellow-800">
-            You have unsaved changes. Click "Save Changes" to update the file.
-          </p>
-        </div>
-      )}
-
-      {/* Content Editor */}
-      <div className="rounded-lg border">
-        <Textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="min-h-[calc(100vh-350px)] font-mono text-sm resize-none border-0 focus-visible:ring-0"
-          placeholder="Vector suggestions..."
-        />
       </div>
+
+      {/* Bottom action bar */}
+      <div className="border-t bg-card p-4 flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          {modified && <span>Unsaved changes</span>}
+          {!modified && currentRows.length > 0 && (
+            <span className="text-green-600">All changes saved</span>
+          )}
+        </div>
+
+        <Button
+          onClick={handleSave}
+          disabled={!modified || saving}
+          size="sm"
+          className="gap-2"
+        >
+          {saving ? (
+            <Loader2Icon className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          Save
+        </Button>
+      </div>
+
+      {/* Error display */}
+      {saveError && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground px-4 py-2 rounded-md shadow-lg flex items-center gap-2 z-50">
+          <AlertCircle className="h-4 w-4" />
+          {saveError}
+        </div>
+      )}
 
       {/* Help Dialog */}
       <Dialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Vector Embedding Suggestions Help</DialogTitle>
-            <DialogDescription>
-              This file contains AI-generated decisions about which headings should be vectorized.
-            </DialogDescription>
+            <DialogTitle>Help</DialogTitle>
+            <DialogDescription>Interactive Vec Suggestions Editor</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 text-sm">
-            <div>
-              <h4 className="font-semibold mb-2">What is this file?</h4>
-              <p className="text-muted-foreground">
-                This file lists each heading from your sanitized document with a decision
-                of whether to vectorize it (VECTORIZE) or skip it (SKIP). These decisions
-                are used when creating chunks in the database.
+          <div className="py-4 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              This table shows all headings from your sanitized document. You can
+              interactively modify vectorization decisions before applying chunks.
+            </p>
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p>
+                <strong>Columns:</strong>
               </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">File Format</h4>
-              <p className="text-muted-foreground mb-2">
-                The file contains a code block with one decision per line:
-              </p>
-              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+              <ul className="list-disc list-inside space-y-1 ml-2">
                 <li>
-                  Format: <code>line_number: DECISION</code>
+                  <strong>Line</strong> - Line number in the sanitized document
                 </li>
                 <li>
-                  <strong>VECTORIZE</strong> - This heading and its content will be chunked and vectorized
+                  <strong>Title</strong> - Heading text with markdown symbols
                 </li>
                 <li>
-                  <strong>SKIP</strong> - This heading will not be included in vector search
+                  <strong>Embed Vec Sugg</strong> - Vectorize or Skip this heading
                 </li>
               </ul>
             </div>
-            <div>
-              <h4 className="font-semibold mb-2">Editing Guidelines</h4>
-              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                <li>Line numbers must match the sanitized titles file</li>
-                <li>Only use VECTORIZE or SKIP (case-sensitive)</li>
-                <li>Skip administrative sections like Table of Contents, Appendices</li>
-                <li>Vectorize main content sections with meaningful information</li>
-                <li>Changes affect which headings become searchable chunks</li>
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p>
+                <strong>Decisions:</strong>
+              </p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>
+                  <strong>Vectorize</strong> - This heading and its content will be
+                  chunked and vectorized for search
+                </li>
+                <li>
+                  <strong>Skip</strong> - This heading will not be included in vector
+                  search (use for TOC, appendices, references)
+                </li>
               </ul>
             </div>
-            <div>
-              <h4 className="font-semibold mb-2">Example Format</h4>
-              <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-{`./document.sanitized.titles.md
-
-# VECTORIZATION SUGGESTIONS
-\`\`\`
-10: SKIP
-25: VECTORIZE
-50: VECTORIZE
-75: VECTORIZE
-100: VECTORIZE
-125: SKIP
-\`\`\``}
-              </pre>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">Impact on Chunking</h4>
-              <p className="text-muted-foreground">
-                When you run "Apply Heading Chunks", only headings marked as VECTORIZE
-                will be created as chunks in the database. These chunks will then be
-                available for vector search and retrieval.
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Click <strong>Save</strong> to persist your changes. These decisions
+              affect which headings become searchable chunks when you run "Apply
+              Heading Chunks".
+            </p>
           </div>
           <DialogFooter>
             <Button onClick={() => setHelpDialogOpen(false)}>Close</Button>
@@ -302,4 +356,3 @@ export default function InspectVecSuggestionsPage() {
     </div>
   );
 }
-

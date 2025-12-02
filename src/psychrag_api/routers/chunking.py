@@ -11,6 +11,8 @@ Endpoints:
     PUT  /chunking/work/{work_id}/san-titles/content         - Update sanitized titles content
     GET  /chunking/work/{work_id}/vec-suggestions/content    - Get vec suggestions content
     PUT  /chunking/work/{work_id}/vec-suggestions/content    - Update vec suggestions content
+    GET  /chunking/work/{work_id}/vec-suggestions/table      - Get vec suggestions as table data
+    PUT  /chunking/work/{work_id}/vec-suggestions/table      - Update vec suggestions from table data
     GET  /chunking/work/{work_id}/vec-suggestions/prompt     - Get LLM prompt for vec suggestions
     POST /chunking/work/{work_id}/vec-suggestions/manual     - Save manual vec suggestions response
     POST /chunking/work/{work_id}/vec-suggestions/run        - Run vec suggestions with LLM
@@ -47,6 +49,9 @@ from psychrag_api.schemas.chunking import (
     RunVecSuggestionsResponse,
     ApplyHeadingChunksResponse,
     ApplyContentChunksResponse,
+    VecSuggestionRow,
+    VecSuggestionsTableResponse,
+    UpdateVecSuggestionsTableRequest,
 )
 
 router = APIRouter(tags=["chunking"])
@@ -773,4 +778,213 @@ async def run_vec_suggestions(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to run vec suggestions: {e}"
+        )
+
+
+@router.get(
+    "/work/{work_id}/vec-suggestions/table",
+    response_model=VecSuggestionsTableResponse,
+    summary="Get vec suggestions as table data",
+    description="Returns ALL headings from sanitized.md merged with vectorization decisions from sanitized.vec_sugg.md.",
+)
+async def get_vec_suggestions_table(work_id: int) -> VecSuggestionsTableResponse:
+    """Get vec suggestions as structured table data."""
+    from psychrag.chunking.vec_suggestions_interactive import get_vec_suggestions_table_data
+
+    try:
+        # Get merged table data (this will auto-detect vec_sugg file if it exists on disk)
+        table_data = get_vec_suggestions_table_data(work_id=work_id, force=False)
+
+        # Get file info for hash and filename
+        # Try database first, then fall back to auto-detected path from table_data
+        with get_session() as session:
+            work = session.query(Work).filter(Work.id == work_id).first()
+
+            if not work:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Work with ID {work_id} not found"
+                )
+
+            if not work.files:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Work {work_id} has no files metadata"
+                )
+
+            # Check if vec_suggestions is in database metadata - use exact key 'vec_suggestions'
+            if "vec_suggestions" in work.files:
+                vec_sugg_info = work.files["vec_suggestions"]
+                
+                # Ensure we have the required fields
+                if not isinstance(vec_sugg_info, dict) or "path" not in vec_sugg_info:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail=f"Invalid vec_suggestions metadata structure in work {work_id}"
+                    )
+                
+                vec_sugg_path = Path(vec_sugg_info["path"])
+                # Resolve to absolute path in case it's relative
+                if not vec_sugg_path.is_absolute():
+                    vec_sugg_path = vec_sugg_path.resolve()
+                
+                # Verify file actually exists on disk
+                if not vec_sugg_path.exists():
+                    # File is in database but doesn't exist on disk - try auto-detection
+                    if "vec_sugg_path" in table_data:
+                        vec_sugg_path = Path(table_data["vec_sugg_path"]).resolve()
+                        if not vec_sugg_path.exists():
+                            raise HTTPException(
+                                status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Vec suggestions file not found on disk. Database path: {work.files['vec_suggestions']['path']}, Auto-detected path: {vec_sugg_path}"
+                            )
+                    else:
+                        raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Vec suggestions file not found on disk: {vec_sugg_path}. File is registered in database at path: {work.files['vec_suggestions']['path']}"
+                        )
+                
+                filename = vec_sugg_path.name
+                file_hash = vec_sugg_info.get("hash") or compute_file_hash(vec_sugg_path)
+            elif "vec_sugg_path" in table_data:
+                # File exists on disk but not in database - use auto-detected path
+                vec_sugg_path = Path(table_data["vec_sugg_path"]).resolve()
+                if not vec_sugg_path.exists():
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Vec suggestions file not found on disk: {vec_sugg_path}"
+                    )
+                filename = vec_sugg_path.name
+                file_hash = table_data.get("vec_sugg_hash") or compute_file_hash(vec_sugg_path)
+            else:
+                # No vec_suggestions file found at all
+                available_keys = list(work.files.keys()) if work.files else []
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Work {work_id} does not have 'vec_suggestions' in files metadata. Available keys: {available_keys}. Please generate vec suggestions first."
+                )
+
+        return VecSuggestionsTableResponse(
+            work_id=table_data["work_id"],
+            rows=table_data["rows"],
+            filename=filename,
+            hash=file_hash
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except HashMismatchError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Hash mismatch - file may have been modified externally: {e}"
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load vec suggestions table: {e}"
+        )
+
+
+@router.put(
+    "/work/{work_id}/vec-suggestions/table",
+    response_model=VecSuggestionsTableResponse,
+    summary="Update vec suggestions from table data",
+    description="Saves table data back to the vec_suggestions file.",
+)
+async def update_vec_suggestions_table(
+    work_id: int,
+    request: UpdateVecSuggestionsTableRequest
+) -> VecSuggestionsTableResponse:
+    """Update vec suggestions file from table data."""
+    from psychrag.chunking.vec_suggestions_interactive import (
+        get_vec_suggestions_table_data,
+        reconstruct_vec_suggestions_markdown
+    )
+
+    try:
+        # Validate work exists and has vec_suggestions file
+        with get_session() as session:
+            work = session.query(Work).filter(Work.id == work_id).first()
+
+            if not work:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Work with ID {work_id} not found"
+                )
+
+            if not work.files or "vec_suggestions" not in work.files:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Work {work_id} does not have vec_suggestions file"
+                )
+
+            vec_sugg_info = work.files["vec_suggestions"]
+            vec_sugg_path = Path(vec_sugg_info["path"])
+
+        # Reconstruct markdown from table data
+        rows_dict = [row.model_dump() for row in request.rows]
+        markdown_content = reconstruct_vec_suggestions_markdown(rows_dict)
+
+        # Write file (make writable, write, set read-only)
+        set_file_writable(vec_sugg_path)
+        vec_sugg_path.write_text(markdown_content, encoding='utf-8')
+        set_file_readonly(vec_sugg_path)
+
+        # Update hash in database
+        # Need to create a new dict to trigger SQLAlchemy's change detection for JSON columns
+        new_hash = compute_file_hash(vec_sugg_path)
+        with get_session() as session:
+            work = session.query(Work).filter(Work.id == work_id).first()
+            
+            if not work:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Work with ID {work_id} not found"
+                )
+            
+            # Create new dict to trigger SQLAlchemy change detection
+            updated_files = dict(work.files) if work.files else {}
+            updated_files["vec_suggestions"] = {
+                "path": str(vec_sugg_path.resolve()),
+                "hash": new_hash
+            }
+            work.files = updated_files
+            session.commit()
+            session.refresh(work)
+
+        # Return updated table data
+        updated_table_data = get_vec_suggestions_table_data(work_id=work_id, force=False)
+
+        return VecSuggestionsTableResponse(
+            work_id=updated_table_data["work_id"],
+            rows=updated_table_data["rows"],
+            filename=vec_sugg_path.name,
+            hash=new_hash
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except HashMismatchError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Hash mismatch - file may have been modified externally: {e}"
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update vec suggestions: {e}"
         )
