@@ -217,6 +217,10 @@ export default function GeneratePage() {
       setViewMode("response");
       // Refresh results count since we just created a new result
       await fetchResultsCount();
+      // Redirect to the result detail page
+      if (data.result_id) {
+        router.push(`/rag/${queryId}/results/${data.result_id}`);
+      }
     } catch (err) {
       setOperationError(err instanceof Error ? err.message : "Failed to save response");
     } finally {
@@ -252,6 +256,10 @@ export default function GeneratePage() {
       setViewMode("response");
       // Refresh results count since we just created a new result
       await fetchResultsCount();
+      // Redirect to the result detail page
+      if (data.result_id) {
+        router.push(`/rag/${queryId}/results/${data.result_id}`);
+      }
     } catch (err) {
       setOperationError(err instanceof Error ? err.message : "Failed to run prompt");
     } finally {

@@ -6,14 +6,14 @@
 [ ] branching off of query for customization 
 [x] custom templates
 [ ] Add corpus to `work`: psychology, philosophy, medicine, chemistry, etc.
-[ ] 
+[ ] Queue for automatically importing PDFs and Epub
+ 
 
 ## Minor Improvements
 
 [ ] `sanitization/[id]/title-changes` -- make dynamic -- show changes, allow user to change them interactively
 
 
-[ ] Add URL prop to `work`
 [ ] Semantic Chunking
 [ ] Lock Document -- simplify cleaning
 
@@ -33,3 +33,6 @@
 [ ] After added to DB should open up `/sanitization/15`
 [x] Manual ToC Extraction on `/conv/148/inspect_toc_titles` should have a template in settings
 [ ] Template settings edit should indicate where the template is used
+[ ] Add sources to the results page
+[ ] For results I want to track the LLM used -- manual input show drop-down
+[ ]
