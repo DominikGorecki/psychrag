@@ -7,17 +7,15 @@
 [x] custom templates
 [ ] Add corpus to `work`: psychology, philosophy, medicine, chemistry, etc.
 [ ] Queue for automatically importing PDFs and Epub
+[ ] Semantic Chunking
  
 
 ## Minor Improvements
 
-[ ] `sanitization/[id]/title-changes` -- make dynamic -- show changes, allow user to change them interactively
-
-
-[ ] Semantic Chunking
+[x] `sanitization/[id]/title-changes` -- make dynamic -- show changes, allow user to change them interactively
 [ ] Lock Document -- simplify cleaning
-
 [ ] CONVERSION - Manual ToC LLM call not templated
+[ ] Works should have all the columns for a bibliography 
 
 ## TO-DO 
 [x] Sanitization - Suggested title changes -- should be more visual--change from, to, etc. 
@@ -31,3 +29,4 @@
 [ ] Add sources to the results page
 [ ] For results I want to track the LLM used -- manual input show drop-down
 [ ] On vectorize suggestion page--option to set everything as vectorize (generate automatically)
+[ ] Automatic toc generation -- send md with prompt

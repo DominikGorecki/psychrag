@@ -552,6 +552,48 @@ class AddWorkRequest(BaseModel):
         description="Edition information (optional)",
         example="8th Edition",
     )
+    volume: str | None = Field(
+        default=None,
+        max_length=50,
+        description="Volume number for journals/periodicals (optional)",
+        example="83",
+    )
+    issue: str | None = Field(
+        default=None,
+        max_length=50,
+        description="Issue number for journals/periodicals (optional)",
+        example="2",
+    )
+    pages: str | None = Field(
+        default=None,
+        max_length=50,
+        description="Page range (optional)",
+        example="248-252",
+    )
+    url: str | None = Field(
+        default=None,
+        max_length=1000,
+        description="URL for the work (optional)",
+        example="https://doi.org/10.1016/j.ijpsycho.2012.05.010",
+    )
+    city: str | None = Field(
+        default=None,
+        max_length=100,
+        description="City of publication (optional)",
+        example="New York",
+    )
+    institution: str | None = Field(
+        default=None,
+        max_length=255,
+        description="Institution for theses/dissertations (optional)",
+        example="University of London",
+    )
+    editor: str | None = Field(
+        default=None,
+        max_length=1000,
+        description="Editor(s) of the work (optional)",
+        example="Karl Friston, Christopher Frith",
+    )
 
     class Config:
         json_schema_extra = {
@@ -562,6 +604,13 @@ class AddWorkRequest(BaseModel):
                 "publisher": "Psychology Press",
                 "isbn": "978-1138482678",
                 "edition": "8th Edition",
+                "volume": None,
+                "issue": None,
+                "pages": None,
+                "url": None,
+                "city": "London",
+                "institution": None,
+                "editor": None,
             }
         }
 

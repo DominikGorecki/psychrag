@@ -33,6 +33,13 @@ interface FormData {
   publisher: string;
   isbn: string;
   edition: string;
+  volume: string;
+  issue: string;
+  pages: string;
+  url: string;
+  city: string;
+  institution: string;
+  editor: string;
 }
 
 interface FormErrors {
@@ -54,6 +61,13 @@ interface ParsedCitation {
   year: string;
   publisher: string;
   edition: string;
+  volume: string;
+  issue: string;
+  pages: string;
+  url: string;
+  city: string;
+  institution: string;
+  editor: string;
 }
 
 export default function AddWorkPage() {
@@ -68,6 +82,13 @@ export default function AddWorkPage() {
     publisher: "",
     isbn: "",
     edition: "",
+    volume: "",
+    issue: "",
+    pages: "",
+    url: "",
+    city: "",
+    institution: "",
+    editor: "",
   });
 
   const [formErrors, setFormErrors] = useState<FormErrors>({});
@@ -162,6 +183,27 @@ export default function AddWorkPage() {
       if (formData.edition.trim()) {
         requestBody.edition = formData.edition.trim();
       }
+      if (formData.volume.trim()) {
+        requestBody.volume = formData.volume.trim();
+      }
+      if (formData.issue.trim()) {
+        requestBody.issue = formData.issue.trim();
+      }
+      if (formData.pages.trim()) {
+        requestBody.pages = formData.pages.trim();
+      }
+      if (formData.url.trim()) {
+        requestBody.url = formData.url.trim();
+      }
+      if (formData.city.trim()) {
+        requestBody.city = formData.city.trim();
+      }
+      if (formData.institution.trim()) {
+        requestBody.institution = formData.institution.trim();
+      }
+      if (formData.editor.trim()) {
+        requestBody.editor = formData.editor.trim();
+      }
 
       const response = await fetch(
         `${API_BASE_URL}/conv/add-to-database/${fileId}`,
@@ -218,6 +260,13 @@ export default function AddWorkPage() {
       year: "",
       publisher: "",
       edition: "",
+      volume: "",
+      issue: "",
+      pages: "",
+      url: "",
+      city: "",
+      institution: "",
+      editor: "",
     };
 
     // MLA: Author(s). "Title." Journal/Publisher Volume.Issue (Year): Pages.
@@ -342,6 +391,13 @@ export default function AddWorkPage() {
       year: "",
       publisher: "",
       edition: "",
+      volume: "",
+      issue: "",
+      pages: "",
+      url: "",
+      city: "",
+      institution: "",
+      editor: "",
     };
 
     // APA: Author(s). (Year). Title. Journal/Publisher, Volume(Issue), Pages.
@@ -408,6 +464,13 @@ export default function AddWorkPage() {
       year: "",
       publisher: "",
       edition: "",
+      volume: "",
+      issue: "",
+      pages: "",
+      url: "",
+      city: "",
+      institution: "",
+      editor: "",
     };
 
     // Chicago: Author(s). "Title." Journal/Publisher Volume, no. Issue (Year): Pages.
@@ -531,7 +594,7 @@ export default function AddWorkPage() {
       case "Chicago":
         return parseChicagoCitation(citation);
       default:
-        return { title: "", authors: "", year: "", publisher: "", edition: "" };
+        return { title: "", authors: "", year: "", publisher: "", edition: "", volume: "", issue: "", pages: "", url: "", city: "", institution: "", editor: "" };
     }
   };
 
@@ -561,6 +624,27 @@ export default function AddWorkPage() {
       }
       if (parsed.edition) {
         handleFieldChange("edition", parsed.edition);
+      }
+      if (parsed.volume) {
+        handleFieldChange("volume", parsed.volume);
+      }
+      if (parsed.issue) {
+        handleFieldChange("issue", parsed.issue);
+      }
+      if (parsed.pages) {
+        handleFieldChange("pages", parsed.pages);
+      }
+      if (parsed.url) {
+        handleFieldChange("url", parsed.url);
+      }
+      if (parsed.city) {
+        handleFieldChange("city", parsed.city);
+      }
+      if (parsed.institution) {
+        handleFieldChange("institution", parsed.institution);
+      }
+      if (parsed.editor) {
+        handleFieldChange("editor", parsed.editor);
       }
 
       // Close dialog and reset
@@ -616,10 +700,29 @@ export default function AddWorkPage() {
       if (parsed.isbn) {
         handleFieldChange("isbn", parsed.isbn);
       }
-      // Map volume/issue to edition field if present
-      if (parsed.volume || parsed.issue) {
-        const edition = [parsed.volume, parsed.issue].filter(Boolean).join(".");
-        handleFieldChange("edition", edition);
+      // Map volume and issue to their own fields now
+      if (parsed.volume) {
+        handleFieldChange("volume", parsed.volume.toString());
+      }
+      if (parsed.issue) {
+        handleFieldChange("issue", parsed.issue.toString());
+      }
+      if (parsed.pages) {
+        handleFieldChange("pages", parsed.pages);
+      }
+      if (parsed.url) {
+        handleFieldChange("url", parsed.url);
+      }
+      if (parsed.city) {
+        handleFieldChange("city", parsed.city);
+      }
+      if (parsed.institution) {
+        handleFieldChange("institution", parsed.institution);
+      }
+      if (parsed.editor && Array.isArray(parsed.editor)) {
+        handleFieldChange("editor", parsed.editor.join(", "));
+      } else if (parsed.editor) {
+        handleFieldChange("editor", parsed.editor);
       }
 
       // Close dialog and reset
@@ -786,6 +889,112 @@ export default function AddWorkPage() {
                     Optional: Edition information
                   </p>
                 </div>
+
+                {/* Volume - Optional */}
+                <div className="space-y-2">
+                  <Label htmlFor="volume">Volume</Label>
+                  <Input
+                    id="volume"
+                    type="text"
+                    value={formData.volume}
+                    onChange={(e) => handleFieldChange("volume", e.target.value)}
+                    placeholder="e.g., 83"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Volume number for journals/periodicals
+                  </p>
+                </div>
+
+                {/* Issue - Optional */}
+                <div className="space-y-2">
+                  <Label htmlFor="issue">Issue</Label>
+                  <Input
+                    id="issue"
+                    type="text"
+                    value={formData.issue}
+                    onChange={(e) => handleFieldChange("issue", e.target.value)}
+                    placeholder="e.g., 2"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Issue number for journals/periodicals
+                  </p>
+                </div>
+
+                {/* Pages - Optional */}
+                <div className="space-y-2">
+                  <Label htmlFor="pages">Pages</Label>
+                  <Input
+                    id="pages"
+                    type="text"
+                    value={formData.pages}
+                    onChange={(e) => handleFieldChange("pages", e.target.value)}
+                    placeholder="e.g., 248-252"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Page range
+                  </p>
+                </div>
+
+                {/* URL - Optional */}
+                <div className="space-y-2">
+                  <Label htmlFor="url">URL</Label>
+                  <Input
+                    id="url"
+                    type="text"
+                    value={formData.url}
+                    onChange={(e) => handleFieldChange("url", e.target.value)}
+                    placeholder="e.g., https://doi.org/10.1016/..."
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: URL or DOI link
+                  </p>
+                </div>
+
+                {/* City - Optional */}
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    type="text"
+                    value={formData.city}
+                    onChange={(e) => handleFieldChange("city", e.target.value)}
+                    placeholder="e.g., New York"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: City of publication
+                  </p>
+                </div>
+
+                {/* Institution - Optional */}
+                <div className="space-y-2">
+                  <Label htmlFor="institution">Institution</Label>
+                  <Input
+                    id="institution"
+                    type="text"
+                    value={formData.institution}
+                    onChange={(e) => handleFieldChange("institution", e.target.value)}
+                    placeholder="e.g., University of London"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Institution for theses/dissertations
+                  </p>
+                </div>
+
+                {/* Editor - Optional */}
+                <div className="space-y-2">
+                  <Label htmlFor="editor">Editor(s)</Label>
+                  <Input
+                    id="editor"
+                    type="text"
+                    value={formData.editor}
+                    onChange={(e) => handleFieldChange("editor", e.target.value)}
+                    placeholder="e.g., Karl Friston, Christopher Frith"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Editor(s) of the work
+                  </p>
+                </div>
+
 
                 {/* Error Display */}
                 {submitError && (

@@ -42,6 +42,13 @@ def create_new_work(
     publisher: Optional[str] = None,
     isbn: Optional[str] = None,
     edition: Optional[str] = None,
+    volume: Optional[str] = None,
+    issue: Optional[str] = None,
+    pages: Optional[str] = None,
+    url: Optional[str] = None,
+    city: Optional[str] = None,
+    institution: Optional[str] = None,
+    editor: Optional[str] = None,
     check_duplicates: bool = True,
     verbose: bool = False
 ) -> Work:
@@ -55,7 +62,14 @@ def create_new_work(
         year: Year of publication (optional).
         publisher: Publisher name (optional).
         isbn: ISBN for books (optional).
-        edition: Edition information (optional, stored in abstract field).
+        edition: Edition information (optional).
+        volume: Volume number for journals/periodicals (optional).
+        issue: Issue number for journals/periodicals (optional).
+        pages: Page range (optional).
+        url: URL for the work (optional).
+        city: City of publication (optional).
+        institution: Institution for theses/dissertations (optional).
+        editor: Editor(s) of the work (optional).
         check_duplicates: If True, check for duplicate content_hash (default: True).
         verbose: If True, print warning messages for TOC issues (default: False).
 
@@ -155,7 +169,14 @@ def create_new_work(
         year=year,
         publisher=publisher,
         isbn=isbn,
-        abstract=edition,  # Store edition in abstract field as per your instruction
+        edition=edition,
+        volume=volume,
+        issue=issue,
+        pages=pages,
+        url=url,
+        city=city,
+        institution=institution,
+        editor=editor,
         content_hash=content_hash,
         toc=toc_data,
         files=files_metadata if files_metadata else None

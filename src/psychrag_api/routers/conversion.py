@@ -1195,6 +1195,13 @@ async def add_to_database(
                 publisher=request.publisher,
                 isbn=request.isbn,
                 edition=request.edition,
+                volume=request.volume,
+                issue=request.issue,
+                pages=request.pages,
+                url=request.url,
+                city=request.city,
+                institution=request.institution,
+                editor=request.editor,
                 check_duplicates=True,
                 verbose=False,
             )
