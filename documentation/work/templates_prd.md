@@ -23,7 +23,8 @@ This project is about creating templates for  we can modify in the UI. It should
   * Query Expansion (MQE + HyDE) - src/psychrag/retrieval/query_expansion.py
   * RAG Augmented Prompt - src/psychrag/augmentation/augment.py
   * Vectorization Suggestions - src/psychrag/chunking/suggested_chunks.py
-  * Heading Hierarchy Corrections - src/psychrag/sanitization/suggest_heading_changes.p
+  * Heading Hierarchy Corrections - src/psychrag/sanitization/suggest_heading_changes.py
+  * Manual ToC Extraction - src/psychrag/conversions/manual_prompt__toc_titles.md (static prompt, no variables)
 
 * Use existing prompts the V1 versions but leave as fallback in case there isn't anything in the DB -- add to migration script
 * Use PromptTemplate from langchain_core.prompts

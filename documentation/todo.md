@@ -26,3 +26,9 @@
 ## TODO for UI
 
 [ ] Add a "Corpus" link below RAG -- have an HR
+
+## Going over process e2e manually
+
+[ ] Make adding to DB easier -- pass in citation? 
+[ ] After added to DB should open up `/sanitization/15`
+[x] Manual ToC Extraction on `/conv/148/inspect_toc_titles` should have a template in settings

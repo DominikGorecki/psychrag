@@ -101,3 +101,7 @@ INSERT INTO prompt_meta (function_tag, variables) VALUES
 "variable_description": "The raw markdown-style list of document headings, including line numbers and title text, that must be analyzed and labeled as SKIP or VECTORIZE."
 }
 ]'::jsonb);
+
+-- ToC extraction (manual prompt - no variables, static template)
+INSERT INTO prompt_meta (function_tag, variables) VALUES
+('toc_extraction', '[]'::jsonb);

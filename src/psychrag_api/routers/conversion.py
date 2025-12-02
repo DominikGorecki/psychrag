@@ -973,34 +973,41 @@ async def select_file(
 async def get_manual_prompt_toc_titles() -> ManualPromptResponse:
     """
     Get the manual prompt content for TOC titles extraction.
-    
-    This endpoint returns the content of manual_prompt__toc_titles.md which
-    users can copy and paste to their favorite LLM along with the PDF to
-    manually extract TOC titles.
-    
+
+    This endpoint loads the active toc_extraction template from the database,
+    falling back to the manual_prompt__toc_titles.md file if no template exists.
+    Users can copy and paste this prompt to their favorite LLM along with the PDF
+    to manually extract TOC titles.
+
     Returns:
         ManualPromptResponse with the prompt content
     """
     try:
-        # Use pathlib to construct the path more reliably
-        import sys
-        from pathlib import Path as PathLib
-        
-        # Get the project root (where src/ is located)
-        # The API router is in src/psychrag_api/routers/conversion.py
-        current_file = PathLib(__file__).resolve()
-        src_dir = current_file.parent.parent.parent  # Go up from routers -> psychrag_api -> src
-        
-        prompt_path = src_dir / "psychrag" / "conversions" / "manual_prompt__toc_titles.md"
-        
-        if not prompt_path.exists():
-            raise FileNotFoundError(f"Prompt file not found at: {prompt_path}")
-        
-        # Read the prompt file
-        content = prompt_path.read_text(encoding="utf-8")
-        
+        # Import template loader
+        from psychrag.data.template_loader import load_template
+
+        # Define fallback function that reads from file
+        def get_fallback_prompt() -> str:
+            from pathlib import Path as PathLib
+
+            # Get the project root (where src/ is located)
+            current_file = PathLib(__file__).resolve()
+            src_dir = current_file.parent.parent.parent
+            prompt_path = src_dir / "psychrag" / "conversions" / "manual_prompt__toc_titles.md"
+
+            if not prompt_path.exists():
+                raise FileNotFoundError(f"Prompt file not found at: {prompt_path}")
+
+            return prompt_path.read_text(encoding="utf-8")
+
+        # Load template from database with file fallback
+        template = load_template("toc_extraction", get_fallback_prompt)
+
+        # Since this template has no variables, the template string is the content
+        content = template.template
+
         return ManualPromptResponse(content=content)
-        
+
     except FileNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

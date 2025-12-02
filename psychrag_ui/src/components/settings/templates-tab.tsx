@@ -33,6 +33,7 @@ const FUNCTION_LABELS: Record<string, string> = {
   rag_augmentation: "RAG Augmented Prompt",
   vectorization_suggestions: "Vectorization Suggestions",
   heading_hierarchy: "Heading Hierarchy Corrections",
+  toc_extraction: "Manual ToC Extraction",
 };
 
 export function TemplatesTabContent() {
