@@ -1,24 +1,66 @@
-name: Deploy docs
-on:
-  push:
-    branches: [ master, main ]
+# docs/mkdocs.yml
+site_name: Psychrag
+site_url: https://dominikgorecki.github.io/psychrag/   # change if you use a custom domain
+repo_url: https://github.com/DominikGorecki/psychrag
+repo_name: DominikGorecki/psychrag
+edit_uri: edit/master/docs/          # change "master" → "main" if you ever rename the branch
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: docs      # ← NEW: run everything inside docs/
-    steps:
-      - uses: actions/checkout@v4
+# ←←← THIS IS THE FIX FOR YOUR ERROR ←←←
+docs_dir: .               # source markdown files are here (inside docs/)
+site_dir: build           # build output goes into docs/build/ → no overlap!
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+# Optional but strongly recommended plugins
+plugins:
+  - search
+  - mkdocstrings:
+      default_options: members,show_source,inherited_members
 
-      - name: Deploy to GitHub Pages
-        run: mkdocs gh-deploy --force --config-file mkdocs.yml
+# Navigation – MkDocs will auto-generate this if you use mkdocs-literate-nav,
+# but this simple version works perfectly for small-to-medium projects
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - API Reference: api.md
+  - Contributing: contributing.md
+
+# Optional extras most people add
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/DominikGorecki/psychrag
