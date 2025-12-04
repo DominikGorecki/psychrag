@@ -59,6 +59,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest",
+    "pytest-markdown-docs",
+    "pytest-html",
     "ruff",
 ]
 
