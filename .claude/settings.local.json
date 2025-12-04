@@ -19,7 +19,8 @@
       "Bash(cmd /c \"dir /b /s c:\\code\\python\\psychRAG-test\\*api*.py 2>nul | head -10\")",
       "Bash(cmd /c \"dir /b 2>nul\")",
       "Bash(venvScriptspython.exe -m pytest tests/unit/test_rag_config_api.py -v)",
-      "Bash(cmd /c \"dir /s /b c:\\code\\python\\psychRAG-test\\docs\")"
+      "Bash(cmd /c \"dir /s /b c:\\code\\python\\psychRAG-test\\docs\")",
+      "Bash(cmd /c \"dir /b /s c:\\code\\python\\psychRAG-test\\src 2>nul | head -20\")"
     ],
     "deny": [],
     "ask": []
