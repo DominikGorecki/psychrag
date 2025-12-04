@@ -4,6 +4,7 @@ Unit tests for conversion API endpoints (file-content, suggestion, select-file).
 
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
+import shutil
 
 import pytest
 from fastapi import HTTPException
@@ -26,10 +27,10 @@ class TestGetFileContent:
     @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     @patch("psychrag_api.routers.conversion.load_config")
-    @patch("pathlib.Path.read_text")
+    @patch("psychrag_api.routers.conversion.extract_titles")
     @patch("pathlib.Path.exists")
     async def test_get_style_file_success(
-        self, mock_exists, mock_read_text, mock_load_config, mock_get_session
+        self, mock_exists, mock_extract_titles, mock_load_config, mock_get_session
     ):
         """Test successful retrieval of style.md file."""
         # Mock database
@@ -47,7 +48,8 @@ class TestGetFileContent:
 
         # Mock file operations
         mock_exists.return_value = True
-        mock_read_text.return_value = "# Test Content"
+        # extract_titles returns a list of titles (without line numbers for this test)
+        mock_extract_titles.return_value = ["# Test Content"]
 
         response = await get_file_content(1, "style")
 
@@ -115,10 +117,12 @@ class TestUpdateFileContent:
     @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     @patch("psychrag_api.routers.conversion.load_config")
+    @patch("psychrag_api.routers.conversion.extract_titles")
+    @patch("psychrag.sanitization.apply_title_edits.Path.read_text")
     @patch("pathlib.Path.write_text")
     @patch("pathlib.Path.exists")
     async def test_update_file_success(
-        self, mock_exists, mock_write_text, mock_load_config, mock_get_session
+        self, mock_exists, mock_write_text, mock_read_text, mock_extract_titles, mock_load_config, mock_get_session
     ):
         """Test successful file update."""
         # Mock database
@@ -136,13 +140,17 @@ class TestUpdateFileContent:
 
         # File exists
         mock_exists.return_value = True
+        # Mock read_text for apply_title_edits (it reads the file to apply edits)
+        mock_read_text.return_value = "# Original Content"
+        # Mock extract_titles to return the updated content
+        mock_extract_titles.return_value = ["# Updated Content"]
 
         request = FileContentUpdateRequest(content="# Updated Content")
         response = await update_file_content(1, "hier", request)
 
         assert response.content == "# Updated Content"
         assert response.filename == "test.hier.md"
-        mock_write_text.assert_called_once()
+        # apply_title_edits should have been called (it writes internally)
 
     @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
@@ -271,7 +279,7 @@ class TestSelectFile:
     @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     @patch("psychrag_api.routers.conversion.load_config")
-    @patch("psychrag_api.routers.conversion.shutil.copy2")
+    @patch("shutil.copy2")
     @patch("pathlib.Path.exists")
     async def test_select_file_success(
         self, mock_exists, mock_copy2, mock_load_config, mock_get_session
