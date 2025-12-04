@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import String, Text, Integer, DateTime, func, JSON
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base
 
@@ -86,6 +86,9 @@ class Work(Base):
         onupdate=func.now(),
         nullable=False
     )
+
+    # Relationships
+    chunks = relationship("Chunk", back_populates="work", passive_deletes=True)
 
     def __repr__(self) -> str:
         return f"<Work(id={self.id}, title='{self.title[:50]}...')>"

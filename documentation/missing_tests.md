@@ -384,7 +384,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 
 ---
 
-### `psychrag/data/` - Data Models and Database
+### `psychrag/data/` - Data Models and Database - DONE
 
 #### `data/db_health_check.py`
 **Status:** ❌ Missing tests
@@ -501,16 +501,6 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test error handling
 - Mock embedding API calls
 
-#### `retrieval/query_embeddings_cli.py`
-**Status:** ❌ Missing tests
-**Functions/Classes:**
-- CLI interface for query embeddings
-- Command-line argument parsing
-
-**Test Requirements:**
-- Test CLI argument parsing
-- Test CLI workflow execution
-
 #### `retrieval/query_expansion.py`
 **Status:** ❌ Missing tests
 **Functions/Classes:**
@@ -528,16 +518,6 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test database saving
 - Mock LLM calls
 
-#### `retrieval/query_expansion_cli.py`
-**Status:** ❌ Missing tests
-**Functions/Classes:**
-- CLI interface for query expansion
-- Command-line argument parsing
-
-**Test Requirements:**
-- Test CLI argument parsing
-- Test CLI workflow execution
-
 #### `retrieval/retrieve.py`
 **Status:** ❌ Missing tests
 **Functions/Classes:**
@@ -554,18 +534,6 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test top-k retrieval
 - Test edge cases (no matches, empty database)
 
-#### `retrieval/retrieve_cli.py`
-**Status:** ❌ Missing tests
-**Functions/Classes:**
-- CLI interface for retrieval
-- Command-line argument parsing
-
-**Test Requirements:**
-- Test CLI argument parsing
-- Test CLI workflow execution
-
----
-
 ### `psychrag/sanitization/` - Content Sanitization
 
 #### `sanitization/apply_title_changes.py`
@@ -579,16 +547,6 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test markdown modification
 - Test validation logic
 - Test error handling
-
-#### `sanitization/apply_title_changes_cli.py`
-**Status:** ❌ Missing tests
-**Functions/Classes:**
-- CLI interface for applying title changes
-- Command-line argument parsing
-
-**Test Requirements:**
-- Test CLI argument parsing
-- Test CLI workflow execution
 
 #### `sanitization/apply_title_edits.py`
 **Status:** ❌ Missing tests
