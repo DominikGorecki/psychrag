@@ -110,58 +110,7 @@ class TestConversionRouter:
     pass
 
 
-class TestSanitizationRouter:
-    """Test /sanitization endpoints."""
 
-    def test_extract_toc(self):
-        """Test TOC extraction endpoint."""
-        response = client.post(
-            "/sanitization/extract-toc",
-            json={"file_path": "/output/test.md"}
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert "toc_entries" in data
-        assert "total_entries" in data
-
-    def test_extract_titles(self):
-        """Test titles extraction endpoint."""
-        response = client.post(
-            "/sanitization/extract-titles",
-            json={"file_path": "/output/test.md"}
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert "titles" in data
-        assert "total_count" in data
-
-    def test_suggest_changes(self):
-        """Test suggest changes endpoint."""
-        response = client.post(
-            "/sanitization/suggest-changes",
-            json={"file_path": "/output/test.md"}
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert "suggestions" in data
-        assert "confidence" in data
-
-    def test_apply_changes(self):
-        """Test apply changes endpoint."""
-        response = client.post(
-            "/sanitization/apply-changes",
-            json={
-                "file_path": "/output/test.md",
-                "changes": [
-                    {"line": 1, "original": "OLD", "replacement": "NEW"}
-                ],
-                "create_backup": True
-            }
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
-        assert data["changes_applied"] == 1
 
 
 class TestChunkingRouter:

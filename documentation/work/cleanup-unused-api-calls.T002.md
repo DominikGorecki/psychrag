@@ -1,3 +1,5 @@
+COMPLETE
+
 # T002: Remove sanitization legacy stub endpoints
 
 ## Context
