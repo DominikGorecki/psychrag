@@ -1,3 +1,5 @@
+COMPLETE
+
 # T02 Remove Chunking Router Legacy Tests
 
 ## Context

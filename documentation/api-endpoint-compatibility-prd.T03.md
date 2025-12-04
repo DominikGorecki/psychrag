@@ -1,3 +1,5 @@
+COMPLETE
+
 # T03 Remove RAG Router Legacy Tests
 
 ## Context
