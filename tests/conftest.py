@@ -8,6 +8,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from psychrag.data.database import Base
 
+# Import models to ensure they are registered with Base
+from psychrag.data.models.prompt_template import PromptTemplate  # noqa: F401
+
 
 @pytest.fixture(scope="function")
 def engine():
@@ -16,19 +19,23 @@ def engine():
     Each test gets a fresh database. The engine is torn down after
     the test completes.
 
+    Only creates tables that are SQLite-compatible (excludes models with
+    PostgreSQL-specific types like JSONB).
+
     Yields:
-        SQLAlchemy Engine instance with all tables created.
+        SQLAlchemy Engine instance with compatible tables created.
     """
     # Create in-memory SQLite database
     engine = create_engine("sqlite:///:memory:")
 
-    # Create all tables defined in models
-    Base.metadata.create_all(engine)
+    # Create only the prompt_templates table (SQLite-compatible)
+    # Avoid creating all tables since some models use Postgres-specific types (JSONB)
+    PromptTemplate.__table__.create(engine, checkfirst=True)
 
     yield engine
 
-    # Cleanup: drop all tables
-    Base.metadata.drop_all(engine)
+    # Cleanup: drop the table
+    PromptTemplate.__table__.drop(engine, checkfirst=True)
     engine.dispose()
 
 

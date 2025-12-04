@@ -1,3 +1,5 @@
+COMPLETE
+
 # T04: Fix Prompt Template Model Tests (19 tests)
 
 ## Context
