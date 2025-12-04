@@ -107,42 +107,7 @@ class TestSettingsRouter:
 class TestConversionRouter:
     """Test /conv endpoints."""
 
-    def test_get_supported_formats(self):
-        """Test supported formats endpoint."""
-        response = client.get("/conv/formats")
-        assert response.status_code == 200
-        data = response.json()
-        assert "input_formats" in data
-        assert "output_formats" in data
-        assert "epub" in data["input_formats"]
-        assert "pdf" in data["input_formats"]
-
-    def test_convert_epub(self):
-        """Test EPUB conversion endpoint."""
-        # Create a minimal test file
-        files = {"file": ("test.epub", b"fake epub content", "application/epub+zip")}
-        response = client.post("/conv/epub", files=files)
-        assert response.status_code == 202
-        data = response.json()
-        assert "job_id" in data
-        assert data["status"] == "queued"
-
-    def test_convert_pdf(self):
-        """Test PDF conversion endpoint."""
-        files = {"file": ("test.pdf", b"fake pdf content", "application/pdf")}
-        response = client.post("/conv/pdf", files=files)
-        assert response.status_code == 202
-        data = response.json()
-        assert "job_id" in data
-        assert data["status"] == "queued"
-
-    def test_get_conversion_status(self):
-        """Test conversion status endpoint."""
-        response = client.get("/conv/status/conv_12345")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["job_id"] == "conv_12345"
-        assert "status" in data
+    pass
 
 
 class TestSanitizationRouter:

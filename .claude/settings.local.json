@@ -27,7 +27,8 @@
       "Bash(cmd /c \"dir /b c:\\code\\python\\psychRAG-test\\docs 2>nul\")",
       "Bash(cmd /c \"dir /s /b c:\\code\\python\\psychRAG-test\\*cleanup-unused-api-calls.md 2>nul\")",
       "Bash(cmd /c \"dir /b c:\\code\\python\\psychRAG-test\\documentation\\work\\cleanup-unused-api-calls.*.md\")",
-      "Bash(cmd /c \"dir /b c:\\code\\python\\psychRAG-test\\documentation\\work\")"
+      "Bash(cmd /c \"dir /b c:\\code\\python\\psychRAG-test\\documentation\\work\")",
+      "Bash(venvScriptspython.exe -m pytest tests/unit/test_api_endpoints.py -v)"
     ],
     "deny": [],
     "ask": []
