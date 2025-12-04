@@ -5,45 +5,26 @@ configfile: pyproject.toml
 testpaths: tests
 plugins: anyio-4.11.0, Faker-38.2.0, langsmith-0.4.47, logfire-4.15.1, asyncio-1.3.0, html-4.1.1, markdown-docs-0.9.0, metadata-3.1.1
 asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 203 items
+collected 279 items
 
-tests\unit\test_api_endpoints.py ...............                                                                 [  7%]
-tests\unit\test_augment.py ..............                                                                        [ 14%]
-tests\unit\test_conv_epub2md.py ............                                                                     [ 20%]
-tests\unit\test_conv_pdf2md.py ...........                                                                       [ 25%]
-tests\unit\test_conversion_api_endpoints.py ...........                                                          [ 31%]
-tests\unit\test_database.py ...F                                                                                 [ 33%]
-tests\unit\test_init_db.py .......                                                                               [ 36%]
+tests\unit\test_ai_config.py ................................                                                    [ 11%]
+tests\unit\test_api_endpoints.py ...............                                                                 [ 16%]
+tests\unit\test_augment.py ..............                                                                        [ 21%]
+tests\unit\test_conv_epub2md.py ............                                                                     [ 26%]
+tests\unit\test_conv_pdf2md.py ...........                                                                       [ 30%]
+tests\unit\test_conversion_api_endpoints.py ...........                                                          [ 34%]
+tests\unit\test_database.py ....                                                                                 [ 35%]
+tests\unit\test_init_db.py .......                                                                               [ 37%]
 tests\unit\test_inspection.py ........                                                                           [ 40%]
-tests\unit\test_llm_citation_parser.py ...........                                                               [ 45%]
-tests\unit\test_original_markdown.py .....                                                                       [ 48%]
-tests\unit\test_prompt_template_model.py ...................                                                     [ 57%]
-tests\unit\test_rag_config_api.py ..............                                                                 [ 64%]
-tests\unit\test_rag_config_db.py .............                                                                   [ 70%]
-tests\unit\test_rag_config_integration.py ...............                                                        [ 78%]
-tests\unit\test_rag_config_loader.py .............                                                               [ 84%]
-tests\unit\test_templates_api.py ..........................                                                      [ 97%]
+tests\unit\test_llm_citation_parser.py ...........                                                               [ 44%]
+tests\unit\test_llm_factory.py ............................................                                      [ 60%]
+tests\unit\test_original_markdown.py .....                                                                       [ 62%]
+tests\unit\test_prompt_template_model.py ...................                                                     [ 69%]
+tests\unit\test_rag_config_api.py ..............                                                                 [ 74%]
+tests\unit\test_rag_config_db.py .............                                                                   [ 78%]
+tests\unit\test_rag_config_integration.py ...............                                                        [ 84%]
+tests\unit\test_rag_config_loader.py .............                                                               [ 88%]
+tests\unit\test_templates_api.py ..........................                                                      [ 98%]
 tests\unit\test_work_model.py .....                                                                              [100%]
 
-====================================================== FAILURES =======================================================
-_______________________________________ TestDatabaseUrl.test_admin_database_url _______________________________________
-
-self = <test_database.TestDatabaseUrl object at 0x0000023E5448ED50>
-
-    @patch.dict("os.environ", {
-        "POSTGRES_ADMIN_USER": "admin",
-        "POSTGRES_ADMIN_PASSWORD": "secret",
-        "POSTGRES_HOST": "localhost",
-        "POSTGRES_PORT": "5432",
-    })
-    def test_admin_database_url(self):
-        """Test admin database URL construction."""
-        url = get_admin_database_url()
-        assert "postgresql+psycopg://" in url
->       assert "admin:secret" in url
-E       AssertionError: assert 'admin:secret' in 'postgresql+psycopg://postgres:postgres@127.0.0.1:5432/postgres'
-
-tests\unit\test_database.py:62: AssertionError
-=============================================== short test summary info ===============================================
-FAILED tests/unit/test_database.py::TestDatabaseUrl::test_admin_database_url - AssertionError: assert 'admin:secret' ...
-=========================================== 1 failed, 202 passed in 23.45s ============================================
+================================================ 279 passed in 20.80s =================================================

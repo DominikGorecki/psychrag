@@ -28,7 +28,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 
 ### `psychrag/ai/` - AI Configuration and LLM Factory
 
-#### `ai/config.py`
+#### `ai/config.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - `LLMProvider` (enum)
