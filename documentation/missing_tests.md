@@ -559,7 +559,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test edit validation
 - Test error handling
 
-#### `sanitization/delete_conversion.py`
+#### `sanitization/delete_conversion.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - Conversion deletion logic
