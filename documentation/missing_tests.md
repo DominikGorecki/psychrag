@@ -570,7 +570,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test cascade deletion
 - Test error handling for missing conversions
 
-#### `sanitization/extract_titles.py`
+#### `sanitization/extract_titles.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - Title extraction logic
