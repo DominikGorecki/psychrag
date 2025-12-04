@@ -122,10 +122,21 @@ def get_admin_database_url() -> str:
     """
     Get database URL using admin credentials.
 
+    Reads configuration dynamically to support testing with patched environment variables.
+    Environment variables take precedence over config file values.
+
     Returns:
         PostgreSQL connection URL for admin user.
     """
+    # Read config dynamically to support testing
+    db_config = load_config().database
+    # Check environment variables first (for testing), then fall back to config
+    admin_user = os.getenv("POSTGRES_ADMIN_USER", db_config.admin_user)
+    admin_password = os.getenv("POSTGRES_ADMIN_PASSWORD", "postgres")
+    host = os.getenv("POSTGRES_HOST", db_config.host)
+    port = os.getenv("POSTGRES_PORT", str(db_config.port))
+    
     return (
-        f"postgresql+psycopg://{POSTGRES_ADMIN_USER}:{POSTGRES_ADMIN_PASSWORD}"
-        f"@{POSTGRES_HOST}:{POSTGRES_PORT}/postgres"
+        f"postgresql+psycopg://{admin_user}:{admin_password}"
+        f"@{host}:{port}/postgres"
     )
