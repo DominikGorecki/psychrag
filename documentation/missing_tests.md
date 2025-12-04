@@ -536,7 +536,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 
 ### `psychrag/sanitization/` - Content Sanitization
 
-#### `sanitization/apply_title_changes.py`
+#### `sanitization/apply_title_changes.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - Title change application logic

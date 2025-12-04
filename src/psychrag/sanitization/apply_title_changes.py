@@ -24,7 +24,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from psychrag.data.database import get_session
+from psychrag.data.database import get_session, SessionLocal
 from psychrag.data.models.work import Work
 from psychrag.utils.file_utils import compute_file_hash, set_file_readonly, set_file_writable, is_file_readonly
 from psychrag.sanitization.extract_titles import HashMismatchError
