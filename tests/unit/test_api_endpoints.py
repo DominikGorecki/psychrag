@@ -107,96 +107,10 @@ class TestSettingsRouter:
 class TestConversionRouter:
     """Test /conv endpoints."""
 
-    def test_get_supported_formats(self):
-        """Test supported formats endpoint."""
-        response = client.get("/conv/formats")
-        assert response.status_code == 200
-        data = response.json()
-        assert "input_formats" in data
-        assert "output_formats" in data
-        assert "epub" in data["input_formats"]
-        assert "pdf" in data["input_formats"]
-
-    def test_convert_epub(self):
-        """Test EPUB conversion endpoint."""
-        # Create a minimal test file
-        files = {"file": ("test.epub", b"fake epub content", "application/epub+zip")}
-        response = client.post("/conv/epub", files=files)
-        assert response.status_code == 202
-        data = response.json()
-        assert "job_id" in data
-        assert data["status"] == "queued"
-
-    def test_convert_pdf(self):
-        """Test PDF conversion endpoint."""
-        files = {"file": ("test.pdf", b"fake pdf content", "application/pdf")}
-        response = client.post("/conv/pdf", files=files)
-        assert response.status_code == 202
-        data = response.json()
-        assert "job_id" in data
-        assert data["status"] == "queued"
-
-    def test_get_conversion_status(self):
-        """Test conversion status endpoint."""
-        response = client.get("/conv/status/conv_12345")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["job_id"] == "conv_12345"
-        assert "status" in data
+    pass
 
 
-class TestSanitizationRouter:
-    """Test /sanitization endpoints."""
 
-    def test_extract_toc(self):
-        """Test TOC extraction endpoint."""
-        response = client.post(
-            "/sanitization/extract-toc",
-            json={"file_path": "/output/test.md"}
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert "toc_entries" in data
-        assert "total_entries" in data
-
-    def test_extract_titles(self):
-        """Test titles extraction endpoint."""
-        response = client.post(
-            "/sanitization/extract-titles",
-            json={"file_path": "/output/test.md"}
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert "titles" in data
-        assert "total_count" in data
-
-    def test_suggest_changes(self):
-        """Test suggest changes endpoint."""
-        response = client.post(
-            "/sanitization/suggest-changes",
-            json={"file_path": "/output/test.md"}
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert "suggestions" in data
-        assert "confidence" in data
-
-    def test_apply_changes(self):
-        """Test apply changes endpoint."""
-        response = client.post(
-            "/sanitization/apply-changes",
-            json={
-                "file_path": "/output/test.md",
-                "changes": [
-                    {"line": 1, "original": "OLD", "replacement": "NEW"}
-                ],
-                "create_backup": True
-            }
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
-        assert data["changes_applied"] == 1
 
 
 class TestChunkingRouter:

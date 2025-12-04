@@ -16,6 +16,7 @@
 [ ] Lock Document -- simplify cleaning
 [ ] CONVERSION - Manual ToC LLM call not templated
 [ ] Works should have all the columns for a bibliography 
+[ ] Check to ensure that when creating new DB app user it uses the `/.env` file
 
 ## TO-DO 
 [x] Sanitization - Suggested title changes -- should be more visual--change from, to, etc. 

@@ -9,8 +9,6 @@ Endpoints:
     POST /chunking/work/{work_id}/extract-sanitized-titles   - Extract sanitized titles
     GET  /chunking/work/{work_id}/san-titles/content         - Get sanitized titles content
     PUT  /chunking/work/{work_id}/san-titles/content         - Update sanitized titles content
-    GET  /chunking/work/{work_id}/vec-suggestions/content    - Get vec suggestions content
-    PUT  /chunking/work/{work_id}/vec-suggestions/content    - Update vec suggestions content
     GET  /chunking/work/{work_id}/vec-suggestions/table      - Get vec suggestions as table data
     PUT  /chunking/work/{work_id}/vec-suggestions/table      - Update vec suggestions from table data
     GET  /chunking/work/{work_id}/vec-suggestions/prompt     - Get LLM prompt for vec suggestions
@@ -40,8 +38,6 @@ from psychrag_api.schemas.chunking import (
     ExtractSanitizedTitlesResponse,
     SanTitlesContentResponse,
     UpdateSanTitlesContentRequest,
-    VecSuggestionsContentResponse,
-    UpdateVecSuggestionsContentRequest,
     VecSuggestionsPromptResponse,
     ManualVecSuggestionsRequest,
     ManualVecSuggestionsResponse,
@@ -432,119 +428,6 @@ async def update_san_titles_content(
             )
 
 
-@router.get(
-    "/work/{work_id}/vec-suggestions/content",
-    response_model=VecSuggestionsContentResponse,
-    summary="Get vec suggestions content",
-    description="Returns the content of the vec_suggestions file.",
-)
-async def get_vec_suggestions_content(work_id: int) -> VecSuggestionsContentResponse:
-    """Get vec suggestions file content."""
-    with get_session() as session:
-        work = session.query(Work).filter(Work.id == work_id).first()
-        
-        if not work:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Work with ID {work_id} not found"
-            )
-        
-        if not work.files or "vec_suggestions" not in work.files:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Work {work_id} does not have vec_suggestions file"
-            )
-        
-        file_info = work.files["vec_suggestions"]
-        file_path = Path(file_info["path"])
-        
-        if not file_path.exists():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Vec suggestions file not found on disk: {file_path}"
-            )
-        
-        content = file_path.read_text(encoding='utf-8')
-        current_hash = compute_file_hash(file_path)
-        
-        return VecSuggestionsContentResponse(
-            content=content,
-            filename=file_path.name,
-            current_hash=current_hash
-        )
-
-
-@router.put(
-    "/work/{work_id}/vec-suggestions/content",
-    response_model=VecSuggestionsContentResponse,
-    summary="Update vec suggestions content",
-    description="Updates the content of the vec_suggestions file and recalculates hash.",
-)
-async def update_vec_suggestions_content(
-    work_id: int,
-    request: UpdateVecSuggestionsContentRequest
-) -> VecSuggestionsContentResponse:
-    """Update vec suggestions file content."""
-    with get_session() as session:
-        work = session.query(Work).filter(Work.id == work_id).first()
-        
-        if not work:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Work with ID {work_id} not found"
-            )
-        
-        if not work.files or "vec_suggestions" not in work.files:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Work {work_id} does not have vec_suggestions file"
-            )
-        
-        file_info = work.files["vec_suggestions"]
-        file_path = Path(file_info["path"])
-        
-        if not file_path.exists():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Vec suggestions file not found on disk: {file_path}"
-            )
-        
-        try:
-            # Make file writable if it's read-only
-            set_file_writable(file_path)
-            
-            # Write new content
-            file_path.write_text(request.content, encoding='utf-8')
-            
-            # Set back to read-only
-            set_file_readonly(file_path)
-            
-            # Compute new hash
-            new_hash = compute_file_hash(file_path)
-            
-            # Update work.files with new hash (recreate dict to trigger SQLAlchemy change detection)
-            updated_files = dict(work.files)
-            updated_files["vec_suggestions"] = {
-                "path": str(file_path.resolve()),
-                "hash": new_hash
-            }
-            work.files = updated_files
-            
-            session.commit()
-            session.refresh(work)
-            
-            return VecSuggestionsContentResponse(
-                content=request.content,
-                filename=file_path.name,
-                current_hash=new_hash
-            )
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to update vec suggestions file: {e}"
-            )
-
-
 @router.post(
     "/work/{work_id}/apply-heading-chunks",
     response_model=ApplyHeadingChunksResponse,
@@ -619,30 +502,6 @@ async def apply_content_chunks(work_id: int) -> ApplyContentChunksResponse:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to apply content chunks: {e}"
         )
-
-
-@router.get(
-    "/work/{work_id}/chunks/count",
-    summary="Get chunk count for work",
-    description="Returns the number of chunks for this work (for debugging).",
-)
-async def get_chunk_count(work_id: int) -> dict:
-    """Get chunk count for debugging."""
-    from psychrag.data.database import get_database_url
-    with get_session() as session:
-        from psychrag.data.models import Chunk
-        
-        count = session.query(Chunk).filter(Chunk.work_id == work_id).count()
-        
-        # Get database info (mask password)
-        db_url = get_database_url()
-        db_url_safe = db_url.split('@')[1] if '@' in db_url else db_url
-        
-        return {
-            "work_id": work_id,
-            "chunk_count": count,
-            "database": db_url_safe
-        }
 
 
 @router.get(

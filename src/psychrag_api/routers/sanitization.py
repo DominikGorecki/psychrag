@@ -8,10 +8,7 @@ Endpoints:
     POST /sanitization/work/{work_id}/suggest-title-changes - Suggest changes
     POST /sanitization/work/{work_id}/apply-title-changes - Apply changes
     POST /sanitization/work/{work_id}/skip-apply          - Skip and copy
-    POST /sanitization/extract-toc                        - Extract TOC (legacy)
-    POST /sanitization/extract-titles                     - Extract titles (legacy)
-    POST /sanitization/suggest-changes                    - Suggest changes (legacy)
-    POST /sanitization/apply-changes                      - Apply changes (legacy)
+    POST /sanitization/work/{work_id}/skip-apply          - Skip and copy
 """
 
 from pathlib import Path
@@ -32,15 +29,7 @@ from psychrag.sanitization import (
 from psychrag.utils.file_utils import compute_file_hash, set_file_writable, set_file_readonly
 from psychrag.config import load_config
 from psychrag_api.schemas.sanitization import (
-    # Legacy schemas
-    ApplyChangesRequest,
-    ApplyChangesResponse,
-    ExtractTitlesRequest,
-    ExtractTitlesResponse,
-    ExtractTOCRequest,
-    ExtractTOCResponse,
-    SuggestChangesRequest,
-    SuggestChangesResponse,
+    # Legacy schemas removed
     # New work-based schemas
     WorkListResponse,
     WorkListItem,
@@ -958,101 +947,7 @@ async def add_sanitized_markdown(
         )
 
 
-# Legacy endpoints (kept for backwards compatibility)
 
-@router.post(
-    "/extract-toc",
-    response_model=ExtractTOCResponse,
-    summary="Extract table of contents (legacy)",
-    description="Extract the table of contents from a markdown document.",
-)
-async def extract_toc(request: ExtractTOCRequest) -> ExtractTOCResponse:
-    """
-    Extract table of contents from markdown.
-    
-    Legacy endpoint - consider using work-based endpoints instead.
-    """
-    # TODO: Implement using psychrag.sanitization.extract_toc
-    return ExtractTOCResponse(
-        toc_entries=[
-            {"level": 1, "title": "Introduction", "line": 1},
-            {"level": 2, "title": "Background", "line": 25},
-            {"level": 2, "title": "Methods", "line": 100},
-        ],
-        total_entries=3,
-        message="Stub: TOC extraction",
-    )
-
-
-@router.post(
-    "/extract-titles",
-    response_model=ExtractTitlesResponse,
-    summary="Extract titles (legacy)",
-    description="Extract all heading titles from a markdown document.",
-)
-async def extract_titles(request: ExtractTitlesRequest) -> ExtractTitlesResponse:
-    """
-    Extract all titles/headings from markdown.
-    
-    Legacy endpoint - consider using work-based endpoints instead.
-    """
-    # TODO: Implement using psychrag.sanitization.extract_titles
-    return ExtractTitlesResponse(
-        titles=[
-            {"level": 1, "title": "Chapter 1: Introduction", "original_line": 1},
-            {"level": 2, "title": "1.1 Background", "original_line": 25},
-        ],
-        total_count=2,
-    )
-
-
-@router.post(
-    "/suggest-changes",
-    response_model=SuggestChangesResponse,
-    summary="Suggest heading changes (legacy)",
-    description="Use LLM to suggest improvements to heading structure.",
-)
-async def suggest_changes(request: SuggestChangesRequest) -> SuggestChangesResponse:
-    """
-    Get AI-suggested heading improvements.
-    
-    Legacy endpoint - consider using work-based endpoints instead.
-    """
-    # TODO: Implement using psychrag.sanitization.suggest_heading_changes
-    return SuggestChangesResponse(
-        suggestions=[
-            {
-                "original": "CHAPTER 1: INTRODUCTION",
-                "suggested": "Chapter 1: Introduction",
-                "reason": "Normalize capitalization",
-                "line": 1,
-            },
-        ],
-        total_suggestions=1,
-        confidence=0.85,
-    )
-
-
-@router.post(
-    "/apply-changes",
-    response_model=ApplyChangesResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Apply heading changes (legacy)",
-    description="Apply approved heading changes to the document.",
-)
-async def apply_changes(request: ApplyChangesRequest) -> ApplyChangesResponse:
-    """
-    Apply heading changes to document.
-
-    Legacy endpoint - consider using work-based endpoints instead.
-    """
-    # TODO: Implement using psychrag.sanitization.apply_title_changes
-    return ApplyChangesResponse(
-        success=True,
-        changes_applied=len(request.changes),
-        backup_path="/output/backup/document_backup.md",
-        message=f"Stub: Would apply {len(request.changes)} changes",
-    )
 
 
 # Interactive title changes table endpoints
