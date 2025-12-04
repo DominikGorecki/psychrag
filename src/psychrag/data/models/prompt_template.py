@@ -6,7 +6,7 @@ allowing users to manage and customize prompts via the UI while maintaining
 backward compatibility with hardcoded fallbacks.
 """
 
-from datetime import datetime
+from datetime import datetime, UTC
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Index, UniqueConstraint, CheckConstraint
 from sqlalchemy.orm import validates
 
@@ -38,8 +38,8 @@ class PromptTemplate(Base):
     title = Column(String(255), nullable=False)
     template_content = Column(Text, nullable=False)
     is_active = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     __table_args__ = (
         UniqueConstraint('function_tag', 'version', name='uq_function_tag_version'),
