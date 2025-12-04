@@ -340,7 +340,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test CLI argument parsing
 - Test CLI workflow execution
 
-#### `conversions/pdf_bookmarks2toc.py`
+#### `conversions/pdf_bookmarks2toc.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - PDF bookmark to TOC conversion
