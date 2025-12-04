@@ -97,7 +97,7 @@ async def init_database(request: DatabaseInitRequest) -> DatabaseInitResponse:
         return DatabaseInitResponse(
             success=True,
             message="Database initialized successfully",
-            tables_created=["works", "chunks", "queries"],
+            tables_created=["works", "chunks", "queries", "results", "io_files", "prompt_templates", "prompt_meta", "rag_config"],
         )
     except Exception as e:
         # Log error?

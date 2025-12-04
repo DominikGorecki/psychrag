@@ -469,11 +469,11 @@ def run_all_health_checks() -> list[HealthCheckResult]:
     results.append(check_extension("vector"))
 
     # Table existence checks
-    tables = ["works", "chunks", "queries"]
+    tables = ["works", "chunks", "queries", "results", "io_files", "prompt_templates", "prompt_meta", "rag_config"]
     for table in tables:
         results.append(check_table_exists(table))
 
-    # Column checks
+    # Column checks - Core tables
     results.append(check_table_columns("works", [
         "id", "title", "authors", "year", "content_hash", "created_at", "updated_at"
     ]))
@@ -486,14 +486,41 @@ def run_all_health_checks() -> list[HealthCheckResult]:
         "vector_status", "created_at", "updated_at"
     ]))
 
-    # Index checks
+    # Column checks - New tables
+    results.append(check_table_columns("results", [
+        "id", "query_id", "response_text", "created_at", "updated_at"
+    ]))
+    results.append(check_table_columns("io_files", [
+        "id", "filename", "file_type", "file_path", "created_at", "updated_at", "last_seen_at"
+    ]))
+    results.append(check_table_columns("prompt_templates", [
+        "id", "function_tag", "version", "title", "template_content", "is_active", "created_at", "updated_at"
+    ]))
+    results.append(check_table_columns("prompt_meta", [
+        "id", "function_tag", "variables", "created_at", "updated_at"
+    ]))
+    results.append(check_table_columns("rag_config", [
+        "id", "preset_name", "is_default", "description", "config", "created_at", "updated_at"
+    ]))
+
+    # Index checks - Vector indexes
     results.append(check_index("ix_chunks_embedding_hnsw", "chunks"))
     results.append(check_index("ix_queries_embedding_original_hnsw", "queries"))
     results.append(check_index("ix_queries_embedding_hyde_hnsw", "queries"))
     results.append(check_index("ix_chunks_content_tsvector_gin", "chunks"))
 
+    # Index checks - New tables
+    results.append(check_index("idx_prompt_meta_function_tag", "prompt_meta"))
+    results.append(check_index("idx_rag_config_preset_name", "rag_config"))
+    results.append(check_index("idx_rag_config_is_default", "rag_config"))
+    results.append(check_index("idx_prompt_templates_function_tag", "prompt_templates"))
+    results.append(check_index("idx_prompt_templates_active", "prompt_templates"))
+
     # Trigger checks
     results.append(check_trigger("tsvector_update", "chunks"))
+    results.append(check_trigger("trigger_update_prompt_meta_updated_at", "prompt_meta"))
+    results.append(check_trigger("trigger_update_rag_config_updated_at", "rag_config"))
+    results.append(check_trigger("trigger_ensure_single_default_rag_config", "rag_config"))
 
     # Permission checks
     for table in tables:

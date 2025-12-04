@@ -413,25 +413,126 @@ export default function SettingsPage() {
                     )}
 
                     {healthResults && (
-                      <div className="space-y-1">
-                        {healthResults.results.map((result, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center gap-3 py-1.5 text-sm"
-                          >
-                            {result.passed ? (
-                              <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
-                            ) : (
-                              <XCircle className="h-4 w-4 text-destructive flex-shrink-0" />
-                            )}
-                            <span className={result.passed ? "text-foreground" : "text-destructive"}>
-                              {result.name}
-                            </span>
-                            <span className="text-muted-foreground text-xs truncate">
-                              — {result.message}
-                            </span>
-                          </div>
-                        ))}
+                      <div className="space-y-6">
+                        {/* Group results by table */}
+                        {(() => {
+                          // Extract table names and group results
+                          const tableGroups: Record<string, DbHealthCheckResult[]> = {};
+                          const systemChecks: DbHealthCheckResult[] = [];
+
+                          healthResults.results.forEach((result) => {
+                            // System-level checks (Connection, Extension)
+                            if (result.name.startsWith("Connection") || result.name.startsWith("Extension")) {
+                              systemChecks.push(result);
+                            } else {
+                              // Extract table name from result.name
+                              // Patterns: "Table: tablename", "Columns: tablename", "Index: indexname", "Trigger: triggername", "Read: tablename", "Write: tablename"
+                              const match = result.name.match(/^(?:Table|Columns|Index|Trigger|Read|Write):\s*(.+)/);
+                              if (match) {
+                                let tableName = match[1].trim();
+
+                                // For indexes and triggers, extract table name from the identifier
+                                if (result.name.startsWith("Index:")) {
+                                  // Map index names to tables
+                                  if (tableName.includes("chunks")) tableName = "chunks";
+                                  else if (tableName.includes("queries")) tableName = "queries";
+                                  else if (tableName.includes("prompt_meta")) tableName = "prompt_meta";
+                                  else if (tableName.includes("rag_config")) tableName = "rag_config";
+                                  else if (tableName.includes("prompt_templates")) tableName = "prompt_templates";
+                                } else if (result.name.startsWith("Trigger:")) {
+                                  // Map trigger names to tables
+                                  if (tableName.includes("tsvector_update")) tableName = "chunks";
+                                  else if (tableName.includes("prompt_meta")) tableName = "prompt_meta";
+                                  else if (tableName.includes("rag_config")) tableName = "rag_config";
+                                }
+
+                                if (!tableGroups[tableName]) {
+                                  tableGroups[tableName] = [];
+                                }
+                                tableGroups[tableName].push(result);
+                              } else {
+                                systemChecks.push(result);
+                              }
+                            }
+                          });
+
+                          const tableOrder = ["works", "chunks", "queries", "results", "io_files", "prompt_templates", "prompt_meta", "rag_config"];
+                          const sortedTables = tableOrder.filter(t => tableGroups[t]);
+
+                          return (
+                            <>
+                              {/* System Checks */}
+                              {systemChecks.length > 0 && (
+                                <div>
+                                  <h4 className="text-sm font-semibold mb-2 text-muted-foreground">System</h4>
+                                  <div className="border rounded-lg overflow-hidden">
+                                    <div className="divide-y">
+                                      {systemChecks.map((result, index) => (
+                                        <div key={index} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50">
+                                          <div className="w-5 flex items-center justify-center flex-shrink-0">
+                                            {result.passed ? (
+                                              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                            ) : (
+                                              <XCircle className="h-4 w-4 text-destructive" />
+                                            )}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium">{result.name}</div>
+                                            <div className="text-xs text-muted-foreground truncate">{result.message}</div>
+                                            {result.details && (
+                                              <div className="text-xs text-destructive mt-1">{result.details}</div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Table Groups */}
+                              {sortedTables.map((tableName) => {
+                                const checks = tableGroups[tableName];
+                                const allPassed = checks.every(c => c.passed);
+
+                                return (
+                                  <div key={tableName}>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <h4 className="text-sm font-semibold text-muted-foreground">{tableName}</h4>
+                                      {allPassed ? (
+                                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                                      ) : (
+                                        <XCircle className="h-3.5 w-3.5 text-destructive" />
+                                      )}
+                                    </div>
+                                    <div className="border rounded-lg overflow-hidden">
+                                      <div className="divide-y">
+                                        {checks.map((result, index) => (
+                                          <div key={index} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50">
+                                            <div className="w-5 flex items-center justify-center flex-shrink-0">
+                                              {result.passed ? (
+                                                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                              ) : (
+                                                <XCircle className="h-4 w-4 text-destructive" />
+                                              )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <div className="text-sm font-medium">{result.name.split(":")[0]}</div>
+                                              <div className="text-xs text-muted-foreground truncate">{result.message}</div>
+                                              {result.details && (
+                                                <div className="text-xs text-destructive mt-1">{result.details}</div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </>
+                          );
+                        })()}
                       </div>
                     )}
                   </>
@@ -515,7 +616,7 @@ export default function SettingsPage() {
               <CardTitle>LLM Configuration</CardTitle>
               <CardDescription>
                 Configure language model providers. Click a provider tab to view/edit its models,
-                or click "Set Active" to switch the active provider.
+                or click &quot;Set Active&quot; to switch the active provider.
               </CardDescription>
             </CardHeader>
             <CardContent>
