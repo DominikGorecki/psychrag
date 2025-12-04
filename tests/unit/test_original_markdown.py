@@ -18,6 +18,7 @@ from psychrag_api.schemas.conversion import FileContentUpdateRequest
 class TestOriginalMarkdown:
     """Tests for original markdown endpoints."""
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     @patch("psychrag_api.routers.conversion.load_config")
     @patch("pathlib.Path.read_text")
@@ -53,6 +54,7 @@ class TestOriginalMarkdown:
         assert response.filename == "test.md"
         mock_read_text.assert_called_once()
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     async def test_get_original_markdown_not_found_in_db(self, mock_get_session):
         """Test that missing file in database raises 404 error."""
@@ -66,6 +68,7 @@ class TestOriginalMarkdown:
         assert exc_info.value.status_code == 404
         assert "not found in database" in exc_info.value.detail
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     @patch("psychrag_api.routers.conversion.load_config")
     @patch("pathlib.Path.exists")
@@ -96,6 +99,7 @@ class TestOriginalMarkdown:
         assert exc_info.value.status_code == 404
         assert "Original markdown file not found" in exc_info.value.detail
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     @patch("psychrag_api.routers.conversion.load_config")
     @patch("pathlib.Path.write_text")
@@ -128,6 +132,7 @@ class TestOriginalMarkdown:
         assert response.filename == "test.md"
         mock_write_text.assert_called_once_with("# Updated Content", encoding="utf-8")
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     @patch("psychrag_api.routers.conversion.load_config")
     @patch("pathlib.Path.exists")

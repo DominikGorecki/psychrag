@@ -23,6 +23,7 @@ from psychrag_api.schemas.conversion import (
 class TestGetFileContent:
     """Tests for get_file_content endpoint."""
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     @patch("psychrag_api.routers.conversion.load_config")
     @patch("pathlib.Path.read_text")
@@ -53,6 +54,7 @@ class TestGetFileContent:
         assert response.content == "# Test Content"
         assert response.filename == "test.style.md"
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     async def test_get_file_invalid_type(self, mock_get_session):
         """Test that invalid file type raises 400 error."""
@@ -62,6 +64,7 @@ class TestGetFileContent:
         assert exc_info.value.status_code == 400
         assert "Invalid file_type" in exc_info.value.detail
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     async def test_get_file_not_found_in_db(self, mock_get_session):
         """Test that missing file in database raises 404 error."""
@@ -75,6 +78,7 @@ class TestGetFileContent:
         assert exc_info.value.status_code == 404
         assert "not found in database" in exc_info.value.detail
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     @patch("psychrag_api.routers.conversion.load_config")
     @patch("pathlib.Path.exists")
@@ -108,6 +112,7 @@ class TestGetFileContent:
 class TestUpdateFileContent:
     """Tests for update_file_content endpoint."""
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     @patch("psychrag_api.routers.conversion.load_config")
     @patch("pathlib.Path.write_text")
@@ -139,6 +144,7 @@ class TestUpdateFileContent:
         assert response.filename == "test.hier.md"
         mock_write_text.assert_called_once()
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     async def test_update_file_invalid_type(self, mock_get_session):
         """Test that invalid file type raises 400 error."""
@@ -153,6 +159,7 @@ class TestUpdateFileContent:
 class TestGetFileSuggestion:
     """Tests for get_file_suggestion endpoint."""
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     @patch("psychrag_api.routers.conversion.load_config")
     @patch("psychrag_api.routers.conversion.extract_headings")
@@ -228,6 +235,7 @@ class TestGetFileSuggestion:
         assert response.score_difference > 0
         assert response.hier_metrics.final_score > response.style_metrics.final_score
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     @patch("psychrag_api.routers.conversion.load_config")
     @patch("pathlib.Path.exists")
@@ -260,6 +268,7 @@ class TestGetFileSuggestion:
 class TestSelectFile:
     """Tests for select_file endpoint."""
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     @patch("psychrag_api.routers.conversion.load_config")
     @patch("psychrag_api.routers.conversion.shutil.copy2")
@@ -292,6 +301,7 @@ class TestSelectFile:
         assert response.output_file == "test.md"
         mock_copy2.assert_called_once()
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     async def test_select_file_invalid_type(self, mock_get_session):
         """Test that invalid file type raises 400 error."""
@@ -302,6 +312,7 @@ class TestSelectFile:
         
         assert exc_info.value.status_code == 400
 
+    @pytest.mark.asyncio
     @patch("psychrag_api.routers.conversion.get_session")
     @patch("psychrag_api.routers.conversion.load_config")
     @patch("pathlib.Path.exists")
