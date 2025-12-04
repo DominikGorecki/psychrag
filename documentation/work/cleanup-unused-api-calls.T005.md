@@ -1,3 +1,5 @@
+COMPLETE
+
 # T005: Remove chunks/count debug endpoint
 
 ## Context

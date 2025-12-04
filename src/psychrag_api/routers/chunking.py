@@ -505,30 +505,6 @@ async def apply_content_chunks(work_id: int) -> ApplyContentChunksResponse:
 
 
 @router.get(
-    "/work/{work_id}/chunks/count",
-    summary="Get chunk count for work",
-    description="Returns the number of chunks for this work (for debugging).",
-)
-async def get_chunk_count(work_id: int) -> dict:
-    """Get chunk count for debugging."""
-    from psychrag.data.database import get_database_url
-    with get_session() as session:
-        from psychrag.data.models import Chunk
-        
-        count = session.query(Chunk).filter(Chunk.work_id == work_id).count()
-        
-        # Get database info (mask password)
-        db_url = get_database_url()
-        db_url_safe = db_url.split('@')[1] if '@' in db_url else db_url
-        
-        return {
-            "work_id": work_id,
-            "chunk_count": count,
-            "database": db_url_safe
-        }
-
-
-@router.get(
     "/work/{work_id}/vec-suggestions/prompt",
     response_model=VecSuggestionsPromptResponse,
     summary="Get LLM prompt for vec suggestions",
