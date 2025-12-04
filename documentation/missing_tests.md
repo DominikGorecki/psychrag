@@ -122,7 +122,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test edge cases (missing metadata, malformed metadata)
 - Test extraction character limits
 
-#### `chunking/chunk_headings.py`
+#### `chunking/chunk_headings.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - `chunk_headings()` function
