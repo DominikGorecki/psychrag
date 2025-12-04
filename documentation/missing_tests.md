@@ -501,7 +501,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test error handling
 - Mock embedding API calls
 
-#### `retrieval/query_expansion.py`
+#### `retrieval/query_expansion.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - `expand_query()`
