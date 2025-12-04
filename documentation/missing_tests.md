@@ -361,7 +361,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test CLI argument parsing
 - Test CLI workflow execution
 
-#### `conversions/style_v_hier.py`
+#### `conversions/style_v_hier.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - Style vs hierarchy analysis
@@ -398,16 +398,6 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test schema validation
 - Test health check reporting
 - Test error handling for connection failures
-
-#### `data/db_health_check_cli.py`
-**Status:** ❌ Missing tests
-**Functions/Classes:**
-- CLI interface for database health check
-- Command-line argument parsing
-
-**Test Requirements:**
-- Test CLI argument parsing
-- Test CLI workflow execution
 
 #### `data/models/chunk.py`
 **Status:** ❌ Missing tests
