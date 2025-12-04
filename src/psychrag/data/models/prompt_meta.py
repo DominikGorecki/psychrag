@@ -5,7 +5,7 @@ The prompt_meta table stores metadata about prompt template variables,
 with one record per function_tag (shared across all versions).
 """
 
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import List, Dict, Any
 
 from sqlalchemy import Column, Integer, String, TIMESTAMP
@@ -34,8 +34,8 @@ class PromptMeta(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     function_tag = Column(String(100), unique=True, nullable=False, index=True)
     variables = Column(JSONB, nullable=False, default=list)
-    created_at = Column(TIMESTAMP, default=datetime.utcnow, nullable=False)
-    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(TIMESTAMP, default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(TIMESTAMP, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
 
     def __repr__(self) -> str:
         """String representation of PromptMeta."""

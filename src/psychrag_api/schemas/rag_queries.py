@@ -8,7 +8,7 @@ consolidation, and augmentation workflows.
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ============================================================================
@@ -71,12 +71,20 @@ class QueryUpdateRequest(BaseModel):
 class ExpansionPromptRequest(BaseModel):
     """Request for generating expansion prompt."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "query": "What is working memory?",
+                "n": 3,
+            }
+        }
+    )
+
     query: str = Field(
         ...,
         description="The query to expand",
         min_length=1,
         max_length=2000,
-        example="What is working memory?"
     )
     n: int = Field(
         default=3,

@@ -4,47 +4,14 @@ Pydantic schemas for RAG (Retrieval-Augmented Generation) router.
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RAGQueryRequest(BaseModel):
     """Request for a RAG query."""
 
-    query: str = Field(
-        ...,
-        description="User's question or query",
-        example="What is cognitive load theory and how does it affect learning?",
-    )
-    top_k: int = Field(
-        default=5,
-        ge=1,
-        le=20,
-        description="Number of chunks to retrieve",
-        example=5,
-    )
-    rerank: bool = Field(
-        default=True,
-        description="Whether to rerank retrieved results",
-        example=True,
-    )
-    expand_query: bool = Field(
-        default=True,
-        description="Whether to expand the query with variations",
-        example=True,
-    )
-    model: str | None = Field(
-        default=None,
-        description="LLM model for generation",
-        example="gpt-4o",
-    )
-    work_ids: list[str] | None = Field(
-        default=None,
-        description="Filter to specific works (optional)",
-        example=["work_001", "work_002"],
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "query": "What is cognitive load theory and how does it affect learning?",
                 "top_k": 5,
@@ -53,6 +20,34 @@ class RAGQueryRequest(BaseModel):
                 "model": "gpt-4o",
             }
         }
+    )
+
+    query: str = Field(
+        ...,
+        description="User's question or query",
+    )
+    top_k: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="Number of chunks to retrieve",
+    )
+    rerank: bool = Field(
+        default=True,
+        description="Whether to rerank retrieved results",
+    )
+    expand_query: bool = Field(
+        default=True,
+        description="Whether to expand the query with variations",
+    )
+    model: str | None = Field(
+        default=None,
+        description="LLM model for generation",
+    )
+    work_ids: list[str] | None = Field(
+        default=None,
+        description="Filter to specific works (optional)",
+    )
 
 
 class SourceChunk(BaseModel):
@@ -76,37 +71,8 @@ class TokenUsage(BaseModel):
 class RAGQueryResponse(BaseModel):
     """Response for a RAG query."""
 
-    query: str = Field(
-        ...,
-        description="Original query",
-    )
-    answer: str = Field(
-        ...,
-        description="Generated answer",
-    )
-    sources: list[dict[str, Any]] = Field(
-        ...,
-        description="Source chunks used",
-    )
-    model: str = Field(
-        ...,
-        description="Model used for generation",
-        example="gpt-4o",
-    )
-    tokens_used: dict[str, int] = Field(
-        default_factory=dict,
-        description="Token usage statistics",
-    )
-    confidence: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-        description="Confidence score",
-        example=0.85,
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "query": "What is cognitive load theory?",
                 "answer": "Cognitive load theory, developed by John Sweller, suggests that...",
@@ -124,41 +90,67 @@ class RAGQueryResponse(BaseModel):
                 "confidence": 0.85,
             }
         }
+    )
+
+    query: str = Field(
+        ...,
+        description="Original query",
+    )
+    answer: str = Field(
+        ...,
+        description="Generated answer",
+    )
+    sources: list[dict[str, Any]] = Field(
+        ...,
+        description="Source chunks used",
+    )
+    model: str = Field(
+        ...,
+        description="Model used for generation",
+    )
+    tokens_used: dict[str, int] = Field(
+        default_factory=dict,
+        description="Token usage statistics",
+    )
+    confidence: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Confidence score",
+    )
 
 
 class RetrieveRequest(BaseModel):
     """Request to retrieve relevant chunks."""
 
-    query: str = Field(
-        ...,
-        description="Query text",
-        example="What is working memory?",
-    )
-    top_k: int = Field(
-        default=10,
-        ge=1,
-        le=50,
-        description="Number of chunks to retrieve",
-        example=10,
-    )
-    rerank: bool = Field(
-        default=True,
-        description="Whether to rerank results",
-        example=True,
-    )
-    work_ids: list[str] | None = Field(
-        default=None,
-        description="Filter to specific works",
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "query": "What is working memory?",
                 "top_k": 10,
                 "rerank": True,
             }
         }
+    )
+
+    query: str = Field(
+        ...,
+        description="Query text",
+    )
+    top_k: int = Field(
+        default=10,
+        ge=1,
+        le=50,
+        description="Number of chunks to retrieve",
+    )
+    rerank: bool = Field(
+        default=True,
+        description="Whether to rerank results",
+    )
+    work_ids: list[str] | None = Field(
+        default=None,
+        description="Filter to specific works",
+    )
 
 
 class RetrievedChunk(BaseModel):
@@ -176,27 +168,8 @@ class RetrievedChunk(BaseModel):
 class RetrieveResponse(BaseModel):
     """Response containing retrieved chunks."""
 
-    query: str = Field(
-        ...,
-        description="Original query",
-    )
-    chunks: list[dict[str, Any]] = Field(
-        ...,
-        description="Retrieved chunks",
-    )
-    total_retrieved: int = Field(
-        ...,
-        description="Number of chunks retrieved",
-        example=10,
-    )
-    reranked: bool = Field(
-        ...,
-        description="Whether results were reranked",
-        example=True,
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "query": "What is working memory?",
                 "chunks": [
@@ -211,27 +184,67 @@ class RetrieveResponse(BaseModel):
                 "reranked": True,
             }
         }
+    )
+
+    query: str = Field(
+        ...,
+        description="Original query",
+    )
+    chunks: list[dict[str, Any]] = Field(
+        ...,
+        description="Retrieved chunks",
+    )
+    total_retrieved: int = Field(
+        ...,
+        description="Number of chunks retrieved",
+    )
+    reranked: bool = Field(
+        ...,
+        description="Whether results were reranked",
+    )
 
 
 class ExpandQueryRequest(BaseModel):
     """Request to expand a query."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "query": "cognitive load",
+                "num_variations": 4,
+            }
+        }
+    )
+
     query: str = Field(
         ...,
         description="Original query to expand",
-        example="cognitive load",
     )
     num_variations: int = Field(
         default=4,
         ge=1,
         le=10,
         description="Number of variations to generate",
-        example=4,
     )
 
 
 class ExpandQueryResponse(BaseModel):
     """Response containing expanded queries."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "original_query": "cognitive load",
+                "expanded_queries": [
+                    "cognitive load",
+                    "What is cognitive load theory?",
+                    "How does cognitive load affect learning?",
+                    "Types of cognitive load in education",
+                ],
+                "total_variations": 4,
+            }
+        }
+    )
 
     original_query: str = Field(
         ...,
@@ -244,36 +257,28 @@ class ExpandQueryResponse(BaseModel):
     total_variations: int = Field(
         ...,
         description="Number of variations generated",
-        example=4,
     )
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "original_query": "cognitive load",
-                "expanded_queries": [
-                    "cognitive load",
-                    "What is cognitive load theory?",
-                    "How does cognitive load affect learning?",
-                    "Types of cognitive load in education",
-                ],
-                "total_variations": 4,
-            }
-        }
 
 
 class AugmentRequest(BaseModel):
     """Request to augment content."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "content": "Cognitive load refers to...",
+                "context_type": "related",
+            }
+        }
+    )
+
     content: str = Field(
         ...,
         description="Content to augment",
-        example="Cognitive load refers to...",
     )
     context_type: str = Field(
         default="related",
         description="Type of context to add: related, citations, definitions",
-        example="related",
     )
 
 
@@ -305,31 +310,8 @@ class AugmentResponse(BaseModel):
 class GenerateRequest(BaseModel):
     """Request to generate a response from context."""
 
-    query: str = Field(
-        ...,
-        description="User query",
-        example="Summarize the key points about memory",
-    )
-    context_chunks: list[str] = Field(
-        ...,
-        description="Pre-retrieved context chunk IDs",
-        example=["chunk_001", "chunk_002"],
-    )
-    model: str | None = Field(
-        default=None,
-        description="LLM model to use",
-        example="gpt-4o",
-    )
-    temperature: float = Field(
-        default=0.7,
-        ge=0.0,
-        le=2.0,
-        description="Generation temperature",
-        example=0.7,
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "query": "Summarize the key points about memory",
                 "context_chunks": ["chunk_001", "chunk_002", "chunk_003"],
@@ -337,10 +319,42 @@ class GenerateRequest(BaseModel):
                 "temperature": 0.7,
             }
         }
+    )
+
+    query: str = Field(
+        ...,
+        description="User query",
+    )
+    context_chunks: list[str] = Field(
+        ...,
+        description="Pre-retrieved context chunk IDs",
+    )
+    model: str | None = Field(
+        default=None,
+        description="LLM model to use",
+    )
+    temperature: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=2.0,
+        description="Generation temperature",
+    )
 
 
 class GenerateResponse(BaseModel):
     """Response containing generated text."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "query": "Summarize the key points about memory",
+                "response": "Based on the provided context, the key points about memory are...",
+                "model": "gpt-4o",
+                "tokens_used": {"prompt": 1000, "completion": 200, "total": 1200},
+                "context_chunks_used": 3,
+            }
+        }
+    )
 
     query: str = Field(
         ...,
@@ -353,7 +367,6 @@ class GenerateResponse(BaseModel):
     model: str = Field(
         ...,
         description="Model used",
-        example="gpt-4o",
     )
     tokens_used: dict[str, int] = Field(
         default_factory=dict,
@@ -362,18 +375,6 @@ class GenerateResponse(BaseModel):
     context_chunks_used: int = Field(
         ...,
         description="Number of context chunks used",
-        example=3,
     )
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "query": "Summarize the key points about memory",
-                "response": "Based on the provided context, the key points about memory are...",
-                "model": "gpt-4o",
-                "tokens_used": {"prompt": 1000, "completion": 200, "total": 1200},
-                "context_chunks_used": 3,
-            }
-        }
 
 

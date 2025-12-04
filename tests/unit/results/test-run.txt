@@ -1,0 +1,1083 @@
+======================================================================================== test session starts =========================================================================================
+platform win32 -- Python 3.12.2, pytest-9.0.1, pluggy-1.6.0
+rootdir: C:\code\python\psychRAG-test
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.11.0, Faker-38.2.0, langsmith-0.4.47, logfire-4.15.1, html-4.1.1, markdown-docs-0.9.0, metadata-3.1.1
+collected 209 items
+
+tests\unit\test_api_endpoints.py ...............                                                                                                                                                [  7%]
+tests\unit\test_augment.py ..............                                                                                                                                                       [ 13%]
+tests\unit\test_conv_epub2md.py ............                                                                                                                                                    [ 19%]
+tests\unit\test_conv_pdf2md.py ..FF.FFF..F                                                                                                                                                      [ 24%]
+tests\unit\test_conversion_api_endpoints.py FFFFFFFFFFF                                                                                                                                         [ 30%]
+tests\unit\test_database.py ...F                                                                                                                                                                [ 32%]
+tests\unit\test_init_db.py .......                                                                                                                                                              [ 35%]
+tests\unit\test_inspection.py ..FF..F.                                                                                                                                                          [ 39%]
+tests\unit\test_llm_citation_parser.py .........FF..FFFF                                                                                                                                        [ 47%]
+tests\unit\test_original_markdown.py FFFFF                                                                                                                                                      [ 49%]
+tests\unit\test_prompt_template_model.py EEEEEEEEEEEEEEEEEEE                                                                                                                                    [ 58%]
+tests\unit\test_rag_config_api.py ..............                                                                                                                                                [ 65%]
+tests\unit\test_rag_config_db.py .............                                                                                                                                                  [ 71%]
+tests\unit\test_rag_config_integration.py ...............                                                                                                                                       [ 78%]
+tests\unit\test_rag_config_loader.py .............                                                                                                                                              [ 85%]
+tests\unit\test_templates_api.py ..........................                                                                                                                                     [ 97%]
+tests\unit\test_work_model.py .....                                                                                                                                                             [100%]
+
+=============================================================================================== ERRORS ===============================================================================================
+______________________________________________________________ ERROR at setup of TestPromptTemplateCreation.test_create_prompt_template ______________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 17
+      def test_create_prompt_template(self, session):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:17
+__________________________________________________________________ ERROR at setup of TestPromptTemplateCreation.test_default_values __________________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 39
+      def test_default_values(self, session):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:39
+_______________________________________________________________________ ERROR at setup of TestPromptTemplateCreation.test_repr _______________________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 56
+      def test_repr(self, session):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:56
+__________________________________________________________ ERROR at setup of TestPromptTemplateValidation.test_version_validation_positive ___________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 78
+      def test_version_validation_positive(self, session):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:78
+____________________________________________________________ ERROR at setup of TestPromptTemplateValidation.test_version_validation_zero _____________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 91
+      def test_version_validation_zero(self, session):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:91
+__________________________________________________________ ERROR at setup of TestPromptTemplateValidation.test_version_validation_negative ___________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 103
+      def test_version_validation_negative(self, session):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:103
+_______________________________________________________________ ERROR at setup of TestPromptTemplateConstraints.test_unique_constraint _______________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 119
+      def test_unique_constraint(self, session):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:119
+_____________________________________________________________ ERROR at setup of TestPromptTemplateConstraints.test_function_tag_required _____________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 143
+      def test_function_tag_required(self, session):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:143
+___________________________________________________________ ERROR at setup of TestPromptTemplateConstraints.test_template_content_required ___________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 156
+      def test_template_content_required(self, session):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:156
+_______________________________________________________ ERROR at setup of TestPromptTemplateConstraints.test_check_constraint_version_positive _______________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 169
+      def test_check_constraint_version_positive(self, session):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:169
+_______________________________________________________________ ERROR at setup of TestPromptTemplateQueries.test_query_by_function_tag _______________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 216
+      def test_query_by_function_tag(self, session, sample_templates):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_templates, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:216
+_______________________________________________________________ ERROR at setup of TestPromptTemplateQueries.test_query_active_template _______________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 225
+      def test_query_active_template(self, session, sample_templates):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_templates, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:225
+______________________________________________________________ ERROR at setup of TestPromptTemplateQueries.test_query_specific_version _______________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 236
+      def test_query_specific_version(self, session, sample_templates):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_templates, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:236
+_________________________________________________________________ ERROR at setup of TestPromptTemplateQueries.test_query_no_results __________________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 247
+      def test_query_no_results(self, session, sample_templates):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_templates, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:247
+_____________________________________________________________ ERROR at setup of TestPromptTemplateQueries.test_query_multiple_functions ______________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 255
+      def test_query_multiple_functions(self, session, sample_templates):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, sample_templates, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:255
+_____________________________________________________ ERROR at setup of TestPromptTemplateLangChainCompatibility.test_langchain_template_loading _____________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 269
+      def test_langchain_template_loading(self, session):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:269
+_____________________________________________ ERROR at setup of TestPromptTemplateLangChainCompatibility.test_langchain_template_with_multiple_variables _____________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 291
+      def test_langchain_template_with_multiple_variables(self, session):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:291
+______________________________________________________________ ERROR at setup of TestPromptTemplateUpdates.test_update_template_content ______________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 315
+      def test_update_template_content(self, session):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:315
+_______________________________________________________________ ERROR at setup of TestPromptTemplateUpdates.test_toggle_active_status ________________________________________________________________
+file c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py, line 336
+      def test_toggle_active_status(self, session):
+E       fixture 'session' not found
+>       available fixtures: _session_faker, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+c:\code\python\psychRAG-test\tests\unit\test_prompt_template_model.py:336
+============================================================================================== FAILURES ==============================================================================================
+________________________________________________________________________ TestConvertPdfToMarkdown.test_successful_conversion _________________________________________________________________________
+
+self = <test_conv_pdf2md.TestConvertPdfToMarkdown object at 0x000001C014D10D70>, mock_converter_class = <MagicMock name='DocumentConverter' id='1924497602224'>
+tmp_path = WindowsPath('C:/Users/dardawk/AppData/Local/Temp/pytest-of-dardawk/pytest-38/test_successful_conversion1')
+
+    @patch("psychrag.conversions.conv_pdf2md.DocumentConverter")
+    def test_successful_conversion(self, mock_converter_class, tmp_path):
+        """Test successful PDF to Markdown conversion."""
+        # Create mock PDF file
+        pdf_file = tmp_path / "test.pdf"
+        pdf_file.write_text("fake pdf content")
+    
+        # Setup mock
+        mock_result = MagicMock()
+        mock_result.document.export_to_markdown.return_value = "# Test Markdown"
+        mock_converter = MagicMock()
+        mock_converter.convert.return_value = mock_result
+        mock_converter_class.return_value = mock_converter
+    
+        # Run conversion
+        result = convert_pdf_to_markdown(pdf_file)
+    
+        # Verify
+>       assert result == "# Test Markdown"
+E       AssertionError: assert ('# Test Markdown', '# Test Markdown') == '# Test Markdown'
+
+tests\unit\test_conv_pdf2md.py:48: AssertionError
+_________________________________________________________________________ TestConvertPdfToMarkdown.test_output_file_created __________________________________________________________________________
+
+self = <test_conv_pdf2md.TestConvertPdfToMarkdown object at 0x000001C014D10B30>, mock_converter_class = <MagicMock name='DocumentConverter' id='1924498059296'>
+tmp_path = WindowsPath('C:/Users/dardawk/AppData/Local/Temp/pytest-of-dardawk/pytest-38/test_output_file_created1')
+
+    @patch("psychrag.conversions.conv_pdf2md.DocumentConverter")
+    def test_output_file_created(self, mock_converter_class, tmp_path):
+        """Test that output file is created when output_path is specified."""
+        # Create mock PDF file
+        pdf_file = tmp_path / "test.pdf"
+        pdf_file.write_text("fake pdf content")
+        output_file = tmp_path / "output" / "test.md"
+    
+        # Setup mock
+        mock_result = MagicMock()
+        mock_result.document.export_to_markdown.return_value = "# Test Output"
+        mock_converter = MagicMock()
+        mock_converter.convert.return_value = mock_result
+        mock_converter_class.return_value = mock_converter
+    
+        # Run conversion
+        convert_pdf_to_markdown(pdf_file, output_path=output_file)
+    
+        # Verify output file was created
+>       assert output_file.exists()
+E       AssertionError: assert False
+E        +  where False = exists()
+E        +    where exists = WindowsPath('C:/Users/dardawk/AppData/Local/Temp/pytest-of-dardawk/pytest-38/test_output_file_created1/output/test.md').exists
+
+tests\unit\test_conv_pdf2md.py:70: AssertionError
+__________________________________________________________________________ TestConvertPdfToMarkdown.test_path_object_input ___________________________________________________________________________
+
+self = <test_conv_pdf2md.TestConvertPdfToMarkdown object at 0x000001C014D11F70>, mock_converter_class = <MagicMock name='DocumentConverter' id='1924498498064'>
+tmp_path = WindowsPath('C:/Users/dardawk/AppData/Local/Temp/pytest-of-dardawk/pytest-38/test_path_object_input1')
+
+    @patch("psychrag.conversions.conv_pdf2md.DocumentConverter")
+    def test_path_object_input(self, mock_converter_class, tmp_path):
+        """Test that Path objects are accepted as input."""
+        pdf_file = tmp_path / "test.pdf"
+        pdf_file.write_text("fake content")
+    
+        # Setup mock
+        mock_result = MagicMock()
+        mock_result.document.export_to_markdown.return_value = "# Test"
+        mock_converter_class.return_value.convert.return_value = mock_result
+    
+        result = convert_pdf_to_markdown(Path(pdf_file))
+>       assert isinstance(result, str)
+E       AssertionError: assert False
+E        +  where False = isinstance(('# Test', '# Test'), str)
+
+tests\unit\test_conv_pdf2md.py:106: AssertionError
+__________________________________________________________________________________ TestMain.test_main_stdout_output __________________________________________________________________________________
+
+self = <test_conv_pdf2md.TestMain object at 0x000001C014D122D0>, mock_convert = <MagicMock name='convert_pdf_to_markdown' id='1924496867408'>
+capsys = <_pytest.capture.CaptureFixture object at 0x000001C014F3E120>, monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C014F3E3C0>
+
+    @patch("psychrag.conversions.conv_pdf2md.convert_pdf_to_markdown")
+    def test_main_stdout_output(self, mock_convert, capsys, monkeypatch):
+        """Test main function prints to stdout when no output file."""
+        mock_convert.return_value = "# Converted Content"
+        monkeypatch.setattr("sys.argv", ["conv_pdf2md", "test.pdf"])
+    
+        result = main()
+    
+>       assert result == 0
+E       assert 1 == 0
+
+tests\unit\test_conv_pdf2md.py:120: AssertionError
+---------------------------------------------------------------------------------------- Captured stderr call ----------------------------------------------------------------------------------------
+Error: too many values to unpack (expected 2)
+________________________________________________________________________________ TestMain.test_main_with_output_file _________________________________________________________________________________
+
+self = <test_conv_pdf2md.TestMain object at 0x000001C014D12630>, mock_convert = <MagicMock name='convert_pdf_to_markdown' id='1924497601696'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C014FEF5F0>, tmp_path = WindowsPath('C:/Users/dardawk/AppData/Local/Temp/pytest-of-dardawk/pytest-38/test_main_with_output_file1')
+
+    @patch("psychrag.conversions.conv_pdf2md.convert_pdf_to_markdown")
+    def test_main_with_output_file(self, mock_convert, monkeypatch, tmp_path):
+        """Test main function with output file argument."""
+        output_file = tmp_path / "output.md"
+        mock_convert.return_value = "# Test"
+        monkeypatch.setattr(
+            "sys.argv",
+            ["conv_pdf2md", "test.pdf", "-o", str(output_file)]
+        )
+    
+        result = main()
+    
+        assert result == 0
+>       mock_convert.assert_called_once_with(
+            pdf_path="test.pdf",
+            output_path=str(output_file),
+            verbose=False,
+            ocr=False
+        )
+
+tests\unit\test_conv_pdf2md.py:137: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+C:\Python312\Lib\unittest\mock.py:956: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <MagicMock name='convert_pdf_to_markdown' id='1924497601696'>, args = ()
+kwargs = {'ocr': False, 'output_path': 'C:\\Users\\dardawk\\AppData\\Local\\Temp\\pytest-of-dardawk\\pytest-38\\test_main_with_output_file1\\output.md', 'pdf_path': 'test.pdf', 'verbose': False}
+expected = call(pdf_path='test.pdf', output_path='C:\\Users\\dardawk\\AppData\\Local\\Temp\\pytest-of-dardawk\\pytest-38\\test_main_with_output_file1\\output.md', verbose=False, ocr=False)
+actual = call(pdf_path='test.pdf', output_path='C:\\Users\\dardawk\\AppData\\Local\\Temp\\pytest-of-dardawk\\pytest-38\\test_main_with_output_file1\\output.md', verbose=False, ocr=False, hierarchical=True, compare=True, use_gpu=True)
+_error_message = <function NonCallableMock.assert_called_with.<locals>._error_message at 0x000001C015085440>, cause = None
+
+    def assert_called_with(self, /, *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+    
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        if self.call_args is None:
+            expected = self._format_mock_call_signature(args, kwargs)
+            actual = 'not called.'
+            error_message = ('expected call not found.\nExpected: %s\n  Actual: %s'
+                    % (expected, actual))
+            raise AssertionError(error_message)
+    
+        def _error_message():
+            msg = self._format_mock_failure_message(args, kwargs)
+            return msg
+        expected = self._call_matcher(_Call((args, kwargs), two=True))
+        actual = self._call_matcher(self.call_args)
+        if actual != expected:
+            cause = expected if isinstance(expected, Exception) else None
+>           raise AssertionError(_error_message()) from cause
+E           AssertionError: expected call not found.
+E           Expected: convert_pdf_to_markdown(pdf_path='test.pdf', output_path='C:\\Users\\dardawk\\AppData\\Local\\Temp\\pytest-of-dardawk\\pytest-38\\test_main_with_output_file1\\output.md', verbose=False, ocr=False)
+E             Actual: convert_pdf_to_markdown(pdf_path='test.pdf', output_path='C:\\Users\\dardawk\\AppData\\Local\\Temp\\pytest-of-dardawk\\pytest-38\\test_main_with_output_file1\\output.md', verbose=False, ocr=False, hierarchical=True, compare=True, use_gpu=True)
+
+C:\Python312\Lib\unittest\mock.py:944: AssertionError
+__________________________________________________________________________________ TestMain.test_main_verbose_flag ___________________________________________________________________________________
+
+self = <test_conv_pdf2md.TestMain object at 0x000001C014D12FC0>, mock_convert = <MagicMock name='convert_pdf_to_markdown' id='1924497496288'>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001C014FD4A10>
+
+    @patch("psychrag.conversions.conv_pdf2md.convert_pdf_to_markdown")
+    def test_main_verbose_flag(self, mock_convert, monkeypatch):
+        """Test main function passes verbose flag."""
+        mock_convert.return_value = "# Test"
+        monkeypatch.setattr("sys.argv", ["conv_pdf2md", "test.pdf", "-v"])
+    
+        main()
+    
+>       mock_convert.assert_called_once_with(
+            pdf_path="test.pdf",
+            output_path=None,
+            verbose=True,
+            ocr=False
+        )
+
+tests\unit\test_conv_pdf2md.py:176: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+C:\Python312\Lib\unittest\mock.py:956: in assert_called_once_with
+    return self.assert_called_with(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <MagicMock name='convert_pdf_to_markdown' id='1924497496288'>, args = (), kwargs = {'ocr': False, 'output_path': None, 'pdf_path': 'test.pdf', 'verbose': True}
+expected = call(pdf_path='test.pdf', output_path=None, verbose=True, ocr=False)
+actual = call(pdf_path='test.pdf', output_path=None, verbose=True, ocr=False, hierarchical=True, compare=True, use_gpu=True)
+_error_message = <function NonCallableMock.assert_called_with.<locals>._error_message at 0x000001C015085D00>, cause = None
+
+    def assert_called_with(self, /, *args, **kwargs):
+        """assert that the last call was made with the specified arguments.
+    
+        Raises an AssertionError if the args and keyword args passed in are
+        different to the last call to the mock."""
+        if self.call_args is None:
+            expected = self._format_mock_call_signature(args, kwargs)
+            actual = 'not called.'
+            error_message = ('expected call not found.\nExpected: %s\n  Actual: %s'
+                    % (expected, actual))
+            raise AssertionError(error_message)
+    
+        def _error_message():
+            msg = self._format_mock_failure_message(args, kwargs)
+            return msg
+        expected = self._call_matcher(_Call((args, kwargs), two=True))
+        actual = self._call_matcher(self.call_args)
+        if actual != expected:
+            cause = expected if isinstance(expected, Exception) else None
+>           raise AssertionError(_error_message()) from cause
+E           AssertionError: expected call not found.
+E           Expected: convert_pdf_to_markdown(pdf_path='test.pdf', output_path=None, verbose=True, ocr=False)
+E             Actual: convert_pdf_to_markdown(pdf_path='test.pdf', output_path=None, verbose=True, ocr=False, hierarchical=True, compare=True, use_gpu=True)
+
+C:\Python312\Lib\unittest\mock.py:944: AssertionError
+---------------------------------------------------------------------------------------- Captured stderr call ----------------------------------------------------------------------------------------
+Error: too many values to unpack (expected 2)
+___________________________________________________________________________ TestGetFileContent.test_get_style_file_success ___________________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+___________________________________________________________________________ TestGetFileContent.test_get_file_invalid_type ____________________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+__________________________________________________________________________ TestGetFileContent.test_get_file_not_found_in_db __________________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+_________________________________________________________________________ TestGetFileContent.test_get_file_not_found_on_disk _________________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+___________________________________________________________________________ TestUpdateFileContent.test_update_file_success ___________________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+________________________________________________________________________ TestUpdateFileContent.test_update_file_invalid_type _________________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+________________________________________________________________________ TestGetFileSuggestion.test_get_suggestion_hier_wins _________________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+______________________________________________________________________ TestGetFileSuggestion.test_get_suggestion_file_not_found ______________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+______________________________________________________________________________ TestSelectFile.test_select_file_success _______________________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+____________________________________________________________________________ TestSelectFile.test_select_file_invalid_type ____________________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+___________________________________________________________________________ TestSelectFile.test_select_file_target_exists ____________________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+______________________________________________________________________________ TestDatabaseUrl.test_admin_database_url _______________________________________________________________________________
+
+self = <test_database.TestDatabaseUrl object at 0x000001C014D2CA10>
+
+    @patch.dict("os.environ", {
+        "POSTGRES_ADMIN_USER": "admin",
+        "POSTGRES_ADMIN_PASSWORD": "secret",
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_PORT": "5432",
+    })
+    def test_admin_database_url(self):
+        """Test admin database URL construction."""
+        url = get_admin_database_url()
+        assert "postgresql+psycopg://" in url
+>       assert "admin:secret" in url
+E       AssertionError: assert 'admin:secret' in 'postgresql+psycopg://postgres:postgres@127.0.0.1:5432/postgres'
+
+tests\unit\test_database.py:62: AssertionError
+_________________________________________________________________________ TestGetConversionInspection.test_no_files_present __________________________________________________________________________
+
+self = <test_inspection.TestGetConversionInspection object at 0x000001C014D542F0>, mock_load_config = <MagicMock name='load_config' id='1924498056368'>
+mock_get_session = <MagicMock name='get_session' id='1924498048640'>
+
+    @patch("psychrag.conversions.inspection.get_session")
+    @patch("psychrag.conversions.inspection.load_config")
+    def test_no_files_present(self, mock_load_config, mock_get_session):
+        """Test inspection when no files are present."""
+        # Mock database session
+        mock_session = MagicMock()
+        mock_io_file = MagicMock()
+        mock_io_file.id = 1
+        mock_io_file.filename = "test.pdf"
+    
+        mock_query = mock_session.query.return_value
+        mock_query.filter.return_value.first.return_value = mock_io_file
+    
+        mock_get_session.return_value.__enter__.return_value = mock_session
+    
+        # Mock config
+        mock_config = MagicMock()
+        mock_config.paths.output_dir = "/output"
+        mock_load_config.return_value = mock_config
+    
+        # Mock file existence - no files exist
+        with patch("psychrag.conversions.inspection.Path") as mock_path_class:
+            def mock_path_constructor(path_str):
+                mock_path = MagicMock(spec=Path)
+                # No files exist
+                mock_path.exists.return_value = False
+                mock_path.is_file.return_value = False
+                return mock_path
+    
+            mock_path_class.side_effect = mock_path_constructor
+    
+            # Mock Path division operator
+            mock_output_dir = MagicMock(spec=Path)
+            mock_output_dir.__truediv__ = lambda self, other: mock_path_constructor(str(other))
+    
+            with patch.object(Path, "__new__", return_value=mock_output_dir):
+                result = get_conversion_inspection(1)
+    
+        # Verify results
+        assert len(result) == 5
+    
+        # None should be available
+>       assert all(not item.available for item in result)
+E       assert False
+E        +  where False = all(<generator object TestGetConversionInspection.test_no_files_present.<locals>.<genexpr> at 0x000001C014E7D900>)
+
+tests\unit\test_inspection.py:129: AssertionError
+________________________________________________________________________ TestGetConversionInspection.test_some_files_present _________________________________________________________________________
+
+self = <test_inspection.TestGetConversionInspection object at 0x000001C014D545F0>, mock_load_config = <MagicMock name='load_config' id='1924500334272'>
+mock_get_session = <MagicMock name='get_session' id='1924500338112'>
+
+    @patch("psychrag.conversions.inspection.get_session")
+    @patch("psychrag.conversions.inspection.load_config")
+    def test_some_files_present(self, mock_load_config, mock_get_session):
+        """Test inspection when only some files are present."""
+        # Mock database session
+        mock_session = MagicMock()
+        mock_io_file = MagicMock()
+        mock_io_file.id = 1
+        mock_io_file.filename = "test.pdf"
+    
+        mock_query = mock_session.query.return_value
+        mock_query.filter.return_value.first.return_value = mock_io_file
+    
+        mock_get_session.return_value.__enter__.return_value = mock_session
+    
+        # Mock config
+        mock_config = MagicMock()
+        mock_config.paths.output_dir = "/output"
+        mock_load_config.return_value = mock_config
+    
+        # Mock file existence - only style.md, hier.md, and toc_titles.md exist
+        existing_files = {
+            "test.style.md",
+            "test.hier.md",
+            "test.toc_titles.md"
+        }
+    
+        with patch("psychrag.conversions.inspection.Path") as mock_path_class:
+            def mock_path_constructor(path_str):
+                mock_path = MagicMock(spec=Path)
+                # Extract filename from path
+                filename = Path(path_str).name if "/" in str(path_str) else path_str
+                # Check if this file exists
+                mock_path.exists.return_value = filename in existing_files
+                mock_path.is_file.return_value = filename in existing_files
+                return mock_path
+    
+            mock_path_class.side_effect = mock_path_constructor
+    
+            # Mock Path division operator
+            mock_output_dir = MagicMock(spec=Path)
+            mock_output_dir.__truediv__ = lambda self, other: mock_path_constructor(str(other))
+    
+            with patch.object(Path, "__new__", return_value=mock_output_dir):
+                result = get_conversion_inspection(1)
+    
+        # Verify results
+        assert len(result) == 5
+    
+        # Check specific availability
+        assert result[0].name == "inspect_style_hier"
+        assert result[0].available is True  # Both style.md and hier.md exist
+    
+        assert result[1].name == "inspect_toc_titles"
+        assert result[1].available is True  # toc_titles.md exists
+    
+        assert result[2].name == "inspect_titles"
+>       assert result[2].available is False  # titles.md doesn't exist
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert True is False
+E        +  where True = InspectionItem(name='inspect_titles', available=True, files_checked=['test.titles.md']).available
+
+tests\unit\test_inspection.py:188: AssertionError
+__________________________________________________________________ TestGetConversionInspection.test_style_hier_requires_both_files ___________________________________________________________________
+
+self = <test_inspection.TestGetConversionInspection object at 0x000001C014D54EF0>, mock_load_config = <MagicMock name='load_config' id='1924498053920'>
+mock_get_session = <MagicMock name='get_session' id='1924497593728'>
+
+    @patch("psychrag.conversions.inspection.get_session")
+    @patch("psychrag.conversions.inspection.load_config")
+    def test_style_hier_requires_both_files(self, mock_load_config, mock_get_session):
+        """Test that style_hier inspection requires both style.md and hier.md."""
+        # Mock database session
+        mock_session = MagicMock()
+        mock_io_file = MagicMock()
+        mock_io_file.id = 1
+        mock_io_file.filename = "test.pdf"
+    
+        mock_query = mock_session.query.return_value
+        mock_query.filter.return_value.first.return_value = mock_io_file
+    
+        mock_get_session.return_value.__enter__.return_value = mock_session
+    
+        # Mock config
+        mock_config = MagicMock()
+        mock_config.paths.output_dir = "/output"
+        mock_load_config.return_value = mock_config
+    
+        # Mock file existence - only style.md exists, not hier.md
+        existing_files = {"test.style.md"}
+    
+        with patch("psychrag.conversions.inspection.Path") as mock_path_class:
+            def mock_path_constructor(path_str):
+                mock_path = MagicMock(spec=Path)
+                filename = Path(path_str).name if "/" in str(path_str) else path_str
+                mock_path.exists.return_value = filename in existing_files
+                mock_path.is_file.return_value = filename in existing_files
+                return mock_path
+    
+            mock_path_class.side_effect = mock_path_constructor
+    
+            # Mock Path division operator
+            mock_output_dir = MagicMock(spec=Path)
+            mock_output_dir.__truediv__ = lambda self, other: mock_path_constructor(str(other))
+    
+            with patch.object(Path, "__new__", return_value=mock_output_dir):
+                result = get_conversion_inspection(1)
+    
+        # Verify that style_hier is NOT available (requires both files)
+        style_hier_item = next(item for item in result if item.name == "inspect_style_hier")
+>       assert style_hier_item.available is False
+E       AssertionError: assert True is False
+E        +  where True = InspectionItem(name='inspect_style_hier', available=True, files_checked=['test.style.md', 'test.hier.md']).available
+
+tests\unit\test_inspection.py:268: AssertionError
+______________________________________________________________________ TestParseCitationWithLLM.test_parse_apa_citation_success ______________________________________________________________________
+
+args = (<test_llm_citation_parser.TestParseCitationWithLLM object at 0x000001C014D57170>,), keywargs = {}
+
+    @wraps(func)
+    def patched(*args, **keywargs):
+>       with self.decoration_helper(patched,
+                                    args,
+                                    keywargs) as (newargs, newkeywargs):
+
+C:\Python312\Lib\unittest\mock.py:1384: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+C:\Python312\Lib\contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+C:\Python312\Lib\unittest\mock.py:1366: in decoration_helper
+    arg = exit_stack.enter_context(patching)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Python312\Lib\contextlib.py:526: in enter_context
+    result = _enter(cm)
+             ^^^^^^^^^^
+C:\Python312\Lib\unittest\mock.py:1455: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <unittest.mock._patch object at 0x000001C014D2FFE0>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+    
+        original = DEFAULT
+        local = False
+    
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+    
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+    
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'psychrag.utils.llm_citation_parser' from 'C:\\code\\python\\psychRAG-test\\src\\psychrag\\utils\\llm_citation_parser.py'> does not have the attribute 'create_langchain_chat'
+
+C:\Python312\Lib\unittest\mock.py:1428: AttributeError
+______________________________________________________________________ TestParseCitationWithLLM.test_parse_mla_citation_success ______________________________________________________________________
+
+args = (<test_llm_citation_parser.TestParseCitationWithLLM object at 0x000001C014D56990>,), keywargs = {}
+
+    @wraps(func)
+    def patched(*args, **keywargs):
+>       with self.decoration_helper(patched,
+                                    args,
+                                    keywargs) as (newargs, newkeywargs):
+
+C:\Python312\Lib\unittest\mock.py:1384: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+C:\Python312\Lib\contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+C:\Python312\Lib\unittest\mock.py:1366: in decoration_helper
+    arg = exit_stack.enter_context(patching)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Python312\Lib\contextlib.py:526: in enter_context
+    result = _enter(cm)
+             ^^^^^^^^^^
+C:\Python312\Lib\unittest\mock.py:1455: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <unittest.mock._patch object at 0x000001C020375340>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+    
+        original = DEFAULT
+        local = False
+    
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+    
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+    
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'psychrag.utils.llm_citation_parser' from 'C:\\code\\python\\psychRAG-test\\src\\psychrag\\utils\\llm_citation_parser.py'> does not have the attribute 'create_langchain_chat'
+
+C:\Python312\Lib\unittest\mock.py:1428: AttributeError
+______________________________________________________________________ TestParseCitationWithLLM.test_parse_handles_partial_data ______________________________________________________________________
+
+args = (<test_llm_citation_parser.TestParseCitationWithLLM object at 0x000001C014D57B30>,), keywargs = {}
+
+    @wraps(func)
+    def patched(*args, **keywargs):
+>       with self.decoration_helper(patched,
+                                    args,
+                                    keywargs) as (newargs, newkeywargs):
+
+C:\Python312\Lib\unittest\mock.py:1384: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+C:\Python312\Lib\contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+C:\Python312\Lib\unittest\mock.py:1366: in decoration_helper
+    arg = exit_stack.enter_context(patching)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Python312\Lib\contextlib.py:526: in enter_context
+    result = _enter(cm)
+             ^^^^^^^^^^
+C:\Python312\Lib\unittest\mock.py:1455: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <unittest.mock._patch object at 0x000001C014D54D70>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+    
+        original = DEFAULT
+        local = False
+    
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+    
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+    
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'psychrag.utils.llm_citation_parser' from 'C:\\code\\python\\psychRAG-test\\src\\psychrag\\utils\\llm_citation_parser.py'> does not have the attribute 'create_langchain_chat'
+
+C:\Python312\Lib\unittest\mock.py:1428: AttributeError
+_______________________________________________________________________ TestParseCitationWithLLM.test_parse_llm_error_wrapped ________________________________________________________________________
+
+args = (<test_llm_citation_parser.TestParseCitationWithLLM object at 0x000001C014D57E30>,), keywargs = {}
+
+    @wraps(func)
+    def patched(*args, **keywargs):
+>       with self.decoration_helper(patched,
+                                    args,
+                                    keywargs) as (newargs, newkeywargs):
+
+C:\Python312\Lib\unittest\mock.py:1384: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+C:\Python312\Lib\contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+C:\Python312\Lib\unittest\mock.py:1366: in decoration_helper
+    arg = exit_stack.enter_context(patching)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Python312\Lib\contextlib.py:526: in enter_context
+    result = _enter(cm)
+             ^^^^^^^^^^
+C:\Python312\Lib\unittest\mock.py:1455: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <unittest.mock._patch object at 0x000001C014D550D0>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+    
+        original = DEFAULT
+        local = False
+    
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+    
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+    
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'psychrag.utils.llm_citation_parser' from 'C:\\code\\python\\psychRAG-test\\src\\psychrag\\utils\\llm_citation_parser.py'> does not have the attribute 'create_langchain_chat'
+
+C:\Python312\Lib\unittest\mock.py:1428: AttributeError
+________________________________________________________________________ TestParseCitationWithLLM.test_parse_chicago_citation ________________________________________________________________________
+
+args = (<test_llm_citation_parser.TestParseCitationWithLLM object at 0x000001C014D6C170>,), keywargs = {}
+
+    @wraps(func)
+    def patched(*args, **keywargs):
+>       with self.decoration_helper(patched,
+                                    args,
+                                    keywargs) as (newargs, newkeywargs):
+
+C:\Python312\Lib\unittest\mock.py:1384: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+C:\Python312\Lib\contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+C:\Python312\Lib\unittest\mock.py:1366: in decoration_helper
+    arg = exit_stack.enter_context(patching)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Python312\Lib\contextlib.py:526: in enter_context
+    result = _enter(cm)
+             ^^^^^^^^^^
+C:\Python312\Lib\unittest\mock.py:1455: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <unittest.mock._patch object at 0x000001C014D54EC0>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+    
+        original = DEFAULT
+        local = False
+    
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+    
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+    
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'psychrag.utils.llm_citation_parser' from 'C:\\code\\python\\psychRAG-test\\src\\psychrag\\utils\\llm_citation_parser.py'> does not have the attribute 'create_langchain_chat'
+
+C:\Python312\Lib\unittest\mock.py:1428: AttributeError
+____________________________________________________________________ TestIntegrationScenarios.test_parse_journal_article_with_doi ____________________________________________________________________
+
+args = (<test_llm_citation_parser.TestIntegrationScenarios object at 0x000001C014D6C500>,), keywargs = {}
+
+    @wraps(func)
+    def patched(*args, **keywargs):
+>       with self.decoration_helper(patched,
+                                    args,
+                                    keywargs) as (newargs, newkeywargs):
+
+C:\Python312\Lib\unittest\mock.py:1384: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+C:\Python312\Lib\contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+C:\Python312\Lib\unittest\mock.py:1366: in decoration_helper
+    arg = exit_stack.enter_context(patching)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Python312\Lib\contextlib.py:526: in enter_context
+    result = _enter(cm)
+             ^^^^^^^^^^
+C:\Python312\Lib\unittest\mock.py:1455: in __enter__
+    original, local = self.get_original()
+                      ^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <unittest.mock._patch object at 0x000001C014D54FE0>
+
+    def get_original(self):
+        target = self.getter()
+        name = self.attribute
+    
+        original = DEFAULT
+        local = False
+    
+        try:
+            original = target.__dict__[name]
+        except (AttributeError, KeyError):
+            original = getattr(target, name, DEFAULT)
+        else:
+            local = True
+    
+        if name in _builtins and isinstance(target, ModuleType):
+            self.create = True
+    
+        if not self.create and original is DEFAULT:
+>           raise AttributeError(
+                "%s does not have the attribute %r" % (target, name)
+            )
+E           AttributeError: <module 'psychrag.utils.llm_citation_parser' from 'C:\\code\\python\\psychRAG-test\\src\\psychrag\\utils\\llm_citation_parser.py'> does not have the attribute 'create_langchain_chat'
+
+C:\Python312\Lib\unittest\mock.py:1428: AttributeError
+______________________________________________________________________ TestOriginalMarkdown.test_get_original_markdown_success _______________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+__________________________________________________________________ TestOriginalMarkdown.test_get_original_markdown_not_found_in_db ___________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+_________________________________________________________________ TestOriginalMarkdown.test_get_original_markdown_not_found_on_disk __________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+_____________________________________________________________________ TestOriginalMarkdown.test_update_original_markdown_success _____________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+____________________________________________________________________ TestOriginalMarkdown.test_update_original_markdown_not_found ____________________________________________________________________
+async def functions are not natively supported.
+You need to install a suitable plugin for your async framework, for example:
+  - anyio
+  - pytest-asyncio
+  - pytest-tornasync
+  - pytest-trio
+  - pytest-twisted
+====================================================================================== short test summary info =======================================================================================
+FAILED tests/unit/test_conv_pdf2md.py::TestConvertPdfToMarkdown::test_successful_conversion - AssertionError: assert ('# Test Markdown', '# Test Markdown') == '# Test Markdown'
+FAILED tests/unit/test_conv_pdf2md.py::TestConvertPdfToMarkdown::test_output_file_created - AssertionError: assert False
+FAILED tests/unit/test_conv_pdf2md.py::TestConvertPdfToMarkdown::test_path_object_input - AssertionError: assert False
+FAILED tests/unit/test_conv_pdf2md.py::TestMain::test_main_stdout_output - assert 1 == 0
+FAILED tests/unit/test_conv_pdf2md.py::TestMain::test_main_with_output_file - AssertionError: expected call not found.
+FAILED tests/unit/test_conv_pdf2md.py::TestMain::test_main_verbose_flag - AssertionError: expected call not found.
+FAILED tests/unit/test_conversion_api_endpoints.py::TestGetFileContent::test_get_style_file_success - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_conversion_api_endpoints.py::TestGetFileContent::test_get_file_invalid_type - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_conversion_api_endpoints.py::TestGetFileContent::test_get_file_not_found_in_db - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_conversion_api_endpoints.py::TestGetFileContent::test_get_file_not_found_on_disk - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_conversion_api_endpoints.py::TestUpdateFileContent::test_update_file_success - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_conversion_api_endpoints.py::TestUpdateFileContent::test_update_file_invalid_type - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_conversion_api_endpoints.py::TestGetFileSuggestion::test_get_suggestion_hier_wins - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_conversion_api_endpoints.py::TestGetFileSuggestion::test_get_suggestion_file_not_found - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_conversion_api_endpoints.py::TestSelectFile::test_select_file_success - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_conversion_api_endpoints.py::TestSelectFile::test_select_file_invalid_type - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_conversion_api_endpoints.py::TestSelectFile::test_select_file_target_exists - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_database.py::TestDatabaseUrl::test_admin_database_url - AssertionError: assert 'admin:secret' in 'postgresql+psycopg://postgres:postgres@127.0.0.1:5432/postgres'
+FAILED tests/unit/test_inspection.py::TestGetConversionInspection::test_no_files_present - assert False
+FAILED tests/unit/test_inspection.py::TestGetConversionInspection::test_some_files_present - AssertionError: assert True is False
+FAILED tests/unit/test_inspection.py::TestGetConversionInspection::test_style_hier_requires_both_files - AssertionError: assert True is False
+FAILED tests/unit/test_llm_citation_parser.py::TestParseCitationWithLLM::test_parse_apa_citation_success - AttributeError: <module 'psychrag.utils.llm_citation_parser' from 'C:\\code\\python\\psyc...
+FAILED tests/unit/test_llm_citation_parser.py::TestParseCitationWithLLM::test_parse_mla_citation_success - AttributeError: <module 'psychrag.utils.llm_citation_parser' from 'C:\\code\\python\\psyc...
+FAILED tests/unit/test_llm_citation_parser.py::TestParseCitationWithLLM::test_parse_handles_partial_data - AttributeError: <module 'psychrag.utils.llm_citation_parser' from 'C:\\code\\python\\psyc...
+FAILED tests/unit/test_llm_citation_parser.py::TestParseCitationWithLLM::test_parse_llm_error_wrapped - AttributeError: <module 'psychrag.utils.llm_citation_parser' from 'C:\\code\\python\\psychRA...
+FAILED tests/unit/test_llm_citation_parser.py::TestParseCitationWithLLM::test_parse_chicago_citation - AttributeError: <module 'psychrag.utils.llm_citation_parser' from 'C:\\code\\python\\psychRAG...
+FAILED tests/unit/test_llm_citation_parser.py::TestIntegrationScenarios::test_parse_journal_article_with_doi - AttributeError: <module 'psychrag.utils.llm_citation_parser' from 'C:\\code\\python\\...
+FAILED tests/unit/test_original_markdown.py::TestOriginalMarkdown::test_get_original_markdown_success - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_original_markdown.py::TestOriginalMarkdown::test_get_original_markdown_not_found_in_db - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_original_markdown.py::TestOriginalMarkdown::test_get_original_markdown_not_found_on_disk - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_original_markdown.py::TestOriginalMarkdown::test_update_original_markdown_success - Failed: async def functions are not natively supported.
+FAILED tests/unit/test_original_markdown.py::TestOriginalMarkdown::test_update_original_markdown_not_found - Failed: async def functions are not natively supported.
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateCreation::test_create_prompt_template
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateCreation::test_default_values
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateCreation::test_repr
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateValidation::test_version_validation_positive
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateValidation::test_version_validation_zero
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateValidation::test_version_validation_negative
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateConstraints::test_unique_constraint
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateConstraints::test_function_tag_required
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateConstraints::test_template_content_required
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateConstraints::test_check_constraint_version_positive
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateQueries::test_query_by_function_tag
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateQueries::test_query_active_template
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateQueries::test_query_specific_version
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateQueries::test_query_no_results
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateQueries::test_query_multiple_functions
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateLangChainCompatibility::test_langchain_template_loading
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateLangChainCompatibility::test_langchain_template_with_multiple_variables
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateUpdates::test_update_template_content
+ERROR tests/unit/test_prompt_template_model.py::TestPromptTemplateUpdates::test_toggle_active_status
+============================================================================= 32 failed, 158 passed, 19 errors in 15.47s =============================================================================

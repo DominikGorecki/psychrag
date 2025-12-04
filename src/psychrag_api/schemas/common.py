@@ -5,7 +5,7 @@ Common/shared Pydantic schemas used across multiple routers.
 from datetime import datetime
 from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 T = TypeVar("T")
 
@@ -13,25 +13,41 @@ T = TypeVar("T")
 class BaseResponse(BaseModel):
     """Base response with common fields."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "message": "Operation completed successfully",
+            }
+        }
+    )
+
     message: str | None = Field(
         default=None,
         description="Optional message providing additional context",
-        example="Operation completed successfully",
     )
 
 
 class ErrorResponse(BaseModel):
     """Standard error response format."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "error": "ValidationError",
+                "detail": "Invalid file format. Expected PDF.",
+                "timestamp": "2024-01-15T10:30:00Z",
+                "path": "/conv/pdf",
+            }
+        }
+    )
+
     error: str = Field(
         ...,
         description="Error type/code",
-        example="ValidationError",
     )
     detail: str = Field(
         ...,
         description="Human-readable error description",
-        example="Invalid input: file must be a PDF",
     )
     timestamp: datetime = Field(
         default_factory=datetime.utcnow,
@@ -40,39 +56,35 @@ class ErrorResponse(BaseModel):
     path: str | None = Field(
         default=None,
         description="API path where error occurred",
-        example="/conv/pdf",
     )
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "error": "ValidationError",
-                "detail": "Invalid file format. Expected PDF.",
-                "timestamp": "2024-01-15T10:30:00Z",
-                "path": "/conv/pdf",
-            }
-        }
 
 
 class JobStatusResponse(BaseModel):
     """Response for async job status queries."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "job_id": "job_abc123",
+                "status": "processing",
+                "progress": 45,
+            }
+        }
+    )
+
     job_id: str = Field(
         ...,
         description="Unique job identifier",
-        example="job_abc123",
     )
     status: str = Field(
         ...,
         description="Current job status",
-        example="processing",
     )
     progress: int = Field(
         default=0,
         ge=0,
         le=100,
         description="Progress percentage (0-100)",
-        example=45,
     )
     created_at: datetime | None = Field(
         default=None,
@@ -91,6 +103,18 @@ class JobStatusResponse(BaseModel):
 class PaginatedResponse(BaseModel, Generic[T]):
     """Generic paginated response wrapper."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "items": [],
+                "total": 100,
+                "page": 1,
+                "page_size": 20,
+                "total_pages": 5,
+            }
+        }
+    )
+
     items: list[T] = Field(
         ...,
         description="List of items in current page",
@@ -99,58 +123,60 @@ class PaginatedResponse(BaseModel, Generic[T]):
         ...,
         ge=0,
         description="Total number of items",
-        example=100,
     )
     page: int = Field(
         ...,
         ge=1,
         description="Current page number",
-        example=1,
     )
     page_size: int = Field(
         ...,
         ge=1,
         description="Items per page",
-        example=20,
     )
     total_pages: int = Field(
         ...,
         ge=0,
         description="Total number of pages",
-        example=5,
     )
 
 
 class FilePathRequest(BaseModel):
     """Request containing a file path."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "file_path": "/output/document.md",
+            }
+        }
+    )
+
     file_path: str = Field(
         ...,
         description="Path to the file",
-        example="/output/document.md",
     )
 
 
 class WorkIdentifier(BaseModel):
     """Identifier for a work/document."""
 
-    work_id: str | None = Field(
-        default=None,
-        description="Work ID in the database",
-        example="work_123",
-    )
-    file_path: str | None = Field(
-        default=None,
-        description="Path to the work file",
-        example="/output/cognitive_psych.md",
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "work_id": "work_123",
                 "file_path": "/output/cognitive_psych.md",
             }
         }
+    )
+
+    work_id: str | None = Field(
+        default=None,
+        description="Work ID in the database",
+    )
+    file_path: str | None = Field(
+        default=None,
+        description="Path to the work file",
+    )
 
 

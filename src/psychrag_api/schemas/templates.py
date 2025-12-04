@@ -5,7 +5,7 @@ Defines request and response models for template CRUD operations.
 """
 
 from datetime import datetime
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import List, Optional, Dict, Any
 
 
@@ -54,15 +54,14 @@ class PromptTemplateUpdate(BaseModel):
 
 class PromptTemplateResponse(PromptTemplateBase):
     """Schema for template response."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     version: int
     is_active: bool
     created_at: datetime
     updated_at: datetime
     variables: Optional[List[Dict[str, str]]] = Field(default=None, description="Variable metadata from prompt_meta")
-
-    class Config:
-        from_attributes = True
 
 
 class TemplateSummary(BaseModel):
@@ -104,11 +103,10 @@ class PromptMetaUpdate(BaseModel):
 
 class PromptMetaResponse(BaseModel):
     """Schema for prompt metadata response."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     function_tag: str
     variables: List[Dict[str, Any]]
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
