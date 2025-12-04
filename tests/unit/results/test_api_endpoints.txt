@@ -1,0 +1,218 @@
+================================================= test session starts =================================================
+platform win32 -- Python 3.12.2, pytest-9.0.1, pluggy-1.6.0
+rootdir: C:\code\python\psychRAG-test
+configfile: pyproject.toml
+plugins: anyio-4.11.0, Faker-38.2.0, langsmith-0.4.47, logfire-4.15.1, html-4.1.1, markdown-docs-0.9.0, metadata-3.1.1
+collected 27 items
+
+tests\unit\test_api_endpoints.py .....FF.FFFFFF....FFFFF....                                                     [100%]
+
+====================================================== FAILURES =======================================================
+______________________________________ TestSettingsRouter.test_get_all_settings _______________________________________
+
+self = <test_api_endpoints.TestSettingsRouter object at 0x0000022B8F18FB60>
+
+    def test_get_all_settings(self):
+        """Test get all settings endpoint."""
+        response = client.get("/settings/")
+        assert response.status_code == 200
+        data = response.json()
+>       assert "settings" in data
+E       AssertionError: assert 'settings' in {'database': {'admin_user': 'postgres', 'app_user': 'psych_rag_app_user_test_removal', 'db_name': 'psych_rag_test_remo..., 'provider': 'gemini'}, 'paths': {'input_dir': 'D:\\psychRAG_data\\input', 'output_dir': 'D:\\psychRAG_data\\output'}}
+
+tests\unit\test_api_endpoints.py:79: AssertionError
+____________________________________ TestSettingsRouter.test_get_specific_setting _____________________________________
+
+self = <test_api_endpoints.TestSettingsRouter object at 0x0000022B8F18F5C0>
+
+    def test_get_specific_setting(self):
+        """Test get specific setting endpoint."""
+        response = client.get("/settings/embedding_model")
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\unit\test_api_endpoints.py:85: AssertionError
+_______________________________________ TestSettingsRouter.test_update_setting ________________________________________
+
+self = <test_api_endpoints.TestSettingsRouter object at 0x0000022B8F18FE00>
+
+    def test_update_setting(self):
+        """Test update setting endpoint."""
+        response = client.put(
+            "/settings/chunk_size",
+            json={"value": 1024}
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\unit\test_api_endpoints.py:101: AssertionError
+______________________________________ TestChunkingRouter.test_chunk_by_headings ______________________________________
+
+self = <test_api_endpoints.TestChunkingRouter object at 0x0000022B8F1A0170>
+
+    def test_chunk_by_headings(self):
+        """Test heading-based chunking endpoint."""
+        response = client.post(
+            "/chunk/headings",
+            json={"file_path": "/output/test.md", "min_level": 2}
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\unit\test_api_endpoints.py:125: AssertionError
+______________________________________ TestChunkingRouter.test_chunk_by_content _______________________________________
+
+self = <test_api_endpoints.TestChunkingRouter object at 0x0000022B8F1A0410>
+
+    def test_chunk_by_content(self):
+        """Test content-based chunking endpoint."""
+        response = client.post(
+            "/chunk/content",
+            json={"file_path": "/output/test.md", "chunk_size": 512}
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\unit\test_api_endpoints.py:136: AssertionError
+_______________________________________ TestChunkingRouter.test_suggest_chunks ________________________________________
+
+self = <test_api_endpoints.TestChunkingRouter object at 0x0000022B8F1A06B0>
+
+    def test_suggest_chunks(self):
+        """Test chunk suggestion endpoint."""
+        response = client.post(
+            "/chunk/suggest",
+            json={"file_path": "/output/test.md"}
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\unit\test_api_endpoints.py:147: AssertionError
+____________________________________ TestChunkingRouter.test_extract_bibliography _____________________________________
+
+self = <test_api_endpoints.TestChunkingRouter object at 0x0000022B8F1A0980>
+
+    def test_extract_bibliography(self):
+        """Test bibliography extraction endpoint."""
+        response = client.post(
+            "/chunk/extract-bib",
+            json={"file_path": "/output/test.md"}
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\unit\test_api_endpoints.py:157: AssertionError
+_________________________________________ TestChunkingRouter.test_process_llm _________________________________________
+
+self = <test_api_endpoints.TestChunkingRouter object at 0x0000022B8F1A0C80>
+
+    def test_process_llm(self):
+        """Test LLM processing endpoint."""
+        response = client.post(
+            "/chunk/process-llm",
+            json={"chunk_ids": ["chunk_001"], "operation": "summarize"}
+        )
+>       assert response.status_code == 202
+E       assert 404 == 202
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\unit\test_api_endpoints.py:168: AssertionError
+____________________________________________ TestRAGRouter.test_rag_query _____________________________________________
+
+self = <test_api_endpoints.TestRAGRouter object at 0x0000022B8F1A1C10>
+
+    def test_rag_query(self):
+        """Test full RAG query endpoint."""
+        response = client.post(
+            "/rag/query",
+            json={"query": "What is cognitive load theory?"}
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\unit\test_api_endpoints.py:227: AssertionError
+_________________________________________ TestRAGRouter.test_retrieve_chunks __________________________________________
+
+self = <test_api_endpoints.TestRAGRouter object at 0x0000022B8F1A1F10>
+
+    def test_retrieve_chunks(self):
+        """Test chunk retrieval endpoint."""
+        response = client.post(
+            "/rag/retrieve",
+            json={"query": "working memory", "top_k": 5}
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\unit\test_api_endpoints.py:239: AssertionError
+___________________________________________ TestRAGRouter.test_expand_query ___________________________________________
+
+self = <test_api_endpoints.TestRAGRouter object at 0x0000022B8F1A2210>
+
+    def test_expand_query(self):
+        """Test query expansion endpoint."""
+        response = client.post(
+            "/rag/expand-query",
+            json={"query": "cognitive load"}
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\unit\test_api_endpoints.py:250: AssertionError
+_________________________________________ TestRAGRouter.test_augment_content __________________________________________
+
+self = <test_api_endpoints.TestRAGRouter object at 0x0000022B8F18EF30>
+
+    def test_augment_content(self):
+        """Test content augmentation endpoint."""
+        response = client.post(
+            "/rag/augment",
+            json={"content": "Cognitive load refers to..."}
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\unit\test_api_endpoints.py:262: AssertionError
+________________________________________ TestRAGRouter.test_generate_response _________________________________________
+
+self = <test_api_endpoints.TestRAGRouter object at 0x0000022B8F18F830>
+
+    def test_generate_response(self):
+        """Test response generation endpoint."""
+        response = client.post(
+            "/rag/generate",
+            json={
+                "query": "Summarize memory",
+                "context_chunks": ["chunk_001", "chunk_002"]
+            }
+        )
+>       assert response.status_code == 200
+E       assert 404 == 200
+E        +  where 404 = <Response [404 Not Found]>.status_code
+
+tests\unit\test_api_endpoints.py:276: AssertionError
+=============================================== short test summary info ===============================================
+FAILED tests/unit/test_api_endpoints.py::TestSettingsRouter::test_get_all_settings - AssertionError: assert 'settings...
+FAILED tests/unit/test_api_endpoints.py::TestSettingsRouter::test_get_specific_setting - assert 404 == 200
+FAILED tests/unit/test_api_endpoints.py::TestSettingsRouter::test_update_setting - assert 404 == 200
+FAILED tests/unit/test_api_endpoints.py::TestChunkingRouter::test_chunk_by_headings - assert 404 == 200
+FAILED tests/unit/test_api_endpoints.py::TestChunkingRouter::test_chunk_by_content - assert 404 == 200
+FAILED tests/unit/test_api_endpoints.py::TestChunkingRouter::test_suggest_chunks - assert 404 == 200
+FAILED tests/unit/test_api_endpoints.py::TestChunkingRouter::test_extract_bibliography - assert 404 == 200
+FAILED tests/unit/test_api_endpoints.py::TestChunkingRouter::test_process_llm - assert 404 == 202
+FAILED tests/unit/test_api_endpoints.py::TestRAGRouter::test_rag_query - assert 404 == 200
+FAILED tests/unit/test_api_endpoints.py::TestRAGRouter::test_retrieve_chunks - assert 404 == 200
+FAILED tests/unit/test_api_endpoints.py::TestRAGRouter::test_expand_query - assert 404 == 200
+FAILED tests/unit/test_api_endpoints.py::TestRAGRouter::test_augment_content - assert 404 == 200
+FAILED tests/unit/test_api_endpoints.py::TestRAGRouter::test_generate_response - assert 404 == 200
+=========================================== 13 failed, 14 passed in 13.06s ============================================
