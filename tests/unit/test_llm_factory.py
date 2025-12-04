@@ -700,6 +700,38 @@ class TestLazyLoading:
         # Verify ChatGoogleGenerativeAI was called (which means import happened)
         mock_chat_class.assert_called_once()
 
+    @patch("langchain_openai.OpenAIEmbeddings")
+    def test_openai_embeddings_imports_on_function_call(self, mock_embeddings_class):
+        """Test that langchain_openai imports happen when create_embeddings is called with OpenAI."""
+        mock_settings = MagicMock(spec=LLMSettings)
+        mock_settings.provider = LLMProvider.OPENAI
+        mock_settings.openai_api_key = "sk-test"
+        
+        mock_embeddings_instance = MagicMock()
+        mock_embeddings_class.return_value = mock_embeddings_instance
+        
+        # Call the function - this should trigger the import
+        create_embeddings(mock_settings)
+        
+        # Verify OpenAIEmbeddings was called (which means import happened)
+        mock_embeddings_class.assert_called_once()
+
+    @patch("langchain_google_genai.GoogleGenerativeAIEmbeddings")
+    def test_google_embeddings_imports_on_function_call(self, mock_embeddings_class):
+        """Test that langchain_google_genai imports happen when create_embeddings is called with Gemini."""
+        mock_settings = MagicMock(spec=LLMSettings)
+        mock_settings.provider = LLMProvider.GEMINI
+        mock_settings.google_api_key = "AIza-test"
+        
+        mock_embeddings_instance = MagicMock()
+        mock_embeddings_class.return_value = mock_embeddings_instance
+        
+        # Call the function - this should trigger the import
+        create_embeddings(mock_settings)
+        
+        # Verify GoogleGenerativeAIEmbeddings was called (which means import happened)
+        mock_embeddings_class.assert_called_once()
+
 
 class TestErrorHandling:
     """Tests for error handling in factory functions."""
@@ -774,4 +806,228 @@ class TestErrorHandling:
         # Should not raise an error at factory level
         result = create_embeddings(mock_settings)
         assert result == mock_embeddings_instance
+
+    @patch("langchain_openai.ChatOpenAI")
+    def test_create_langchain_chat_empty_string_api_key(self, mock_chat_class):
+        """Test that empty string API key is accepted (may cause runtime errors but not validation errors)."""
+        mock_settings = MagicMock(spec=LLMSettings)
+        mock_settings.provider = LLMProvider.OPENAI
+        mock_settings.openai_api_key = ""
+        mock_settings.get_model.return_value = "gpt-4o-mini"
+        
+        mock_chat_instance = MagicMock()
+        mock_chat_class.return_value = mock_chat_instance
+        
+        # Should not raise an error at factory level
+        result = create_langchain_chat(mock_settings)
+        assert isinstance(result, LangChainStack)
+        mock_chat_class.assert_called_once_with(
+            model="gpt-4o-mini",
+            api_key="",
+            temperature=0.2,
+        )
+
+    @patch("langchain_openai.ChatOpenAI")
+    def test_create_langchain_chat_temperature_boundaries(self, mock_chat_class):
+        """Test that temperature values at boundaries are accepted."""
+        mock_settings = MagicMock(spec=LLMSettings)
+        mock_settings.provider = LLMProvider.OPENAI
+        mock_settings.openai_api_key = "sk-test"
+        mock_settings.get_model.return_value = "gpt-4o-mini"
+        
+        mock_chat_instance = MagicMock()
+        mock_chat_class.return_value = mock_chat_instance
+        
+        # Test minimum temperature
+        result = create_langchain_chat(mock_settings, temperature=0.0)
+        assert isinstance(result, LangChainStack)
+        mock_chat_class.assert_called_with(
+            model="gpt-4o-mini",
+            api_key="sk-test",
+            temperature=0.0,
+        )
+        
+        # Test maximum temperature
+        result = create_langchain_chat(mock_settings, temperature=2.0)
+        assert isinstance(result, LangChainStack)
+        mock_chat_class.assert_called_with(
+            model="gpt-4o-mini",
+            api_key="sk-test",
+            temperature=2.0,
+        )
+
+    @patch("pydantic_ai.Agent")
+    def test_create_pydantic_agent_get_model_error_propagates(self, mock_agent_class):
+        """Test that errors from get_model() propagate correctly."""
+        mock_settings = MagicMock(spec=LLMSettings)
+        mock_settings.provider = LLMProvider.OPENAI
+        mock_settings.get_model.side_effect = ValueError("Model not found")
+        
+        with pytest.raises(ValueError, match="Model not found"):
+            create_pydantic_agent(mock_settings)
+        
+        # Agent should not be called if get_model fails
+        mock_agent_class.assert_not_called()
+
+    @patch("langchain_openai.ChatOpenAI")
+    def test_create_langchain_chat_get_model_error_propagates(self, mock_chat_class):
+        """Test that errors from get_model() propagate correctly."""
+        mock_settings = MagicMock(spec=LLMSettings)
+        mock_settings.provider = LLMProvider.OPENAI
+        mock_settings.openai_api_key = "sk-test"
+        mock_settings.get_model.side_effect = ValueError("Model not found")
+        
+        with pytest.raises(ValueError, match="Model not found"):
+            create_langchain_chat(mock_settings)
+        
+        # ChatOpenAI should not be called if get_model fails
+        mock_chat_class.assert_not_called()
+
+    def test_pydantic_ai_stack_equality(self):
+        """Test that PydanticAIStack instances can be compared."""
+        mock_agent1 = MagicMock()
+        mock_agent2 = MagicMock()
+        
+        stack1 = PydanticAIStack(agent=mock_agent1)
+        stack2 = PydanticAIStack(agent=mock_agent1)
+        stack3 = PydanticAIStack(agent=mock_agent2)
+        
+        # Same agent instance should be equal
+        assert stack1.agent == stack2.agent
+        # Different agent instances should not be equal
+        assert stack1.agent != stack3.agent
+
+    def test_langchain_stack_equality(self):
+        """Test that LangChainStack instances can be compared."""
+        mock_chat1 = MagicMock()
+        mock_chat2 = MagicMock()
+        
+        stack1 = LangChainStack(chat=mock_chat1)
+        stack2 = LangChainStack(chat=mock_chat1)
+        stack3 = LangChainStack(chat=mock_chat2)
+        
+        # Same chat instance should be equal
+        assert stack1.chat == stack2.chat
+        # Different chat instances should not be equal
+        assert stack1.chat != stack3.chat
+
+    def test_llm_stack_equality(self):
+        """Test that LLMStack instances can be compared."""
+        mock_settings = MagicMock(spec=LLMSettings)
+        mock_pydantic_stack = MagicMock(spec=PydanticAIStack)
+        mock_langchain_stack = MagicMock(spec=LangChainStack)
+        
+        stack1 = LLMStack(
+            settings=mock_settings,
+            pydantic_ai=mock_pydantic_stack,
+            langchain=mock_langchain_stack,
+        )
+        stack2 = LLMStack(
+            settings=mock_settings,
+            pydantic_ai=mock_pydantic_stack,
+            langchain=mock_langchain_stack,
+        )
+        
+        # Same components should be equal
+        assert stack1.settings == stack2.settings
+        assert stack1.pydantic_ai == stack2.pydantic_ai
+        assert stack1.langchain == stack2.langchain
+
+    @patch("pydantic_ai.Agent")
+    def test_create_pydantic_agent_model_string_format_openai(self, mock_agent_class):
+        """Test that OpenAI model strings are formatted correctly."""
+        mock_settings = MagicMock(spec=LLMSettings)
+        mock_settings.provider = LLMProvider.OPENAI
+        mock_settings.get_model.return_value = "gpt-4o-mini"
+        mock_agent_instance = MagicMock()
+        mock_agent_class.return_value = mock_agent_instance
+        
+        create_pydantic_agent(mock_settings)
+        
+        # Verify the model string format is correct
+        mock_agent_class.assert_called_once()
+        call_args = mock_agent_class.call_args
+        assert call_args[0][0] == "openai:gpt-4o-mini"
+
+    @patch("pydantic_ai.Agent")
+    def test_create_pydantic_agent_model_string_format_gemini(self, mock_agent_class):
+        """Test that Gemini model strings are formatted correctly."""
+        mock_settings = MagicMock(spec=LLMSettings)
+        mock_settings.provider = LLMProvider.GEMINI
+        mock_settings.get_model.return_value = "gemini-flash-latest"
+        mock_agent_instance = MagicMock()
+        mock_agent_class.return_value = mock_agent_instance
+        
+        create_pydantic_agent(mock_settings)
+        
+        # Verify the model string format is correct
+        mock_agent_class.assert_called_once()
+        call_args = mock_agent_class.call_args
+        assert call_args[0][0] == "google-gla:gemini-flash-latest"
+
+    @patch("pydantic_ai.Agent")
+    def test_create_pydantic_agent_instructions_always_set(self, mock_agent_class):
+        """Test that instructions are always set to the expected value."""
+        mock_settings = MagicMock(spec=LLMSettings)
+        mock_settings.provider = LLMProvider.OPENAI
+        mock_settings.get_model.return_value = "gpt-4o-mini"
+        mock_agent_instance = MagicMock()
+        mock_agent_class.return_value = mock_agent_instance
+        
+        create_pydantic_agent(mock_settings)
+        
+        # Verify instructions are always set
+        mock_agent_class.assert_called_once()
+        call_kwargs = mock_agent_class.call_args[1]
+        assert call_kwargs["instructions"] == "You are a helpful assistant."
+
+    @patch("langchain_google_genai.GoogleGenerativeAIEmbeddings")
+    def test_create_embeddings_gemini_empty_string_api_key(self, mock_embeddings_class):
+        """Test that empty string API key is accepted for Gemini embeddings."""
+        mock_settings = MagicMock(spec=LLMSettings)
+        mock_settings.provider = LLMProvider.GEMINI
+        mock_settings.google_api_key = ""
+        
+        mock_embeddings_instance = MagicMock()
+        mock_embeddings_class.return_value = mock_embeddings_instance
+        
+        # Should not raise an error at factory level
+        result = create_embeddings(mock_settings)
+        assert result == mock_embeddings_instance
+        mock_embeddings_class.assert_called_once_with(
+            model="models/text-embedding-004",
+            google_api_key="",
+        )
+
+    @patch("psychrag.ai.llm_factory.create_langchain_chat")
+    @patch("psychrag.ai.llm_factory.create_pydantic_agent")
+    @patch("psychrag.ai.llm_factory.LLMSettings")
+    def test_create_llm_stack_error_handling_pydantic_fails(self, mock_settings_class, mock_pydantic_func, mock_langchain_func):
+        """Test that errors in create_pydantic_agent propagate correctly."""
+        mock_settings = MagicMock(spec=LLMSettings)
+        mock_settings_class.return_value = mock_settings
+        mock_pydantic_func.side_effect = ValueError("Pydantic error")
+        
+        with pytest.raises(ValueError, match="Pydantic error"):
+            create_llm_stack()
+        
+        # LangChain should not be called if Pydantic fails
+        mock_langchain_func.assert_not_called()
+
+    @patch("psychrag.ai.llm_factory.create_langchain_chat")
+    @patch("psychrag.ai.llm_factory.create_pydantic_agent")
+    @patch("psychrag.ai.llm_factory.LLMSettings")
+    def test_create_llm_stack_error_handling_langchain_fails(self, mock_settings_class, mock_pydantic_func, mock_langchain_func):
+        """Test that errors in create_langchain_chat propagate correctly."""
+        mock_settings = MagicMock(spec=LLMSettings)
+        mock_settings_class.return_value = mock_settings
+        mock_pydantic_stack = MagicMock(spec=PydanticAIStack)
+        mock_pydantic_func.return_value = mock_pydantic_stack
+        mock_langchain_func.side_effect = ValueError("LangChain error")
+        
+        with pytest.raises(ValueError, match="LangChain error"):
+            create_llm_stack()
+        
+        # Pydantic should be called before LangChain fails
+        mock_pydantic_func.assert_called_once()
 

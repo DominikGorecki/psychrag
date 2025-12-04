@@ -44,7 +44,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test settings loading from config and env files
 - Test error handling for missing config/env files
 
-#### `ai/llm_factory.py`
+#### `ai/llm_factory.py` -- DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - `PydanticAIStack`
@@ -67,7 +67,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 
 ### `psychrag/augmentation/` - RAG Augmentation
 
-#### `augmentation/consolidate_context.py`
+#### `augmentation/consolidate_context.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - Functions for consolidating retrieval contexts
