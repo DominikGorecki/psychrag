@@ -178,7 +178,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test CLI argument parsing
 - Test CLI workflow execution
 
-#### `chunking/llm_processor.py`
+#### `chunking/llm_processor.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - LLM-based chunk processing
