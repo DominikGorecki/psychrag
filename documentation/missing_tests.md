@@ -242,7 +242,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 
 ### `psychrag/config/` - Configuration Management
 
-#### `config/app_config.py`
+#### `config/app_config.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - `AppConfig`
