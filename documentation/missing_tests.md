@@ -518,7 +518,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test database saving
 - Mock LLM calls
 
-#### `retrieval/retrieve.py`
+#### `retrieval/retrieve.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - `retrieve()` function
