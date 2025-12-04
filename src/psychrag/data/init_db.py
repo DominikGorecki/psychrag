@@ -29,6 +29,9 @@ from .models.io_file import IOFile  # noqa: F401
 from .models.prompt_template import PromptTemplate  # noqa: F401
 from .models.prompt_meta import PromptMeta  # noqa: F401
 
+# Import seeding functions
+from .seed_templates import seed_prompt_templates
+
 
 def create_database_and_user(verbose: bool = False) -> None:
     """
@@ -493,6 +496,7 @@ def init_database(verbose: bool = False) -> None:
     create_vector_indexes(verbose=verbose)
     create_fulltext_search(verbose=verbose)
     create_prompt_meta_table(verbose=verbose)
+    seed_prompt_templates(verbose=verbose)
     create_default_rag_config(verbose=verbose)
 
     if verbose:
