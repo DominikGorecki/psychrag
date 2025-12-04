@@ -10,6 +10,7 @@ from typing import List, Dict, Any
 
 from sqlalchemy import Column, Integer, String, TIMESTAMP
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import validates
 
 from psychrag.data.database import Base
 
@@ -37,6 +38,13 @@ class PromptMeta(Base):
     created_at = Column(TIMESTAMP, default=lambda: datetime.now(UTC), nullable=False)
     updated_at = Column(TIMESTAMP, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
 
+    @validates('variables')
+    def validate_variables(self, key, value):
+        """Validate that variables is not None."""
+        if value is None:
+            raise ValueError("variables cannot be None")
+        return value
+
     def __repr__(self) -> str:
         """String representation of PromptMeta."""
         return f"<PromptMeta(function_tag='{self.function_tag}', variables={len(self.variables or [])})>"
@@ -52,9 +60,11 @@ class PromptMeta(Base):
         if not self.variables:
             return {}
         return {
-            var.get("variable_name", ""): var.get("variable_description", "")
+            var["variable_name"]: var["variable_description"]
             for var in self.variables
-            if isinstance(var, dict) and "variable_name" in var
+            if isinstance(var, dict) 
+            and "variable_name" in var 
+            and "variable_description" in var
         }
 
     @classmethod

@@ -63,8 +63,8 @@ class Chunk(Base):
     )
 
     # Relationships
-    parent = relationship("Chunk", remote_side=[id], backref="children")
-    work = relationship("Work", backref="chunks")
+    parent = relationship("Chunk", remote_side=[id], backref="children", passive_deletes=True)
+    work = relationship("Work", back_populates="chunks", passive_deletes=True)
 
     def __repr__(self) -> str:
         return f"<Chunk(id={self.id}, level='{self.level}', work_id={self.work_id})>"
