@@ -108,7 +108,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 
 ### `psychrag/chunking/` - Document Chunking
 
-#### `chunking/bib_extractor.py`
+#### `chunking/bib_extractor.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - `BibliographicInfo`
