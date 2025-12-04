@@ -1,3 +1,5 @@
+COMPLETE
+
 # T004: Remove vec-suggestions content endpoints
 
 ## Context
@@ -28,6 +30,7 @@ The chunking router is cleaned up by removing the superseded content-based vec-s
 - Changes to other chunking endpoints
 - Changes to vec-suggestions business logic (only removing HTTP handlers)
 - UI changes (UI uses table endpoints)
+- Tests for content endpoints
 
 ## Implementation plan
 
@@ -172,13 +175,6 @@ If these test functions exist, remove them:
 - `test_update_vec_suggestions_content()`
 - `test_vec_suggestions_content_not_found()`
 - Any test specifically testing the `/content` endpoints
-
-### Tests to verify still pass
-Keep and verify these tests pass:
-- `test_get_vec_suggestions_table()`
-- `test_update_vec_suggestions_table()`
-- Any tests for the `/table` endpoints
-- All other chunking endpoint tests
 
 ### No new tests needed
 We're removing superseded functionality.

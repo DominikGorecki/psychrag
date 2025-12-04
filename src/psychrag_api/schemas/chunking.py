@@ -85,19 +85,6 @@ class ExtractSanitizedTitlesResponse(BaseModel):
     output_path: str = Field(..., description="Path to the created titles file")
 
 
-# Vec Suggestions Schemas
-class VecSuggestionsContentResponse(BaseModel):
-    """Response for vec_suggestions file content."""
-    content: str = Field(..., description="Content of the vec_suggestions file")
-    filename: str = Field(..., description="Filename of the vec_suggestions file")
-    current_hash: str = Field(..., description="Current SHA-256 hash of the file")
-
-
-class UpdateVecSuggestionsContentRequest(BaseModel):
-    """Request to update vec_suggestions file content."""
-    content: str = Field(..., description="New content for the vec_suggestions file")
-
-
 # Apply Chunking Schemas
 class ApplyHeadingChunksResponse(BaseModel):
     """Response after applying heading chunks."""
