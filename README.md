@@ -111,13 +111,33 @@ Add an `output` folder to the root of the repo.
 ```bash
 mkdir output
 ``` 
-# Useful Commands When Hangs
+
+## Useful Commands When Hangs
+
 ```powershell
 Stop-Process -Name "python" -Force  # Replace with the actual name
 ```
 
+## Starting
 
-# Adding new Work (Asset) To DB
+1. Ensure docker is running with DB
+
+1. Enable virtual python environment
+
+Windows Cmd:
+
+```bash
+venv\Scripts\activate
+```
+
+1. Start the backend server
+
+```bash
+uvicorn psychrag_api.main:app --reload
+```
+
+
+## Adding new Work (Asset) To DB
 
 ## 1. CONVERSION -- Convert to Markdown - From PDF
 
