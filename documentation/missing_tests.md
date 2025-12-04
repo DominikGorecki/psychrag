@@ -274,7 +274,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test CLI argument parsing
 - Test CLI workflow execution
 
-#### `config/io_folder_data.py`
+#### `config/io_folder_data.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - `INPUT_FORMATS`
