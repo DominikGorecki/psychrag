@@ -1,3 +1,5 @@
+COMPLETE
+
 # T003: Remove verify-title-changes endpoint
 
 ## Context
@@ -27,6 +29,7 @@ The `verify-title-changes` endpoint is completely removed from the sanitization 
 - Changes to other sanitization endpoints (all in active use)
 - Changes to title changes workflow (this verification was never part of it)
 - UI changes (endpoint was never integrated)
+- Running the tests -- I will run them manually
 
 ## Implementation plan
 
@@ -153,26 +156,6 @@ Remove test functions like:
 - `test_verify_title_changes_integrity()`
 - Any tests with "verify" in the name related to title changes
 
-#### Step 9: Run test suite
-```bash
-# Run sanitization router tests
-pytest tests/unit/test_sanitization_api_endpoints.py -v
-
-# Run sanitization business logic tests (if they exist)
-pytest tests/unit/test_sanitization*.py -v
-```
-
-Expected: All remaining tests pass.
-
-#### Step 10: Verify API documentation
-```bash
-uvicorn psychrag_api.main:app --reload
-```
-
-Visit http://localhost:8000/docs → "Sanitization" section:
-- Verify `POST /sanitization/work/{work_id}/verify-title-changes` is gone
-- Verify all other sanitization endpoints remain
-
 ## Unit tests
 
 ### Tests to remove
@@ -188,13 +171,6 @@ Remove any tests that specifically test the verify functionality:
 - `test_verify_detects_missing_titles()`
 - `test_verify_detects_hash_mismatch()`
 - Any test calling `verify_title_changes_integrity()`
-
-### Tests to verify still pass
-All other sanitization tests should continue passing:
-- Title extraction tests
-- Title change suggestion tests
-- Title change application tests
-- All other work-based sanitization workflow tests
 
 ### No new tests needed
 We're removing unused functionality.
