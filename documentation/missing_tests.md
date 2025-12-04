@@ -485,7 +485,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 
 ### `psychrag/retrieval/` - Query Retrieval
 
-#### `retrieval/query_embeddings.py`
+#### `retrieval/query_embeddings.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - `vectorize_query()`
