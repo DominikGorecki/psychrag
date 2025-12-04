@@ -318,7 +318,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test TOC generation from bookmarks
 - Test edge cases (no bookmarks, malformed bookmarks)
 
-#### `conversions/new_work.py`
+#### `conversions/new_work.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - New work creation logic
