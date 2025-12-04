@@ -548,7 +548,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test validation logic
 - Test error handling
 
-#### `sanitization/apply_title_edits.py`
+#### `sanitization/apply_title_edits.py` - DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - Title edit application logic
