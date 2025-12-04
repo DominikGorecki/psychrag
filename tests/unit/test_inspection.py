@@ -105,21 +105,39 @@ class TestGetConversionInspection:
         mock_load_config.return_value = mock_config
         
         # Mock file existence - no files exist
-        with patch("psychrag.conversions.inspection.Path") as mock_path_class:
-            def mock_path_constructor(path_str):
-                mock_path = MagicMock(spec=Path)
-                # No files exist
-                mock_path.exists.return_value = False
-                mock_path.is_file.return_value = False
-                return mock_path
+        # Use a descriptor-based approach to properly mock instance methods
+        existing_files = set()  # No files exist
+        
+        class MockExistsDescriptor:
+            """Descriptor that properly handles Path.exists() instance method calls."""
+            def __init__(self, existing_files_set):
+                self.existing_files = existing_files_set
             
-            mock_path_class.side_effect = mock_path_constructor
+            def __get__(self, obj, objtype=None):
+                if obj is None:
+                    return self
+                # Return a bound method that checks the filename
+                def bound_exists():
+                    filename = obj.name if hasattr(obj, 'name') else str(obj).split('/')[-1]
+                    return filename in self.existing_files
+                return bound_exists
+        
+        class MockIsFileDescriptor:
+            """Descriptor that properly handles Path.is_file() instance method calls."""
+            def __init__(self, existing_files_set):
+                self.existing_files = existing_files_set
             
-            # Mock Path division operator
-            mock_output_dir = MagicMock(spec=Path)
-            mock_output_dir.__truediv__ = lambda self, other: mock_path_constructor(str(other))
-            
-            with patch.object(Path, "__new__", return_value=mock_output_dir):
+            def __get__(self, obj, objtype=None):
+                if obj is None:
+                    return self
+                # Return a bound method that checks the filename
+                def bound_is_file():
+                    filename = obj.name if hasattr(obj, 'name') else str(obj).split('/')[-1]
+                    return filename in self.existing_files
+                return bound_is_file
+        
+        with patch("psychrag.conversions.inspection.Path.exists", MockExistsDescriptor(existing_files)):
+            with patch("psychrag.conversions.inspection.Path.is_file", MockIsFileDescriptor(existing_files)):
                 result = get_conversion_inspection(1)
         
         # Verify results
@@ -155,23 +173,36 @@ class TestGetConversionInspection:
             "test.toc_titles.md"
         }
         
-        with patch("psychrag.conversions.inspection.Path") as mock_path_class:
-            def mock_path_constructor(path_str):
-                mock_path = MagicMock(spec=Path)
-                # Extract filename from path
-                filename = Path(path_str).name if "/" in str(path_str) else path_str
-                # Check if this file exists
-                mock_path.exists.return_value = filename in existing_files
-                mock_path.is_file.return_value = filename in existing_files
-                return mock_path
+        class MockExistsDescriptor:
+            """Descriptor that properly handles Path.exists() instance method calls."""
+            def __init__(self, existing_files_set):
+                self.existing_files = existing_files_set
             
-            mock_path_class.side_effect = mock_path_constructor
+            def __get__(self, obj, objtype=None):
+                if obj is None:
+                    return self
+                # Return a bound method that checks the filename
+                def bound_exists():
+                    filename = obj.name if hasattr(obj, 'name') else str(obj).split('/')[-1]
+                    return filename in self.existing_files
+                return bound_exists
+        
+        class MockIsFileDescriptor:
+            """Descriptor that properly handles Path.is_file() instance method calls."""
+            def __init__(self, existing_files_set):
+                self.existing_files = existing_files_set
             
-            # Mock Path division operator
-            mock_output_dir = MagicMock(spec=Path)
-            mock_output_dir.__truediv__ = lambda self, other: mock_path_constructor(str(other))
-            
-            with patch.object(Path, "__new__", return_value=mock_output_dir):
+            def __get__(self, obj, objtype=None):
+                if obj is None:
+                    return self
+                # Return a bound method that checks the filename
+                def bound_is_file():
+                    filename = obj.name if hasattr(obj, 'name') else str(obj).split('/')[-1]
+                    return filename in self.existing_files
+                return bound_is_file
+        
+        with patch("psychrag.conversions.inspection.Path.exists", MockExistsDescriptor(existing_files)):
+            with patch("psychrag.conversions.inspection.Path.is_file", MockIsFileDescriptor(existing_files)):
                 result = get_conversion_inspection(1)
         
         # Verify results
@@ -246,21 +277,36 @@ class TestGetConversionInspection:
         # Mock file existence - only style.md exists, not hier.md
         existing_files = {"test.style.md"}
         
-        with patch("psychrag.conversions.inspection.Path") as mock_path_class:
-            def mock_path_constructor(path_str):
-                mock_path = MagicMock(spec=Path)
-                filename = Path(path_str).name if "/" in str(path_str) else path_str
-                mock_path.exists.return_value = filename in existing_files
-                mock_path.is_file.return_value = filename in existing_files
-                return mock_path
+        class MockExistsDescriptor:
+            """Descriptor that properly handles Path.exists() instance method calls."""
+            def __init__(self, existing_files_set):
+                self.existing_files = existing_files_set
             
-            mock_path_class.side_effect = mock_path_constructor
+            def __get__(self, obj, objtype=None):
+                if obj is None:
+                    return self
+                # Return a bound method that checks the filename
+                def bound_exists():
+                    filename = obj.name if hasattr(obj, 'name') else str(obj).split('/')[-1]
+                    return filename in self.existing_files
+                return bound_exists
+        
+        class MockIsFileDescriptor:
+            """Descriptor that properly handles Path.is_file() instance method calls."""
+            def __init__(self, existing_files_set):
+                self.existing_files = existing_files_set
             
-            # Mock Path division operator
-            mock_output_dir = MagicMock(spec=Path)
-            mock_output_dir.__truediv__ = lambda self, other: mock_path_constructor(str(other))
-            
-            with patch.object(Path, "__new__", return_value=mock_output_dir):
+            def __get__(self, obj, objtype=None):
+                if obj is None:
+                    return self
+                # Return a bound method that checks the filename
+                def bound_is_file():
+                    filename = obj.name if hasattr(obj, 'name') else str(obj).split('/')[-1]
+                    return filename in self.existing_files
+                return bound_is_file
+        
+        with patch("psychrag.conversions.inspection.Path.exists", MockExistsDescriptor(existing_files)):
+            with patch("psychrag.conversions.inspection.Path.is_file", MockIsFileDescriptor(existing_files)):
                 result = get_conversion_inspection(1)
         
         # Verify that style_hier is NOT available (requires both files)
