@@ -4,7 +4,7 @@ Pydantic schemas for Sanitization router.
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 
@@ -61,10 +61,18 @@ class WorkDetailResponse(BaseModel):
 class ExtractTitlesFromWorkRequest(BaseModel):
     """Request to extract titles from a work."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "source_key": "original_markdown",
+                "force": False,
+            }
+        }
+    )
+
     source_key: str = Field(
         default="original_markdown",
         description="Source file key (original_markdown or sanitized)",
-        example="original_markdown"
     )
     force: bool = Field(
         default=False,
@@ -83,10 +91,19 @@ class ExtractTitlesFromWorkResponse(BaseModel):
 class SuggestTitleChangesRequest(BaseModel):
     """Request to suggest title changes for a work."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "source_key": "original_markdown",
+                "use_full_model": False,
+                "force": False,
+            }
+        }
+    )
+
     source_key: str = Field(
         default="original_markdown",
         description="Source file key (original_markdown or sanitized)",
-        example="original_markdown"
     )
     use_full_model: bool = Field(
         default=False,
@@ -109,10 +126,18 @@ class SuggestTitleChangesResponse(BaseModel):
 class ApplyTitleChangesRequest(BaseModel):
     """Request to apply title changes to a work."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "source_key": "original_markdown",
+                "force": False,
+            }
+        }
+    )
+
     source_key: str = Field(
         default="original_markdown",
         description="Source file key (original_markdown or sanitized)",
-        example="original_markdown"
     )
     force: bool = Field(
         default=False,
@@ -131,10 +156,18 @@ class ApplyTitleChangesResponse(BaseModel):
 class SkipApplyRequest(BaseModel):
     """Request to skip sanitization and copy original."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "source_key": "original_markdown",
+                "force": False,
+            }
+        }
+    )
+
     source_key: str = Field(
         default="original_markdown",
         description="Source file key (original_markdown or sanitized)",
-        example="original_markdown"
     )
     force: bool = Field(
         default=False,
@@ -228,51 +261,8 @@ class UpdateTitleChangesContentRequest(BaseModel):
 class AddSanitizedMarkdownRequest(BaseModel):
     """Request to add a new work with sanitized markdown content directly."""
 
-    title: str = Field(
-        ...,
-        description="Title of the work",
-        example="Cognitive Psychology: A Student's Handbook"
-    )
-    authors: str | None = Field(
-        None,
-        description="Author(s) of the work",
-        example="Michael W. Eysenck, Mark T. Keane"
-    )
-    year: int | None = Field(
-        None,
-        ge=1000,
-        le=9999,
-        description="Year of publication",
-        example=2020
-    )
-    publisher: str | None = Field(
-        None,
-        description="Publisher name",
-        example="Psychology Press"
-    )
-    isbn: str | None = Field(
-        None,
-        description="ISBN for books",
-        example="978-1138482210"
-    )
-    edition: str | None = Field(
-        None,
-        description="Edition information",
-        example="8th Edition"
-    )
-    filename: str = Field(
-        ...,
-        description="Desired filename for the sanitized markdown (without extension)",
-        example="cognitive_psychology"
-    )
-    content: str = Field(
-        ...,
-        description="Sanitized markdown content",
-        example="# Chapter 1: Introduction\n\nThis is the introduction..."
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "title": "Cognitive Psychology: A Student's Handbook",
                 "authors": "Michael W. Eysenck, Mark T. Keane",
@@ -284,6 +274,42 @@ class AddSanitizedMarkdownRequest(BaseModel):
                 "content": "# Chapter 1: Introduction\n\nThis is the introduction..."
             }
         }
+    )
+
+    title: str = Field(
+        ...,
+        description="Title of the work",
+    )
+    authors: str | None = Field(
+        None,
+        description="Author(s) of the work",
+    )
+    year: int | None = Field(
+        None,
+        ge=1000,
+        le=9999,
+        description="Year of publication",
+    )
+    publisher: str | None = Field(
+        None,
+        description="Publisher name",
+    )
+    isbn: str | None = Field(
+        None,
+        description="ISBN for books",
+    )
+    edition: str | None = Field(
+        None,
+        description="Edition information",
+    )
+    filename: str = Field(
+        ...,
+        description="Desired filename for the sanitized markdown (without extension)",
+    )
+    content: str = Field(
+        ...,
+        description="Sanitized markdown content",
+    )
 
 
 class AddSanitizedMarkdownResponse(BaseModel):
@@ -300,14 +326,8 @@ class AddSanitizedMarkdownResponse(BaseModel):
 class HeadingRow(BaseModel):
     """A single row in the heading changes table."""
 
-    line_num: int = Field(..., description="Line number in markdown file")
-    original_heading: str = Field(..., description="Original heading level (H1-H6)")
-    original_title: str = Field(..., description="Original title text")
-    suggested_action: str = Field(..., description="Suggested action (H1-H6 or REMOVE)")
-    suggested_title: str = Field(..., description="Suggested title text")
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "line_num": 157,
                 "original_heading": "H2",
@@ -316,19 +336,20 @@ class HeadingRow(BaseModel):
                 "suggested_title": "1 Cognitive Psychology and the Brain"
             }
         }
+    )
+
+    line_num: int = Field(..., description="Line number in markdown file")
+    original_heading: str = Field(..., description="Original heading level (H1-H6)")
+    original_title: str = Field(..., description="Original title text")
+    suggested_action: str = Field(..., description="Suggested action (H1-H6 or REMOVE)")
+    suggested_title: str = Field(..., description="Suggested title text")
 
 
 class HeadingTableResponse(BaseModel):
     """Response containing table data for title changes."""
 
-    work_id: int = Field(..., description="Work ID")
-    source_file: str = Field(..., description="Relative path to source markdown")
-    rows: list[HeadingRow] = Field(..., description="All heading rows merged with changes")
-    filename: str = Field(..., description="Title changes filename")
-    hash: str = Field(..., description="Current hash of title_changes file")
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "work_id": 1,
                 "source_file": "./test3.md",
@@ -345,15 +366,20 @@ class HeadingTableResponse(BaseModel):
                 "hash": "abc123def456..."
             }
         }
+    )
+
+    work_id: int = Field(..., description="Work ID")
+    source_file: str = Field(..., description="Relative path to source markdown")
+    rows: list[HeadingRow] = Field(..., description="All heading rows merged with changes")
+    filename: str = Field(..., description="Title changes filename")
+    hash: str = Field(..., description="Current hash of title_changes file")
 
 
 class UpdateHeadingTableRequest(BaseModel):
     """Request to update title changes from table data."""
 
-    rows: list[HeadingRow] = Field(..., description="Updated heading rows")
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "rows": [
                     {
@@ -366,5 +392,8 @@ class UpdateHeadingTableRequest(BaseModel):
                 ]
             }
         }
+    )
+
+    rows: list[HeadingRow] = Field(..., description="Updated heading rows")
 
 

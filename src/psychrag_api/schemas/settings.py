@@ -7,7 +7,7 @@ for API serialization.
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ============================================================================
@@ -108,20 +108,27 @@ class AppConfigSchema(BaseModel):
 class SettingResponse(BaseModel):
     """Response for a single setting."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "key": "embedding_model",
+                "value": "text-embedding-3-small",
+                "description": "The embedding model used for vectorization",
+            }
+        }
+    )
+
     key: str = Field(
         ...,
         description="Setting key/name",
-        example="embedding_model",
     )
     value: Any = Field(
         ...,
         description="Current setting value",
-        example="text-embedding-3-small",
     )
     description: str | None = Field(
         default=None,
         description="Description of what this setting controls",
-        example="The embedding model used for vectorization",
     )
 
 
@@ -137,8 +144,15 @@ class AllSettingsResponse(BaseModel):
 class SettingUpdateRequest(BaseModel):
     """Request to update a setting."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "value": 1024,
+            }
+        }
+    )
+
     value: Any = Field(
         ...,
         description="New value for the setting",
-        example=1024,
     )

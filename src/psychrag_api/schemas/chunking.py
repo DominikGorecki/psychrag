@@ -4,7 +4,7 @@ Pydantic schemas for chunking API endpoints.
 This module defines request and response models for the chunking router.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # Work List Schemas
@@ -137,29 +137,25 @@ class RunVecSuggestionsResponse(BaseModel):
 
 class VecSuggestionRow(BaseModel):
     """A single row in the vec suggestions table."""
-    line_num: int = Field(..., description="Line number in sanitized markdown file")
-    heading: str = Field(..., description="Full heading text with markdown symbols")
-    decision: str = Field(..., description="Vectorization decision (VECTORIZE or SKIP)")
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "line_num": 155,
                 "heading": "# 1 Cognitive Psychology and the Brain",
                 "decision": "VECTORIZE"
             }
         }
+    )
+
+    line_num: int = Field(..., description="Line number in sanitized markdown file")
+    heading: str = Field(..., description="Full heading text with markdown symbols")
+    decision: str = Field(..., description="Vectorization decision (VECTORIZE or SKIP)")
 
 
 class VecSuggestionsTableResponse(BaseModel):
     """Response containing table data for vec suggestions."""
-    work_id: int = Field(..., description="Work ID")
-    rows: list[VecSuggestionRow] = Field(..., description="All heading rows merged with decisions")
-    filename: str = Field(..., description="Vec suggestions filename")
-    hash: str = Field(..., description="Current hash of vec_suggestions file")
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "work_id": 3,
                 "rows": [
@@ -178,14 +174,18 @@ class VecSuggestionsTableResponse(BaseModel):
                 "hash": "abc123def456..."
             }
         }
+    )
+
+    work_id: int = Field(..., description="Work ID")
+    rows: list[VecSuggestionRow] = Field(..., description="All heading rows merged with decisions")
+    filename: str = Field(..., description="Vec suggestions filename")
+    hash: str = Field(..., description="Current hash of vec_suggestions file")
 
 
 class UpdateVecSuggestionsTableRequest(BaseModel):
     """Request to update vec suggestions from table data."""
-    rows: list[VecSuggestionRow] = Field(..., description="Updated vec suggestion rows")
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "rows": [
                     {
@@ -201,3 +201,6 @@ class UpdateVecSuggestionsTableRequest(BaseModel):
                 ]
             }
         }
+    )
+
+    rows: list[VecSuggestionRow] = Field(..., description="Updated vec suggestion rows")

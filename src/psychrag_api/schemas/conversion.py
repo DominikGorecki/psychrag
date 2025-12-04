@@ -2,25 +2,14 @@
 Pydantic schemas for Conversion router.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class IOFolderDataResponse(BaseModel):
     """Response containing input and processed file data."""
 
-    input_files: list[str] = Field(
-        default_factory=list,
-        description="List of unprocessed input files",
-        example=["cognitive_psychology.pdf", "memory_handbook.pdf"],
-    )
-    processed_files: list[str] = Field(
-        default_factory=list,
-        description="List of processed files in pipe-separated format: basename|id|variant1|variant2|...",
-        example=["test|42|.pdf|.style.md|.hier.md|.toc_titles.md"],
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "input_files": ["cognitive_psychology.pdf", "memory_handbook.pdf"],
                 "processed_files": [
@@ -29,55 +18,40 @@ class IOFolderDataResponse(BaseModel):
                 ],
             }
         }
+    )
+
+    input_files: list[str] = Field(
+        default_factory=list,
+        description="List of unprocessed input files",
+    )
+    processed_files: list[str] = Field(
+        default_factory=list,
+        description="List of processed files in pipe-separated format: basename|id|variant1|variant2|...",
+    )
 
 
 class ConvertFileRequest(BaseModel):
     """Request to convert a file."""
 
-    filename: str = Field(
-        ...,
-        description="Name of the file to convert (must exist in input directory)",
-        example="cognitive_psychology.pdf",
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "filename": "cognitive_psychology.pdf",
             }
         }
+    )
+
+    filename: str = Field(
+        ...,
+        description="Name of the file to convert (must exist in input directory)",
+    )
 
 
 class ConvertFileResponse(BaseModel):
     """Response after file conversion."""
 
-    success: bool = Field(
-        ...,
-        description="Whether the conversion was successful",
-        example=True,
-    )
-    message: str = Field(
-        ...,
-        description="Status message",
-        example="Conversion completed successfully",
-    )
-    input_file: str = Field(
-        ...,
-        description="Input filename that was converted",
-        example="cognitive_psychology.pdf",
-    )
-    output_files: list[str] = Field(
-        default_factory=list,
-        description="List of output files created",
-        example=["cognitive_psychology.pdf", "cognitive_psychology.style.md", "cognitive_psychology.hier.md"],
-    )
-    error: str | None = Field(
-        default=None,
-        description="Error message if conversion failed",
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "success": True,
                 "message": "Conversion completed successfully",
@@ -90,47 +64,62 @@ class ConvertFileResponse(BaseModel):
                 ],
             }
         }
+    )
+
+    success: bool = Field(
+        ...,
+        description="Whether the conversion was successful",
+    )
+    message: str = Field(
+        ...,
+        description="Status message",
+    )
+    input_file: str = Field(
+        ...,
+        description="Input filename that was converted",
+    )
+    output_files: list[str] = Field(
+        default_factory=list,
+        description="List of output files created",
+    )
+    error: str | None = Field(
+        default=None,
+        description="Error message if conversion failed",
+    )
 
 
 class InspectionItemSchema(BaseModel):
     """Schema for a single inspection item."""
 
-    name: str = Field(
-        ...,
-        description="Machine-readable inspection name",
-        example="inspect_style_hier",
-    )
-    available: bool = Field(
-        ...,
-        description="Whether the required files exist for this inspection",
-        example=True,
-    )
-    files_checked: list[str] = Field(
-        default_factory=list,
-        description="List of filenames that were checked for this inspection",
-        example=["test.style.md", "test.hier.md"],
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "inspect_style_hier",
                 "available": True,
                 "files_checked": ["test.style.md", "test.hier.md"],
             }
         }
+    )
+
+    name: str = Field(
+        ...,
+        description="Machine-readable inspection name",
+    )
+    available: bool = Field(
+        ...,
+        description="Whether the required files exist for this inspection",
+    )
+    files_checked: list[str] = Field(
+        default_factory=list,
+        description="List of filenames that were checked for this inspection",
+    )
 
 
 class ConversionInspectionResponse(BaseModel):
     """Response containing inspection options for a converted file."""
 
-    items: list[InspectionItemSchema] = Field(
-        default_factory=list,
-        description="List of inspection items in priority order",
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "items": [
                     {
@@ -161,46 +150,51 @@ class ConversionInspectionResponse(BaseModel):
                 ]
             }
         }
+    )
+
+    items: list[InspectionItemSchema] = Field(
+        default_factory=list,
+        description="List of inspection items in priority order",
+    )
 
 
 class FileContentResponse(BaseModel):
     """Response containing markdown file content."""
 
-    content: str = Field(
-        ...,
-        description="Markdown file content",
-        example="# Heading\n\nContent here...",
-    )
-    filename: str = Field(
-        ...,
-        description="Filename of the content",
-        example="test.style.md",
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "content": "# Chapter 1\n\n## Introduction\n\nThis is the content...",
                 "filename": "test.style.md",
             }
         }
+    )
+
+    content: str = Field(
+        ...,
+        description="Markdown file content",
+    )
+    filename: str = Field(
+        ...,
+        description="Filename of the content",
+    )
 
 
 class FileContentUpdateRequest(BaseModel):
     """Request to update markdown file content."""
 
-    content: str = Field(
-        ...,
-        description="New markdown content to save",
-        example="# Updated Heading\n\nNew content...",
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "content": "# Updated Chapter 1\n\n## Introduction\n\nThis is the updated content...",
             }
         }
+    )
+
+    content: str = Field(
+        ...,
+        description="New markdown content to save",
+    )
 
 
 class FileMetricsSchema(BaseModel):
@@ -224,27 +218,8 @@ class FileMetricsSchema(BaseModel):
 class FileSuggestionResponse(BaseModel):
     """Response containing comparison metrics and suggestion."""
 
-    style_metrics: FileMetricsSchema = Field(
-        ...,
-        description="Metrics for style.md file",
-    )
-    hier_metrics: FileMetricsSchema = Field(
-        ...,
-        description="Metrics for hier.md file",
-    )
-    winner: str = Field(
-        ...,
-        description="Suggested winner: 'style' or 'hier'",
-        example="hier",
-    )
-    score_difference: float = Field(
-        ...,
-        description="Absolute difference between scores",
-        example=0.15,
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "style_metrics": {
                     "total_headings": 45,
@@ -280,215 +255,146 @@ class FileSuggestionResponse(BaseModel):
                 "score_difference": 0.12,
             }
         }
+    )
+
+    style_metrics: FileMetricsSchema = Field(
+        ...,
+        description="Metrics for style.md file",
+    )
+    hier_metrics: FileMetricsSchema = Field(
+        ...,
+        description="Metrics for hier.md file",
+    )
+    winner: str = Field(
+        ...,
+        description="Suggested winner: 'style' or 'hier'",
+    )
+    score_difference: float = Field(
+        ...,
+        description="Absolute difference between scores",
+    )
 
 
 class FileSelectionRequest(BaseModel):
     """Request to select a file as the main version."""
 
-    file_type: str = Field(
-        ...,
-        description="Type of file to select: 'style' or 'hier'",
-        example="hier",
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "file_type": "hier",
             }
         }
+    )
+
+    file_type: str = Field(
+        ...,
+        description="Type of file to select: 'style' or 'hier'",
+    )
 
 
 class FileSelectionResponse(BaseModel):
     """Response after selecting a file."""
 
-    success: bool = Field(
-        ...,
-        description="Whether the selection was successful",
-        example=True,
-    )
-    message: str = Field(
-        ...,
-        description="Status message",
-        example="Successfully copied hier.md to test.md",
-    )
-    output_file: str = Field(
-        ...,
-        description="Path to the output file created",
-        example="test.md",
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "success": True,
                 "message": "Successfully copied hier.md to test.md",
                 "output_file": "test.md",
             }
         }
+    )
+
+    success: bool = Field(
+        ...,
+        description="Whether the selection was successful",
+    )
+    message: str = Field(
+        ...,
+        description="Status message",
+    )
+    output_file: str = Field(
+        ...,
+        description="Path to the output file created",
+    )
 
 
 class GenerateTocTitlesResponse(BaseModel):
     """Response for generating TOC titles file."""
 
-    success: bool = Field(
-        ...,
-        description="Whether the generation was successful",
-        example=True,
-    )
-    message: str = Field(
-        ...,
-        description="Status message",
-        example="Successfully generated toc_titles.md from PDF bookmarks",
-    )
-    file_created: str = Field(
-        ...,
-        description="Name of the file that was created",
-        example="document.toc_titles.md",
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "success": True,
                 "message": "Successfully generated toc_titles.md from PDF bookmarks",
                 "file_created": "document.toc_titles.md",
             }
         }
+    )
+
+    success: bool = Field(
+        ...,
+        description="Whether the generation was successful",
+    )
+    message: str = Field(
+        ...,
+        description="Status message",
+    )
+    file_created: str = Field(
+        ...,
+        description="Name of the file that was created",
+    )
 
 
 class ManualPromptResponse(BaseModel):
     """Response containing the manual prompt content for TOC titles extraction."""
 
-    content: str = Field(
-        ...,
-        description="The manual prompt markdown content",
-        example="You are an expert at analyzing academic PDFs...",
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "content": "You are an expert at analyzing academic PDFs...",
             }
         }
+    )
+
+    content: str = Field(
+        ...,
+        description="The manual prompt markdown content",
+    )
 
 
 class ReadinessCheckResponse(BaseModel):
     """Response for checking if a file is ready to be added to the database."""
 
-    ready: bool = Field(
-        ...,
-        description="Whether the file is ready to be added to database",
-        example=True,
-    )
-    reasons: list[str] = Field(
-        default_factory=list,
-        description="List of reasons why the file is not ready (empty if ready)",
-        example=[],
-    )
-    base_name: str = Field(
-        ...,
-        description="Base name of the file",
-        example="cognitive_psychology",
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "ready": True,
                 "reasons": [],
                 "base_name": "cognitive_psychology",
             }
         }
+    )
+
+    ready: bool = Field(
+        ...,
+        description="Whether the file is ready to be added to database",
+    )
+    reasons: list[str] = Field(
+        default_factory=list,
+        description="List of reasons why the file is not ready (empty if ready)",
+    )
+    base_name: str = Field(
+        ...,
+        description="Base name of the file",
+    )
 
 
 class AddWorkRequest(BaseModel):
     """Request to add a work to the database."""
 
-    title: str = Field(
-        ...,
-        min_length=1,
-        max_length=500,
-        description="Title of the work (required)",
-        example="Cognitive Psychology: A Student's Handbook",
-    )
-    authors: str | None = Field(
-        default=None,
-        max_length=1000,
-        description="Author(s) of the work (optional)",
-        example="Michael Eysenck, Mark Keane",
-    )
-    year: int | None = Field(
-        default=None,
-        ge=1000,
-        le=9999,
-        description="Year of publication (optional, must be 4 digits)",
-        example=2020,
-    )
-    publisher: str | None = Field(
-        default=None,
-        max_length=255,
-        description="Publisher name (optional)",
-        example="Psychology Press",
-    )
-    isbn: str | None = Field(
-        default=None,
-        max_length=20,
-        description="ISBN for books (optional)",
-        example="978-1138482678",
-    )
-    edition: str | None = Field(
-        default=None,
-        max_length=100,
-        description="Edition information (optional)",
-        example="8th Edition",
-    )
-    volume: str | None = Field(
-        default=None,
-        max_length=50,
-        description="Volume number for journals/periodicals (optional)",
-        example="83",
-    )
-    issue: str | None = Field(
-        default=None,
-        max_length=50,
-        description="Issue number for journals/periodicals (optional)",
-        example="2",
-    )
-    pages: str | None = Field(
-        default=None,
-        max_length=50,
-        description="Page range (optional)",
-        example="248-252",
-    )
-    url: str | None = Field(
-        default=None,
-        max_length=1000,
-        description="URL for the work (optional)",
-        example="https://doi.org/10.1016/j.ijpsycho.2012.05.010",
-    )
-    city: str | None = Field(
-        default=None,
-        max_length=100,
-        description="City of publication (optional)",
-        example="New York",
-    )
-    institution: str | None = Field(
-        default=None,
-        max_length=255,
-        description="Institution for theses/dissertations (optional)",
-        example="University of London",
-    )
-    editor: str | None = Field(
-        default=None,
-        max_length=1000,
-        description="Editor(s) of the work (optional)",
-        example="Karl Friston, Christopher Frith",
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "title": "Cognitive Psychology: A Student's Handbook",
                 "authors": "Michael Eysenck, Mark Keane",
@@ -505,63 +411,109 @@ class AddWorkRequest(BaseModel):
                 "editor": None,
             }
         }
+    )
+
+    title: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="Title of the work (required)",
+    )
+    authors: str | None = Field(
+        default=None,
+        max_length=1000,
+        description="Author(s) of the work (optional)",
+    )
+    year: int | None = Field(
+        default=None,
+        ge=1000,
+        le=9999,
+        description="Year of publication (optional, must be 4 digits)",
+    )
+    publisher: str | None = Field(
+        default=None,
+        max_length=255,
+        description="Publisher name (optional)",
+    )
+    isbn: str | None = Field(
+        default=None,
+        max_length=20,
+        description="ISBN for books (optional)",
+    )
+    edition: str | None = Field(
+        default=None,
+        max_length=100,
+        description="Edition information (optional)",
+    )
+    volume: str | None = Field(
+        default=None,
+        max_length=50,
+        description="Volume number for journals/periodicals (optional)",
+    )
+    issue: str | None = Field(
+        default=None,
+        max_length=50,
+        description="Issue number for journals/periodicals (optional)",
+    )
+    pages: str | None = Field(
+        default=None,
+        max_length=50,
+        description="Page range (optional)",
+    )
+    url: str | None = Field(
+        default=None,
+        max_length=1000,
+        description="URL for the work (optional)",
+    )
+    city: str | None = Field(
+        default=None,
+        max_length=100,
+        description="City of publication (optional)",
+    )
+    institution: str | None = Field(
+        default=None,
+        max_length=255,
+        description="Institution for theses/dissertations (optional)",
+    )
+    editor: str | None = Field(
+        default=None,
+        max_length=1000,
+        description="Editor(s) of the work (optional)",
+    )
 
 
 class AddWorkResponse(BaseModel):
     """Response after adding a work to the database."""
 
-    success: bool = Field(
-        ...,
-        description="Whether the work was successfully added",
-        example=True,
-    )
-    message: str = Field(
-        ...,
-        description="Status message",
-        example="Successfully added work to database",
-    )
-    work_id: int = Field(
-        ...,
-        description="ID of the created work",
-        example=42,
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "success": True,
                 "message": "Successfully added work to database",
                 "work_id": 42,
             }
         }
+    )
+
+    success: bool = Field(
+        ...,
+        description="Whether the work was successfully added",
+    )
+    message: str = Field(
+        ...,
+        description="Status message",
+    )
+    work_id: int = Field(
+        ...,
+        description="ID of the created work",
+    )
 
 
 class DeleteConversionResponse(BaseModel):
     """Response after deleting a conversion."""
 
-    success: bool = Field(
-        ...,
-        description="Whether the conversion was successfully deleted",
-        example=True,
-    )
-    message: str = Field(
-        ...,
-        description="Status message",
-        example="Successfully deleted 5 files and database entry",
-    )
-    deleted_files: list[str] = Field(
-        default_factory=list,
-        description="List of filenames that were deleted",
-        example=["test.pdf", "test.md", "test.style.md", "test.hier.md", "test.toc_titles.md"],
-    )
-    io_file_deleted: bool = Field(
-        ...,
-        description="Whether the database entry was deleted",
-        example=True,
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "success": True,
                 "message": "Successfully deleted 5 files and database entry for test",
@@ -569,41 +521,75 @@ class DeleteConversionResponse(BaseModel):
                 "io_file_deleted": True,
             }
         }
+    )
+
+    success: bool = Field(
+        ...,
+        description="Whether the conversion was successfully deleted",
+    )
+    message: str = Field(
+        ...,
+        description="Status message",
+    )
+    deleted_files: list[str] = Field(
+        default_factory=list,
+        description="List of filenames that were deleted",
+    )
+    io_file_deleted: bool = Field(
+        ...,
+        description="Whether the database entry was deleted",
+    )
 
 
 class ParseCitationRequest(BaseModel):
     """Request to parse a citation with LLM."""
 
-    citation_text: str = Field(
-        ...,
-        min_length=10,
-        description="The citation text to parse",
-        examples=[
-            "Friston, K. (2012). Prediction, perception and agency. International Journal of Psychophysiology, 83(2), 248-252."
-        ],
-    )
-    citation_format: str = Field(
-        ...,
-        description="Citation format: APA, MLA, or Chicago",
-        examples=["APA"],
-    )
-
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "citation_text": "Friston, K. (2012). Prediction, perception and agency. International Journal of Psychophysiology, 83(2), 248-252.",
                 "citation_format": "APA",
             }
         }
+    )
+
+    citation_text: str = Field(
+        ...,
+        min_length=10,
+        description="The citation text to parse",
+    )
+    citation_format: str = Field(
+        ...,
+        description="Citation format: APA, MLA, or Chicago",
+    )
 
 
 class ParseCitationResponse(BaseModel):
     """Response from LLM citation parsing."""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "success": True,
+                "title": "Prediction, perception and agency",
+                "authors": ["Friston, K."],
+                "year": 2012,
+                "publisher": None,
+                "isbn": None,
+                "doi": None,
+                "container_title": "International Journal of Psychophysiology",
+                "volume": "83",
+                "issue": "2",
+                "pages": "248-252",
+                "url": None,
+                "work_type": "article",
+            }
+        }
+    )
+
     success: bool = Field(
         ...,
         description="Whether parsing was successful",
-        example=True,
     )
     title: str | None = Field(
         default=None,
@@ -653,24 +639,5 @@ class ParseCitationResponse(BaseModel):
         default=None,
         description="Type of work",
     )
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "success": True,
-                "title": "Prediction, perception and agency",
-                "authors": ["Friston, K."],
-                "year": 2012,
-                "publisher": None,
-                "isbn": None,
-                "doi": None,
-                "container_title": "International Journal of Psychophysiology",
-                "volume": "83",
-                "issue": "2",
-                "pages": "248-252",
-                "url": None,
-                "work_type": "article",
-            }
-        }
 
 
