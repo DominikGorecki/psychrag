@@ -8,6 +8,7 @@
 [ ] Add corpus to `work`: psychology, philosophy, medicine, chemistry, etc.
 [ ] Queue for automatically importing PDFs and Epub
 [ ] Semantic Chunking
+[ ] Container that can run everything
  
 
 ## Minor Improvements
