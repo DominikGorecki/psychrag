@@ -536,7 +536,7 @@ class TestRetrieveFunction:
     @patch('psychrag.retrieval.retrieve.get_default_config')
     def test_retrieve_basic(
         self, mock_get_config, mock_get_session, mock_lexical_search,
-        mock_dense_search, mock_rerank_chunks, session
+        mock_dense_search, mock_rerank_chunks, mock_session
     ):
         """Test basic retrieval with successful results."""
         # Setup config
@@ -559,25 +559,28 @@ class TestRetrieveFunction:
             }
         }
         mock_get_config.return_value = mock_config
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create work and chunks
         work = Work(title="Test Work", authors="Author")
-        session.add(work)
-        session.commit()
+        work.id = 1
+        mock_session.add(work)
+        mock_session.commit()
 
         chunk1 = Chunk(
             work_id=work.id, level="H2", content="This is a test chunk with enough words and characters.",
             start_line=1, end_line=10, vector_status="vec",
             embedding=[0.1] * 768
         )
+        chunk1.id = 1
         chunk2 = Chunk(
             work_id=work.id, level="H3", content="Another test chunk with sufficient content length.",
             start_line=11, end_line=20, vector_status="vec",
             embedding=[0.2] * 768
         )
-        session.add_all([chunk1, chunk2])
-        session.commit()
+        chunk2.id = 2
+        mock_session.add_all([chunk1, chunk2])
+        mock_session.commit()
 
         # Create query
         query = Query(
@@ -585,8 +588,11 @@ class TestRetrieveFunction:
             vector_status="vec",
             embedding_original=[0.15] * 768
         )
-        session.add(query)
-        session.commit()
+        query.id = 1
+        mock_session.add(query)
+        mock_session.commit()
+        # Configure mock to return query when queried
+        mock_session.query.return_value.filter.return_value.first.return_value = query
 
         # Mock search results
         mock_dense_search.return_value = [(chunk1.id, 1), (chunk2.id, 2)]
@@ -615,7 +621,7 @@ class TestRetrieveFunction:
 
     @patch('psychrag.retrieval.retrieve.get_session')
     @patch('psychrag.retrieval.retrieve.get_default_config')
-    def test_retrieve_query_not_found(self, mock_get_config, mock_get_session, session):
+    def test_retrieve_query_not_found(self, mock_get_config, mock_get_session, mock_session):
         """Test retrieve raises ValueError when query not found."""
         mock_config = {
             "retrieval": {
@@ -628,14 +634,15 @@ class TestRetrieveFunction:
             }
         }
         mock_get_config.return_value = mock_config
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        mock_session.query.return_value.filter.return_value.first.return_value = None
 
         with pytest.raises(ValueError, match="Query with ID 999 not found"):
             retrieve(999)
 
     @patch('psychrag.retrieval.retrieve.get_session')
     @patch('psychrag.retrieval.retrieve.get_default_config')
-    def test_retrieve_query_not_vectorized(self, mock_get_config, mock_get_session, session):
+    def test_retrieve_query_not_vectorized(self, mock_get_config, mock_get_session, mock_session):
         """Test retrieve raises ValueError when query not vectorized."""
         mock_config = {
             "retrieval": {
@@ -648,11 +655,13 @@ class TestRetrieveFunction:
             }
         }
         mock_get_config.return_value = mock_config
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         query = Query(original_query="test", vector_status="no_vec")
-        session.add(query)
-        session.commit()
+        query.id = 1
+        mock_session.add(query)
+        mock_session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = query
 
         with pytest.raises(ValueError, match="has not been vectorized"):
             retrieve(query.id)
@@ -664,7 +673,7 @@ class TestRetrieveFunction:
     @patch('psychrag.retrieval.retrieve.get_default_config')
     def test_retrieve_no_matches(
         self, mock_get_config, mock_get_session, mock_lexical_search,
-        mock_dense_search, mock_rerank_chunks, session
+        mock_dense_search, mock_rerank_chunks, mock_session
     ):
         """Test retrieval with no matching chunks."""
         mock_config = {
@@ -678,11 +687,13 @@ class TestRetrieveFunction:
             }
         }
         mock_get_config.return_value = mock_config
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         query = Query(original_query="test", vector_status="vec", embedding_original=[0.1] * 768)
-        session.add(query)
-        session.commit()
+        query.id = 1
+        mock_session.add(query)
+        mock_session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = query
 
         # Mock empty search results
         mock_dense_search.return_value = []
@@ -703,7 +714,7 @@ class TestRetrieveFunction:
     @patch('psychrag.retrieval.retrieve.get_config_by_name')
     def test_retrieve_with_config_preset(
         self, mock_get_config_by_name, mock_get_session, mock_lexical_search,
-        mock_dense_search, mock_rerank_chunks, session
+        mock_dense_search, mock_rerank_chunks, mock_session
     ):
         """Test retrieve with config preset."""
         mock_config = {
@@ -717,11 +728,13 @@ class TestRetrieveFunction:
             }
         }
         mock_get_config_by_name.return_value = mock_config
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         query = Query(original_query="test", vector_status="vec", embedding_original=[0.1] * 768)
-        session.add(query)
-        session.commit()
+        query.id = 1
+        mock_session.add(query)
+        mock_session.commit()
+        mock_session.query.return_value.filter_by.return_value.first.return_value = query
 
         mock_dense_search.return_value = []
         mock_lexical_search.return_value = []
@@ -739,7 +752,7 @@ class TestRetrieveFunction:
     @patch('psychrag.retrieval.retrieve.get_default_config')
     def test_retrieve_top_k(
         self, mock_get_config, mock_get_session, mock_lexical_search,
-        mock_dense_search, mock_rerank_chunks, session
+        mock_dense_search, mock_rerank_chunks, mock_session
     ):
         """Test top-k retrieval limits results correctly."""
         mock_config = {
@@ -753,11 +766,12 @@ class TestRetrieveFunction:
             }
         }
         mock_get_config.return_value = mock_config
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         work = Work(title="Test", authors="Author")
-        session.add(work)
-        session.commit()
+        work.id = 1
+        mock_session.add(work)
+        mock_session.commit()
 
         # Create multiple chunks
         chunks = []
@@ -768,13 +782,16 @@ class TestRetrieveFunction:
                 start_line=i*10+1, end_line=(i+1)*10, vector_status="vec",
                 embedding=[0.1] * 768
             )
+            chunk.id = i + 1
             chunks.append(chunk)
-        session.add_all(chunks)
-        session.commit()
+        mock_session.add_all(chunks)
+        mock_session.commit()
 
         query = Query(original_query="test", vector_status="vec", embedding_original=[0.1] * 768)
-        session.add(query)
-        session.commit()
+        query.id = 1
+        mock_session.add(query)
+        mock_session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = query
 
         # Mock search results
         mock_dense_search.return_value = [(c.id, i+1) for i, c in enumerate(chunks)]
@@ -806,7 +823,7 @@ class TestRetrieveFunction:
     @patch('psychrag.retrieval.retrieve.get_default_config')
     def test_retrieve_with_mqe_queries(
         self, mock_get_config, mock_get_session, mock_lexical_search,
-        mock_dense_search, mock_rerank_chunks, session
+        mock_dense_search, mock_rerank_chunks, mock_session
     ):
         """Test retrieval with MQE expanded queries."""
         mock_config = {
@@ -820,11 +837,12 @@ class TestRetrieveFunction:
             }
         }
         mock_get_config.return_value = mock_config
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         work = Work(title="Test", authors="Author")
-        session.add(work)
-        session.commit()
+        work.id = 1
+        mock_session.add(work)
+        mock_session.commit()
 
         chunk = Chunk(
             work_id=work.id, level="H2",
@@ -832,8 +850,9 @@ class TestRetrieveFunction:
             start_line=1, end_line=10, vector_status="vec",
             embedding=[0.1] * 768
         )
-        session.add(chunk)
-        session.commit()
+        chunk.id = 1
+        mock_session.add(chunk)
+        mock_session.commit()
 
         query = Query(
             original_query="test query",
@@ -842,8 +861,10 @@ class TestRetrieveFunction:
             embedding_original=[0.1] * 768,
             embeddings_mqe=[[0.2] * 768, [0.3] * 768]
         )
-        session.add(query)
-        session.commit()
+        query.id = 1
+        mock_session.add(query)
+        mock_session.commit()
+        mock_session.query.return_value.filter_by.return_value.first.return_value = query
 
         mock_dense_search.return_value = [(chunk.id, 1)]
         mock_lexical_search.return_value = [(chunk.id, 1)]
@@ -869,7 +890,7 @@ class TestRetrieveFunction:
     @patch('psychrag.retrieval.retrieve.get_default_config')
     def test_retrieve_filters_short_chunks(
         self, mock_get_config, mock_get_session, mock_lexical_search,
-        mock_dense_search, mock_rerank_chunks, session
+        mock_dense_search, mock_rerank_chunks, mock_session
     ):
         """Test that chunks below minimum requirements are filtered out."""
         mock_config = {
@@ -883,11 +904,12 @@ class TestRetrieveFunction:
             }
         }
         mock_get_config.return_value = mock_config
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         work = Work(title="Test", authors="Author")
-        session.add(work)
-        session.commit()
+        work.id = 1
+        mock_session.add(work)
+        mock_session.commit()
 
         # Create chunks: one that meets requirements, one that doesn't
         valid_chunk = Chunk(
@@ -896,18 +918,22 @@ class TestRetrieveFunction:
             start_line=1, end_line=10, vector_status="vec",
             embedding=[0.1] * 768
         )
+        valid_chunk.id = 1
         short_chunk = Chunk(
             work_id=work.id, level="H2",
             content="Short",  # Too short
             start_line=11, end_line=12, vector_status="vec",
             embedding=[0.2] * 768
         )
-        session.add_all([valid_chunk, short_chunk])
-        session.commit()
+        short_chunk.id = 2
+        mock_session.add_all([valid_chunk, short_chunk])
+        mock_session.commit()
 
         query = Query(original_query="test", vector_status="vec", embedding_original=[0.1] * 768)
-        session.add(query)
-        session.commit()
+        query.id = 1
+        mock_session.add(query)
+        mock_session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = query
 
         # Mock search results returning both chunks
         mock_dense_search.return_value = [(valid_chunk.id, 1), (short_chunk.id, 2)]
@@ -934,7 +960,7 @@ class TestRetrieveFunction:
     @patch('psychrag.retrieval.retrieve.get_default_config')
     def test_retrieve_with_entities_and_intent(
         self, mock_get_config, mock_get_session, mock_lexical_search,
-        mock_dense_search, mock_rerank_chunks, session
+        mock_dense_search, mock_rerank_chunks, mock_session
     ):
         """Test retrieval with entities and intent for bias application."""
         mock_config = {
@@ -948,11 +974,12 @@ class TestRetrieveFunction:
             }
         }
         mock_get_config.return_value = mock_config
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         work = Work(title="Test", authors="Author")
-        session.add(work)
-        session.commit()
+        work.id = 1
+        mock_session.add(work)
+        mock_session.commit()
 
         chunk = Chunk(
             work_id=work.id, level="H2",
@@ -960,8 +987,9 @@ class TestRetrieveFunction:
             start_line=1, end_line=10, vector_status="vec",
             embedding=[0.1] * 768
         )
-        session.add(chunk)
-        session.commit()
+        chunk.id = 1
+        mock_session.add(chunk)
+        mock_session.commit()
 
         query = Query(
             original_query="test query",
@@ -970,8 +998,10 @@ class TestRetrieveFunction:
             entities=["memory", "encoding"],
             intent="DEFINITION"
         )
-        session.add(query)
-        session.commit()
+        query.id = 1
+        mock_session.add(query)
+        mock_session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = query
 
         mock_dense_search.return_value = [(chunk.id, 1)]
         mock_lexical_search.return_value = [(chunk.id, 1)]
@@ -999,7 +1029,7 @@ class TestRetrieveFunction:
     @patch('psychrag.retrieval.retrieve.get_default_config')
     def test_retrieve_verbose_output(
         self, mock_get_config, mock_get_session, mock_lexical_search,
-        mock_dense_search, mock_rerank_chunks, session, capsys
+        mock_dense_search, mock_rerank_chunks, mock_session, capsys
     ):
         """Test verbose output during retrieval."""
         mock_config = {
@@ -1013,11 +1043,13 @@ class TestRetrieveFunction:
             }
         }
         mock_get_config.return_value = mock_config
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         query = Query(original_query="test", vector_status="vec", embedding_original=[0.1] * 768)
-        session.add(query)
-        session.commit()
+        query.id = 1
+        mock_session.add(query)
+        mock_session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = query
 
         mock_dense_search.return_value = []
         mock_lexical_search.return_value = []
@@ -1034,34 +1066,37 @@ class TestDenseSearch:
     """Test _dense_search function (mocked for SQLite compatibility)."""
 
     @patch('psychrag.retrieval.retrieve.get_session')
-    def test_dense_search_mocked(self, mock_get_session, session):
+    def test_dense_search_mocked(self, mock_get_session, mock_session):
         """Test dense search with mocked database query."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create chunks with embeddings
         work = Work(title="Test", authors="Author")
-        session.add(work)
-        session.flush()  # Flush to get work.id
+        work.id = 1
+        mock_session.add(work)
+        mock_session.flush()  # Flush to get work.id
 
         chunk1 = Chunk(
             work_id=work.id, level="H2", content="Test 1",
             start_line=1, end_line=10, vector_status="vec",
             embedding=[0.1] * 768
         )
+        chunk1.id = 1
         chunk2 = Chunk(
             work_id=work.id, level="H2", content="Test 2",
             start_line=11, end_line=20, vector_status="vec",
             embedding=[0.2] * 768
         )
-        session.add_all([chunk1, chunk2])
-        session.flush()  # Flush to get chunk IDs
+        chunk2.id = 2
+        mock_session.add_all([chunk1, chunk2])
+        mock_session.flush()  # Flush to get chunk IDs
 
         # Store IDs before mocking
         chunk1_id = chunk1.id
         chunk2_id = chunk2.id
 
         # Mock the SQL query execution
-        with patch.object(session, 'execute') as mock_execute:
+        with patch.object(mock_session, 'execute') as mock_execute:
             mock_result = MagicMock()
             mock_result.fetchall.return_value = [(chunk1_id,), (chunk2_id,)]
             mock_execute.return_value = mock_result
@@ -1079,28 +1114,30 @@ class TestLexicalSearch:
     """Test _lexical_search function (mocked for SQLite compatibility)."""
 
     @patch('psychrag.retrieval.retrieve.get_session')
-    def test_lexical_search_mocked(self, mock_get_session, session):
+    def test_lexical_search_mocked(self, mock_get_session, mock_session):
         """Test lexical search with mocked database query."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create chunks
         work = Work(title="Test", authors="Author")
-        session.add(work)
-        session.flush()  # Flush to get work.id
+        work.id = 1
+        mock_session.add(work)
+        mock_session.flush()  # Flush to get work.id
 
         chunk = Chunk(
             work_id=work.id, level="H2", content="Test content",
             start_line=1, end_line=10, vector_status="vec",
             embedding=[0.1] * 768
         )
-        session.add(chunk)
-        session.flush()  # Flush to get chunk.id
+        chunk.id = 1
+        mock_session.add(chunk)
+        mock_session.flush()  # Flush to get chunk.id
 
         # Store ID before mocking
         chunk_id = chunk.id
 
         # Mock the SQL query execution
-        with patch.object(session, 'execute') as mock_execute:
+        with patch.object(mock_session, 'execute') as mock_execute:
             mock_result = MagicMock()
             mock_result.fetchall.return_value = [(chunk_id,)]
             mock_execute.return_value = mock_result

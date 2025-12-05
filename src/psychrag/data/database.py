@@ -14,6 +14,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker, declarative_base
 
 from psychrag.config import load_config
+from psychrag.data.env_utils import get_required_env_var
 
 # Load environment variables for passwords
 load_dotenv()
@@ -34,8 +35,8 @@ def get_database_url(force_reload: bool = False) -> str:
     # Note: os.getenv doesn't update if .env file changes unless load_dotenv is called again
     if force_reload:
         load_dotenv(override=True)
-        
-    app_pwd = os.getenv("POSTGRES_APP_PASSWORD", "psych_rag_secure_password")
+
+    app_pwd = get_required_env_var("POSTGRES_APP_PASSWORD", "Application database password")
     
     return (
         f"postgresql+psycopg://{db_config.app_user}:{app_pwd}"
@@ -54,8 +55,8 @@ POSTGRES_APP_USER = _db_config.app_user
 POSTGRES_ADMIN_USER = _db_config.admin_user
 
 # Passwords from .env (secrets)
-POSTGRES_APP_PASSWORD = os.getenv("POSTGRES_APP_PASSWORD", "psych_rag_secure_password")
-POSTGRES_ADMIN_PASSWORD = os.getenv("POSTGRES_ADMIN_PASSWORD", "postgres")
+POSTGRES_APP_PASSWORD = get_required_env_var("POSTGRES_APP_PASSWORD", "Application database password")
+POSTGRES_ADMIN_PASSWORD = get_required_env_var("POSTGRES_ADMIN_PASSWORD", "Admin database password")
 
 # Build database URL
 DATABASE_URL = get_database_url()
@@ -132,7 +133,7 @@ def get_admin_database_url() -> str:
     db_config = load_config().database
     # Check environment variables first (for testing), then fall back to config
     admin_user = os.getenv("POSTGRES_ADMIN_USER", db_config.admin_user)
-    admin_password = os.getenv("POSTGRES_ADMIN_PASSWORD", "postgres")
+    admin_password = get_required_env_var("POSTGRES_ADMIN_PASSWORD", "Admin database password")
     host = os.getenv("POSTGRES_HOST", db_config.host)
     port = os.getenv("POSTGRES_PORT", str(db_config.port))
     

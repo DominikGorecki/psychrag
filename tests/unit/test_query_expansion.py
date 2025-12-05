@@ -18,6 +18,7 @@ from psychrag.retrieval.query_expansion import (
     ParsedExpansion
 )
 from psychrag.data.models.query import Query
+from tests.unit.mock_helpers import mock_session, create_mock_query_chain
 
 
 class TestParsedExpansion:
@@ -269,9 +270,9 @@ class TestSaveExpansionToDb:
     """Test save_expansion_to_db function."""
 
     @patch('psychrag.retrieval.query_expansion.get_session')
-    def test_save_expansion_to_db_basic(self, mock_get_session, session):
+    def test_save_expansion_to_db_basic(self, mock_get_session, mock_session):
         """Test saving expansion data to database."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
 
         parsed = ParsedExpansion(
@@ -281,13 +282,28 @@ class TestSaveExpansionToDb:
             entities=["entity1", "entity2"]
         )
 
+        # Track the Query object that gets created
+        saved_query_obj = None
+        def capture_add(obj):
+            nonlocal saved_query_obj
+            saved_query_obj = obj
+            # Set an id when the object is added
+            if isinstance(obj, Query):
+                obj.id = 123  # Mock ID
+
+        mock_session.add.side_effect = capture_add
+
         query_id = save_expansion_to_db("What is psychology?", parsed)
 
         assert query_id is not None
         assert isinstance(query_id, int)
+        assert query_id == 123
 
         # Verify query was saved
-        saved_query = session.query(Query).filter(Query.id == query_id).first()
+        mock_query_chain = create_mock_query_chain(return_first=saved_query_obj)
+        mock_session.query.return_value = mock_query_chain
+        saved_query = mock_session.query(Query).filter(Query.id == query_id).first()
+        
         assert saved_query is not None
         assert saved_query.original_query == "What is psychology?"
         assert saved_query.expanded_queries == ["query1", "query2", "query3"]
@@ -297,9 +313,9 @@ class TestSaveExpansionToDb:
         assert saved_query.vector_status == "to_vec"
 
     @patch('psychrag.retrieval.query_expansion.get_session')
-    def test_save_expansion_to_db_empty_fields(self, mock_get_session, session):
+    def test_save_expansion_to_db_empty_fields(self, mock_get_session, mock_session):
         """Test saving expansion with empty fields."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
 
         parsed = ParsedExpansion(
@@ -309,9 +325,24 @@ class TestSaveExpansionToDb:
             entities=[]
         )
 
+        # Track the Query object that gets created
+        saved_query_obj = None
+        def capture_add(obj):
+            nonlocal saved_query_obj
+            saved_query_obj = obj
+            # Set an id when the object is added
+            if isinstance(obj, Query):
+                obj.id = 456  # Mock ID
+
+        mock_session.add.side_effect = capture_add
+
         query_id = save_expansion_to_db("Test query", parsed)
 
-        saved_query = session.query(Query).filter(Query.id == query_id).first()
+        # Verify query was saved
+        mock_query_chain = create_mock_query_chain(return_first=saved_query_obj)
+        mock_session.query.return_value = mock_query_chain
+        saved_query = mock_session.query(Query).filter(Query.id == query_id).first()
+        
         assert saved_query.original_query == "Test query"
         assert saved_query.expanded_queries == []
         assert saved_query.hyde_answer == ""
@@ -319,9 +350,9 @@ class TestSaveExpansionToDb:
         assert saved_query.entities == []
 
     @patch('psychrag.retrieval.query_expansion.get_session')
-    def test_save_expansion_to_db_returns_id(self, mock_get_session, session):
+    def test_save_expansion_to_db_returns_id(self, mock_get_session, mock_session):
         """Test that save_expansion_to_db returns the query ID."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
 
         parsed = ParsedExpansion(
@@ -331,10 +362,23 @@ class TestSaveExpansionToDb:
             entities=["e1"]
         )
 
+        # Track the Query object that gets created
+        saved_query_obj = None
+        def capture_add(obj):
+            nonlocal saved_query_obj
+            saved_query_obj = obj
+            # Set an id when the object is added
+            if isinstance(obj, Query):
+                obj.id = 789  # Mock ID
+
+        mock_session.add.side_effect = capture_add
+
         query_id = save_expansion_to_db("Query", parsed)
 
         # Verify ID matches database record
-        saved_query = session.query(Query).filter(Query.id == query_id).first()
+        mock_query_chain = create_mock_query_chain(return_first=saved_query_obj)
+        mock_session.query.return_value = mock_query_chain
+        saved_query = mock_session.query(Query).filter(Query.id == query_id).first()
         assert saved_query.id == query_id
 
 

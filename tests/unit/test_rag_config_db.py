@@ -12,6 +12,57 @@ from psychrag.data.database import engine, get_session
 from psychrag.data.models.rag_config import RagConfig
 
 
+@pytest.fixture(autouse=True)
+def ensure_default_preset():
+    """Ensure default preset exists before each test."""
+    with get_session() as session:
+        # Check if default preset exists
+        default = session.query(RagConfig).filter(RagConfig.preset_name == "Default").first()
+        if not default:
+            # Create default preset if it doesn't exist
+            default_preset = RagConfig(
+                preset_name="Default",
+                is_default=True,
+                description="Default RAG configuration with balanced settings for general-purpose queries",
+                config={
+                    "retrieval": {
+                        "dense_limit": 19,
+                        "lexical_limit": 5,
+                        "rrf_k": 50,
+                        "top_k_rrf": 75,
+                        "top_n_final": 17,
+                        "entity_boost": 0.05,
+                        "min_word_count": 150,
+                        "min_char_count": 250,
+                        "min_content_length": 750,
+                        "enrich_lines_above": 0,
+                        "enrich_lines_below": 13,
+                        "mmr_lambda": 0.7,
+                        "reranker_batch_size": 8,
+                        "reranker_max_length": 512
+                    },
+                    "consolidation": {
+                        "coverage_threshold": 0.5,
+                        "line_gap": 7,
+                        "min_content_length": 350,
+                        "enrich_from_md": True
+                    },
+                    "augmentation": {
+                        "top_n_contexts": 5
+                    }
+                }
+            )
+            session.add(default_preset)
+            session.commit()
+        else:
+            # Ensure it's marked as default and has a description
+            if not default.is_default:
+                default.is_default = True
+            if default.description is None:
+                default.description = "Default RAG configuration with balanced settings for general-purpose queries"
+            session.commit()
+
+
 class TestRagConfigSchema:
     """Test rag_config table schema and structure."""
 

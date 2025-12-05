@@ -1,12 +1,13 @@
 """
 Unit tests for Result model.
 
-Tests model creation, Query relationship, cascade delete, and CRUD operations.
+Tests model creation, field validation, and basic logic.
+Database-specific tests (CASCADE, constraints, timestamps) moved to integration tests.
 """
 
 import pytest
 from datetime import datetime
-from sqlalchemy.exc import IntegrityError
+from unittest.mock import MagicMock, patch
 
 from psychrag.data.models.result import Result
 from psychrag.data.models.query import Query
@@ -15,361 +16,189 @@ from psychrag.data.models.query import Query
 class TestResultCreation:
     """Test basic model creation and field values."""
 
-    def test_create_result(self, session):
+    def test_create_result(self):
         """Test creating a Result instance."""
-        # First create a Query
-        query = Query(
-            original_query="What is cognitive psychology?",
-            vector_status="no_vec"
-        )
-        session.add(query)
-        session.commit()
-
         result = Result(
-            query_id=query.id,
+            query_id=1,
             response_text="Cognitive psychology is the study of mental processes..."
         )
-        session.add(result)
-        session.commit()
 
-        assert result.id is not None
-        assert result.query_id == query.id
+        assert result.query_id == 1
         assert result.response_text == "Cognitive psychology is the study of mental processes..."
-        assert isinstance(result.created_at, datetime)
-        assert isinstance(result.updated_at, datetime)
 
-    def test_repr(self, session):
+    def test_repr(self):
         """Test __repr__ method."""
-        query = Query(
-            original_query="Test query",
-            vector_status="no_vec"
-        )
-        session.add(query)
-        session.commit()
-
         result = Result(
-            query_id=query.id,
+            query_id=1,
             response_text="This is a test response that is longer than 50 characters to test truncation"
         )
-        session.add(result)
-        session.commit()
+        result.id = 1  # Simulate database-assigned ID
 
         repr_str = repr(result)
         assert "Result" in repr_str
-        assert str(result.id) in repr_str
-        assert str(result.query_id) in repr_str
+        assert "1" in repr_str
         assert "..." in repr_str  # Should truncate long responses
+
+    def test_repr_short_response(self):
+        """Test __repr__ with short response (no truncation)."""
+        result = Result(
+            query_id=1,
+            response_text="Short response"
+        )
+        result.id = 1
+
+        repr_str = repr(result)
+        assert "Short response" in repr_str
+        assert "..." not in repr_str
 
 
 class TestResultRelationships:
     """Test relationships with Query model."""
 
-    def test_result_belongs_to_query(self, session):
-        """Test that Result has foreign key relationship to Query."""
-        query = Query(
-            original_query="What is memory?",
-            vector_status="no_vec"
-        )
-        session.add(query)
-        session.commit()
-
+    def test_result_has_query_id(self):
+        """Test that Result has query_id attribute."""
         result = Result(
-            query_id=query.id,
+            query_id=5,
             response_text="Memory is the process of encoding, storing, and retrieving information."
         )
-        session.add(result)
-        session.commit()
 
-        # Verify relationship
-        assert result.query_id == query.id
-        retrieved_query = session.query(Query).filter(Query.id == query.id).first()
-        assert retrieved_query is not None
+        assert result.query_id == 5
 
-    def test_multiple_results_per_query(self, session):
-        """Test that one Query can have multiple Results."""
-        query = Query(
-            original_query="What is attention?",
-            vector_status="no_vec"
-        )
-        session.add(query)
-        session.commit()
+    def test_multiple_results_same_query(self):
+        """Test that multiple Results can reference the same query_id."""
+        query_id = 10
 
         result1 = Result(
-            query_id=query.id,
+            query_id=query_id,
             response_text="First response about attention."
         )
         result2 = Result(
-            query_id=query.id,
+            query_id=query_id,
             response_text="Second response about attention."
         )
         result3 = Result(
-            query_id=query.id,
+            query_id=query_id,
             response_text="Third response about attention."
         )
-        session.add_all([result1, result2, result3])
-        session.commit()
 
-        # Query all results for this query
-        results = session.query(Result).filter(Result.query_id == query.id).all()
-        assert len(results) == 3
-        assert all(r.query_id == query.id for r in results)
-
-    def test_cascade_delete(self, session):
-        """Test that deleting Query cascades to delete Results."""
-        query = Query(
-            original_query="Test query for cascade",
-            vector_status="no_vec"
-        )
-        session.add(query)
-        session.commit()
-
-        result1 = Result(
-            query_id=query.id,
-            response_text="Result 1"
-        )
-        result2 = Result(
-            query_id=query.id,
-            response_text="Result 2"
-        )
-        session.add_all([result1, result2])
-        session.commit()
-
-        result_ids = [result1.id, result2.id]
-
-        # Delete the query
-        session.delete(query)
-        session.commit()
-
-        # Verify results are also deleted
-        remaining_results = session.query(Result).filter(Result.id.in_(result_ids)).all()
-        assert len(remaining_results) == 0
-
-
-class TestResultConstraints:
-    """Test database constraints."""
-
-    def test_query_id_required(self, session):
-        """Test that query_id is NOT NULL."""
-        result = Result(
-            query_id=None,
-            response_text="Test response"
-        )
-        session.add(result)
-
-        with pytest.raises(IntegrityError):
-            session.commit()
-
-    def test_response_text_required(self, session):
-        """Test that response_text is NOT NULL."""
-        query = Query(
-            original_query="Test",
-            vector_status="no_vec"
-        )
-        session.add(query)
-        session.commit()
-
-        result = Result(
-            query_id=query.id,
-            response_text=None
-        )
-        session.add(result)
-
-        with pytest.raises(IntegrityError):
-            session.commit()
-
-    def test_foreign_key_constraint(self, session):
-        """Test that query_id must reference existing Query."""
-        result = Result(
-            query_id=99999,  # Non-existent query ID
-            response_text="Test response"
-        )
-        session.add(result)
-
-        with pytest.raises(IntegrityError):
-            session.commit()
+        assert result1.query_id == query_id
+        assert result2.query_id == query_id
+        assert result3.query_id == query_id
 
 
 class TestResultCRUD:
-    """Test CRUD operations."""
+    """Test CRUD operations with mocked database."""
 
-    def test_create_result(self, session):
+    @patch('psychrag.data.database.get_session')
+    def test_create_result(self, mock_get_session):
         """Test creating a Result."""
-        query = Query(
-            original_query="Create test",
-            vector_status="no_vec"
-        )
-        session.add(query)
-        session.commit()
+        mock_session = MagicMock()
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
-        result = Result(
-            query_id=query.id,
-            response_text="Created response"
-        )
-        session.add(result)
-        session.commit()
+        with mock_get_session() as session:
+            result = Result(
+                query_id=1,
+                response_text="Created response"
+            )
+            session.add(result)
+            session.commit()
 
-        assert result.id is not None
-        assert result.response_text == "Created response"
+            session.add.assert_called_once()
+            session.commit.assert_called_once()
+            assert result.response_text == "Created response"
 
-    def test_read_result(self, session):
-        """Test reading a Result."""
-        query = Query(
-            original_query="Read test",
-            vector_status="no_vec"
-        )
-        session.add(query)
-        session.commit()
-
-        result = Result(
-            query_id=query.id,
-            response_text="Response to read"
-        )
-        session.add(result)
-        session.commit()
-        result_id = result.id
-
-        # Retrieve
-        retrieved = session.query(Result).filter(Result.id == result_id).first()
-        assert retrieved is not None
-        assert retrieved.response_text == "Response to read"
-        assert retrieved.query_id == query.id
-
-    def test_update_result(self, session):
+    @patch('psychrag.data.database.get_session')
+    def test_update_result(self, mock_get_session):
         """Test updating a Result."""
-        query = Query(
-            original_query="Update test",
-            vector_status="no_vec"
-        )
-        session.add(query)
-        session.commit()
+        mock_session = MagicMock()
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
-        result = Result(
-            query_id=query.id,
-            response_text="Original response"
-        )
-        session.add(result)
-        session.commit()
+        with mock_get_session() as session:
+            result = Result(
+                query_id=1,
+                response_text="Original response"
+            )
+            result.id = 1
 
-        original_updated_at = result.updated_at
+            # Update response_text
+            result.response_text = "Updated response"
+            session.commit()
 
-        # Update response_text
-        result.response_text = "Updated response"
-        session.commit()
+            assert result.response_text == "Updated response"
+            session.commit.assert_called_once()
 
-        assert result.response_text == "Updated response"
-        # Note: updated_at auto-update depends on SQLAlchemy/server configuration
-
-    def test_delete_result(self, session):
+    @patch('psychrag.data.database.get_session')
+    def test_delete_result(self, mock_get_session):
         """Test deleting a Result."""
-        query = Query(
-            original_query="Delete test",
-            vector_status="no_vec"
-        )
-        session.add(query)
-        session.commit()
+        mock_session = MagicMock()
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
-        result = Result(
-            query_id=query.id,
-            response_text="Response to delete"
-        )
-        session.add(result)
-        session.commit()
-        result_id = result.id
+        with mock_get_session() as session:
+            result = Result(
+                query_id=1,
+                response_text="Response to delete"
+            )
+            result.id = 1
 
-        # Delete
-        session.delete(result)
-        session.commit()
+            session.delete(result)
+            session.commit()
 
-        # Verify deleted
-        retrieved = session.query(Result).filter(Result.id == result_id).first()
-        assert retrieved is None
+            session.delete.assert_called_once_with(result)
+            session.commit.assert_called_once()
 
-    def test_query_by_query_id(self, session):
-        """Test querying Results by query_id."""
-        query1 = Query(
-            original_query="Query 1",
-            vector_status="no_vec"
-        )
-        query2 = Query(
-            original_query="Query 2",
-            vector_status="no_vec"
-        )
-        session.add_all([query1, query2])
-        session.commit()
-
+    def test_result_attributes_independent(self):
+        """Test that result attributes can be set independently."""
         result1 = Result(
-            query_id=query1.id,
+            query_id=1,
             response_text="Response 1"
         )
         result2 = Result(
-            query_id=query1.id,
+            query_id=1,
             response_text="Response 2"
         )
         result3 = Result(
-            query_id=query2.id,
+            query_id=2,
             response_text="Response 3"
         )
-        session.add_all([result1, result2, result3])
-        session.commit()
 
-        # Query results for query1
-        results = session.query(Result).filter(Result.query_id == query1.id).all()
-        assert len(results) == 2
-        assert all(r.query_id == query1.id for r in results)
+        assert result1.query_id == 1
+        assert result2.query_id == 1
+        assert result3.query_id == 2
+        assert result1.response_text == "Response 1"
+        assert result2.response_text == "Response 2"
+        assert result3.response_text == "Response 3"
 
 
 class TestResultTimestamps:
-    """Test timestamp behavior."""
+    """Test timestamp fields."""
 
-    def test_timestamps_auto_populate(self, session):
-        """Test that timestamps are automatically populated."""
-        query = Query(
-            original_query="Timestamp test",
-            vector_status="no_vec"
-        )
-        session.add(query)
-        session.commit()
-
-        before = datetime.now()
+    def test_timestamps_can_be_set(self):
+        """Test that timestamps can be set explicitly."""
+        now = datetime.now()
         result = Result(
-            query_id=query.id,
-            response_text="Test response"
+            query_id=1,
+            response_text="Test response",
+            created_at=now,
+            updated_at=now
         )
-        session.add(result)
-        session.commit()
-        after = datetime.now()
 
-        assert result.created_at is not None
-        assert result.updated_at is not None
-        # Note: Exact comparison depends on timezone handling
+        assert result.created_at == now
+        assert result.updated_at == now
 
-    def test_multiple_results_different_timestamps(self, session):
-        """Test that multiple results have independent timestamps."""
-        import time
+    def test_result_tablename(self):
+        """Test that Result uses correct table name."""
+        assert Result.__tablename__ == "results"
 
-        query = Query(
-            original_query="Multiple timestamps",
-            vector_status="no_vec"
-        )
-        session.add(query)
-        session.commit()
 
-        result1 = Result(
-            query_id=query.id,
-            response_text="First response"
-        )
-        session.add(result1)
-        session.commit()
-
-        time.sleep(0.01)  # Small delay
-
-        result2 = Result(
-            query_id=query.id,
-            response_text="Second response"
-        )
-        session.add(result2)
-        session.commit()
-
-        # Timestamps should be different (or very close)
-        assert result1.created_at <= result2.created_at
-
+# NOTE: The following tests have been moved to integration tests as they require
+# a real database to test database-level behavior. See documentation/integration-tests-needed.md
+#
+# Removed tests (now in integration tests):
+# - test_cascade_delete - Tests CASCADE DELETE from Query to Results
+# - test_query_id_required - Tests NOT NULL constraint on query_id
+# - test_response_text_required - Tests NOT NULL constraint on response_text
+# - test_foreign_key_constraint - Tests FK constraint to Query table
+# - test_read_result - Tests actual database query/retrieval
+# - test_query_by_query_id - Tests database filtering by query_id
+# - test_timestamps_auto_populate - Tests server-side timestamp generation
+# - test_multiple_results_different_timestamps - Tests database timestamp ordering

@@ -47,9 +47,11 @@ class TestGetQueryWithContext:
         assert contexts[0]["score"] == 0.9
         assert contexts[1]["score"] == 0.8
     
+    @patch('psychrag.augmentation.augment.get_default_config')
     @patch('psychrag.augmentation.augment.get_session')
-    def test_get_query_not_found(self, mock_get_session):
+    def test_get_query_not_found(self, mock_get_session, mock_get_default_config):
         """Test error when query not found."""
+        mock_get_default_config.return_value = {"augmentation": {"top_n_contexts": 5}}
         mock_session = MagicMock()
         mock_session.query.return_value.filter.return_value.first.return_value = None
         mock_get_session.return_value.__enter__.return_value = mock_session
@@ -57,9 +59,11 @@ class TestGetQueryWithContext:
         with pytest.raises(ValueError, match="Query with id=999 not found"):
             get_query_with_context(999)
     
+    @patch('psychrag.augmentation.augment.get_default_config')
     @patch('psychrag.augmentation.augment.get_session')
-    def test_get_query_no_contexts(self, mock_get_session):
+    def test_get_query_no_contexts(self, mock_get_session, mock_get_default_config):
         """Test query with no contexts."""
+        mock_get_default_config.return_value = {"augmentation": {"top_n_contexts": 5}}
         mock_query = Mock(spec=Query)
         mock_query.id = 1
         mock_query.clean_retrieval_context = None

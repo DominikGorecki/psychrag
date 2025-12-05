@@ -3,6 +3,9 @@
 		{
 			"name": "psychRAG-test",
 			"path": ".."
+		},
+		{
+			"path": "../../../data/pgvectory"
 		}
 	],
 	"settings": {}

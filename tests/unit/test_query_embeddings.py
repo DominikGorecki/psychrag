@@ -16,6 +16,7 @@ from psychrag.retrieval.query_embeddings import (
     QueryVectorizationResult,
     BatchVectorizationResult,
 )
+from tests.unit.mock_helpers import mock_session, create_mock_query_chain
 
 
 class TestQueryVectorizationResult:
@@ -104,43 +105,36 @@ class TestGetPendingQueriesCount:
     """Test get_pending_queries_count function."""
 
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_get_pending_queries_count_zero(self, mock_get_session, session):
+    def test_get_pending_queries_count_zero(self, mock_get_session, mock_session):
         """Test count when no pending queries exist."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        # Configure query chain to return count of 0
+        mock_query = create_mock_query_chain(return_count=0)
+        mock_session.query.return_value = mock_query
 
         count = get_pending_queries_count()
 
         assert count == 0
 
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_get_pending_queries_count_single(self, mock_get_session, session):
+    def test_get_pending_queries_count_single(self, mock_get_session, mock_session):
         """Test count with one pending query."""
-        mock_get_session.return_value.__enter__.return_value = session
-
-        query = Query(
-            original_query="Test query",
-            vector_status="to_vec"
-        )
-        session.add(query)
-        session.commit()
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        # Configure query chain to return count of 1
+        mock_query = create_mock_query_chain(return_count=1)
+        mock_session.query.return_value = mock_query
 
         count = get_pending_queries_count()
 
         assert count == 1
 
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_get_pending_queries_count_multiple(self, mock_get_session, session):
+    def test_get_pending_queries_count_multiple(self, mock_get_session, mock_session):
         """Test count with multiple pending queries."""
-        mock_get_session.return_value.__enter__.return_value = session
-
-        # Create queries with different statuses
-        pending1 = Query(original_query="Query 1", vector_status="to_vec")
-        pending2 = Query(original_query="Query 2", vector_status="to_vec")
-        processed = Query(original_query="Query 3", vector_status="vec")
-        error = Query(original_query="Query 4", vector_status="vec_err")
-
-        session.add_all([pending1, pending2, processed, error])
-        session.commit()
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        # Configure query chain to return count of 2 (only pending queries)
+        mock_query = create_mock_query_chain(return_count=2)
+        mock_session.query.return_value = mock_query
 
         count = get_pending_queries_count()
 
@@ -152,9 +146,9 @@ class TestVectorizeQuery:
 
     @patch('psychrag.ai.llm_factory.create_embeddings')
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_query_basic(self, mock_get_session, mock_create_embeddings, session):
+    def test_vectorize_query_basic(self, mock_get_session, mock_create_embeddings, mock_session):
         """Test vectorizing a query with only original query."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create mock embeddings model
         mock_embeddings_model = MagicMock()
@@ -163,14 +157,16 @@ class TestVectorizeQuery:
         ]
         mock_create_embeddings.return_value = mock_embeddings_model
 
-        # Create query
+        # Create query object
+        query_id = 1
         query = Query(
+            id=query_id,
             original_query="What is psychology?",
             vector_status="to_vec"
         )
-        session.add(query)
-        session.commit()
-        query_id = query.id
+        # Configure query chain to return this query
+        mock_query = create_mock_query_chain(return_first=query)
+        mock_session.query.return_value = mock_query
 
         result = vectorize_query(query_id)
 
@@ -187,19 +183,20 @@ class TestVectorizeQuery:
         mock_embeddings_model.embed_documents.assert_called_once_with(["What is psychology?"])
 
         # Verify query was updated
-        session.refresh(query)
         assert query.vector_status == "vec"
         assert query.embedding_original is not None
         assert len(query.embedding_original) == 768
         assert query.embedding_original[0] == 0.1  # Check first value
         assert query.embeddings_mqe is None
         assert query.embedding_hyde is None
+        # Verify commit was called
+        mock_session.commit.assert_called_once()
 
     @patch('psychrag.ai.llm_factory.create_embeddings')
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_query_with_mqe(self, mock_get_session, mock_create_embeddings, session):
+    def test_vectorize_query_with_mqe(self, mock_get_session, mock_create_embeddings, mock_session):
         """Test vectorizing a query with MQE expanded queries."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create mock embeddings model
         mock_embeddings_model = MagicMock()
@@ -211,14 +208,16 @@ class TestVectorizeQuery:
         mock_create_embeddings.return_value = mock_embeddings_model
 
         # Create query with MQE
+        query_id = 1
         query = Query(
+            id=query_id,
             original_query="What is psychology?",
             expanded_queries=["What is cognitive psychology?", "What is behavioral psychology?"],
             vector_status="to_vec"
         )
-        session.add(query)
-        session.commit()
-        query_id = query.id
+        # Configure query chain to return this query
+        mock_query = create_mock_query_chain(return_first=query)
+        mock_session.query.return_value = mock_query
 
         result = vectorize_query(query_id)
 
@@ -238,7 +237,6 @@ class TestVectorizeQuery:
         mock_embeddings_model.embed_documents.assert_called_once_with(expected_texts)
 
         # Verify query was updated
-        session.refresh(query)
         assert query.vector_status == "vec"
         assert query.embedding_original is not None
         assert len(query.embedding_original) == 768
@@ -249,12 +247,13 @@ class TestVectorizeQuery:
         assert query.embeddings_mqe[0][0] == 0.2  # Check first MQE embedding
         assert query.embeddings_mqe[1][0] == 0.3  # Check second MQE embedding
         assert query.embedding_hyde is None
+        mock_session.commit.assert_called_once()
 
     @patch('psychrag.ai.llm_factory.create_embeddings')
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_query_with_hyde(self, mock_get_session, mock_create_embeddings, session):
+    def test_vectorize_query_with_hyde(self, mock_get_session, mock_create_embeddings, mock_session):
         """Test vectorizing a query with HyDE answer."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create mock embeddings model
         mock_embeddings_model = MagicMock()
@@ -265,14 +264,16 @@ class TestVectorizeQuery:
         mock_create_embeddings.return_value = mock_embeddings_model
 
         # Create query with HyDE
+        query_id = 1
         query = Query(
+            id=query_id,
             original_query="What is psychology?",
             hyde_answer="Psychology is the scientific study of mind and behavior.",
             vector_status="to_vec"
         )
-        session.add(query)
-        session.commit()
-        query_id = query.id
+        # Configure query chain to return this query
+        mock_query = create_mock_query_chain(return_first=query)
+        mock_session.query.return_value = mock_query
 
         result = vectorize_query(query_id)
 
@@ -291,7 +292,6 @@ class TestVectorizeQuery:
         mock_embeddings_model.embed_documents.assert_called_once_with(expected_texts)
 
         # Verify query was updated
-        session.refresh(query)
         assert query.vector_status == "vec"
         assert query.embedding_original is not None
         assert len(query.embedding_original) == 768
@@ -299,12 +299,13 @@ class TestVectorizeQuery:
         assert query.embedding_hyde is not None
         assert len(query.embedding_hyde) == 768
         assert query.embedding_hyde[0] == 0.4  # Check first value
+        mock_session.commit.assert_called_once()
 
     @patch('psychrag.ai.llm_factory.create_embeddings')
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_query_with_all_fields(self, mock_get_session, mock_create_embeddings, session):
+    def test_vectorize_query_with_all_fields(self, mock_get_session, mock_create_embeddings, mock_session):
         """Test vectorizing a query with original, MQE, and HyDE."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create mock embeddings model
         mock_embeddings_model = MagicMock()
@@ -317,15 +318,17 @@ class TestVectorizeQuery:
         mock_create_embeddings.return_value = mock_embeddings_model
 
         # Create query with all fields
+        query_id = 1
         query = Query(
+            id=query_id,
             original_query="What is psychology?",
             expanded_queries=["What is cognitive psychology?", "What is behavioral psychology?"],
             hyde_answer="Psychology is the scientific study of mind and behavior.",
             vector_status="to_vec"
         )
-        session.add(query)
-        session.commit()
-        query_id = query.id
+        # Configure query chain to return this query
+        mock_query = create_mock_query_chain(return_first=query)
+        mock_session.query.return_value = mock_query
 
         result = vectorize_query(query_id)
 
@@ -337,7 +340,6 @@ class TestVectorizeQuery:
         assert result.hyde_count == 1
 
         # Verify query was updated correctly
-        session.refresh(query)
         assert query.vector_status == "vec"
         assert query.embedding_original is not None
         assert len(query.embedding_original) == 768
@@ -350,20 +352,24 @@ class TestVectorizeQuery:
         assert query.embedding_hyde is not None
         assert len(query.embedding_hyde) == 768
         assert query.embedding_hyde[0] == 0.4  # Check first value
+        mock_session.commit.assert_called_once()
 
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_query_not_found(self, mock_get_session, session):
+    def test_vectorize_query_not_found(self, mock_get_session, mock_session):
         """Test vectorizing a non-existent query raises ValueError."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        # Configure query chain to return None (query not found)
+        mock_query = create_mock_query_chain(return_first=None)
+        mock_session.query.return_value = mock_query
 
         with pytest.raises(ValueError, match="Query with ID 999 not found"):
             vectorize_query(999)
 
     @patch('psychrag.ai.llm_factory.create_embeddings')
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_query_embedding_error(self, mock_get_session, mock_create_embeddings, session):
+    def test_vectorize_query_embedding_error(self, mock_get_session, mock_create_embeddings, mock_session):
         """Test vectorization error handling when embedding API fails."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create mock embeddings model that raises an error
         mock_embeddings_model = MagicMock()
@@ -371,13 +377,15 @@ class TestVectorizeQuery:
         mock_create_embeddings.return_value = mock_embeddings_model
 
         # Create query
+        query_id = 1
         query = Query(
+            id=query_id,
             original_query="What is psychology?",
             vector_status="to_vec"
         )
-        session.add(query)
-        session.commit()
-        query_id = query.id
+        # Configure query chain to return this query
+        mock_query = create_mock_query_chain(return_first=query)
+        mock_session.query.return_value = mock_query
 
         result = vectorize_query(query_id)
 
@@ -388,14 +396,14 @@ class TestVectorizeQuery:
         assert result.error == "API rate limit exceeded"
 
         # Verify query status was updated to error
-        session.refresh(query)
         assert query.vector_status == "vec_err"
+        mock_session.commit.assert_called_once()
 
     @patch('psychrag.ai.llm_factory.create_embeddings')
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_query_verbose(self, mock_get_session, mock_create_embeddings, session, capsys):
+    def test_vectorize_query_verbose(self, mock_get_session, mock_create_embeddings, mock_session, capsys):
         """Test vectorize_query with verbose output."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create mock embeddings model
         mock_embeddings_model = MagicMock()
@@ -405,13 +413,15 @@ class TestVectorizeQuery:
         mock_create_embeddings.return_value = mock_embeddings_model
 
         # Create query
+        query_id = 1
         query = Query(
+            id=query_id,
             original_query="What is psychology?",
             vector_status="to_vec"
         )
-        session.add(query)
-        session.commit()
-        query_id = query.id
+        # Configure query chain to return this query
+        mock_query = create_mock_query_chain(return_first=query)
+        mock_session.query.return_value = mock_query
 
         result = vectorize_query(query_id, verbose=True)
 
@@ -424,9 +434,9 @@ class TestVectorizeQuery:
 
     @patch('psychrag.ai.llm_factory.create_embeddings')
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_query_empty_mqe_list(self, mock_get_session, mock_create_embeddings, session):
+    def test_vectorize_query_empty_mqe_list(self, mock_get_session, mock_create_embeddings, mock_session):
         """Test vectorizing a query with empty MQE list."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create mock embeddings model
         mock_embeddings_model = MagicMock()
@@ -436,14 +446,16 @@ class TestVectorizeQuery:
         mock_create_embeddings.return_value = mock_embeddings_model
 
         # Create query with empty MQE list
+        query_id = 1
         query = Query(
+            id=query_id,
             original_query="What is psychology?",
             expanded_queries=[],  # Empty list
             vector_status="to_vec"
         )
-        session.add(query)
-        session.commit()
-        query_id = query.id
+        # Configure query chain to return this query
+        mock_query = create_mock_query_chain(return_first=query)
+        mock_session.query.return_value = mock_query
 
         result = vectorize_query(query_id)
 
@@ -460,9 +472,12 @@ class TestVectorizeAllQueries:
     """Test vectorize_all_queries function."""
 
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_all_queries_empty(self, mock_get_session, session):
+    def test_vectorize_all_queries_empty(self, mock_get_session, mock_session):
         """Test batch vectorization when no pending queries exist."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        # Configure query chain to return empty list
+        mock_query = create_mock_query_chain(return_data=[])
+        mock_session.query.return_value = mock_query
 
         result = vectorize_all_queries()
 
@@ -475,21 +490,24 @@ class TestVectorizeAllQueries:
 
     @patch('psychrag.retrieval.query_embeddings.vectorize_query')
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_all_queries_single_success(self, mock_get_session, mock_vectorize_query, session):
+    def test_vectorize_all_queries_single_success(self, mock_get_session, mock_vectorize_query, mock_session):
         """Test batch vectorization with one successful query."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create pending query
+        query_id = 1
         query = Query(
+            id=query_id,
             original_query="Test query",
             vector_status="to_vec"
         )
-        session.add(query)
-        session.commit()
+        # Configure query chain to return this query
+        mock_query = create_mock_query_chain(return_data=[query])
+        mock_session.query.return_value = mock_query
 
         # Mock successful vectorization
         mock_vectorize_query.return_value = QueryVectorizationResult(
-            query_id=query.id,
+            query_id=query_id,
             total_embeddings=1,
             original_count=1,
             mqe_count=0,
@@ -505,21 +523,22 @@ class TestVectorizeAllQueries:
         assert result.failed == 0
         assert result.total_embeddings == 1
         assert result.errors == []
-        mock_vectorize_query.assert_called_once_with(query.id, verbose=False)
+        mock_vectorize_query.assert_called_once_with(query_id, verbose=False)
 
     @patch('psychrag.retrieval.query_embeddings.vectorize_query')
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_all_queries_multiple_success(self, mock_get_session, mock_vectorize_query, session):
+    def test_vectorize_all_queries_multiple_success(self, mock_get_session, mock_vectorize_query, mock_session):
         """Test batch vectorization with multiple successful queries."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create multiple pending queries
         queries = [
-            Query(original_query=f"Query {i}", vector_status="to_vec")
+            Query(id=i+1, original_query=f"Query {i}", vector_status="to_vec")
             for i in range(3)
         ]
-        session.add_all(queries)
-        session.commit()
+        # Configure query chain to return these queries
+        mock_query = create_mock_query_chain(return_data=queries)
+        mock_session.query.return_value = mock_query
 
         # Mock successful vectorizations
         def mock_vectorize_side_effect(query_id, verbose=False):
@@ -546,17 +565,18 @@ class TestVectorizeAllQueries:
 
     @patch('psychrag.retrieval.query_embeddings.vectorize_query')
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_all_queries_with_failures(self, mock_get_session, mock_vectorize_query, session):
+    def test_vectorize_all_queries_with_failures(self, mock_get_session, mock_vectorize_query, mock_session):
         """Test batch vectorization with some failures."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create multiple pending queries
         queries = [
-            Query(original_query=f"Query {i}", vector_status="to_vec")
+            Query(id=i+1, original_query=f"Query {i}", vector_status="to_vec")
             for i in range(3)
         ]
-        session.add_all(queries)
-        session.commit()
+        # Configure query chain to return these queries
+        mock_query = create_mock_query_chain(return_data=queries)
+        mock_session.query.return_value = mock_query
 
         # Mock mixed results: success, failure, success
         def mock_vectorize_side_effect(query_id, verbose=False):
@@ -595,28 +615,32 @@ class TestVectorizeAllQueries:
 
     @patch('psychrag.retrieval.query_embeddings.vectorize_query')
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_all_queries_all_failures(self, mock_get_session, mock_vectorize_query, session):
+    def test_vectorize_all_queries_all_failures(self, mock_get_session, mock_vectorize_query, mock_session):
         """Test batch vectorization when all queries fail."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create pending queries
         queries = [
-            Query(original_query=f"Query {i}", vector_status="to_vec")
+            Query(id=i+1, original_query=f"Query {i}", vector_status="to_vec")
             for i in range(2)
         ]
-        session.add_all(queries)
-        session.commit()
+        # Configure query chain to return these queries
+        mock_query = create_mock_query_chain(return_data=queries)
+        mock_session.query.return_value = mock_query
 
         # Mock all failures
-        mock_vectorize_query.return_value = QueryVectorizationResult(
-            query_id=queries[0].id,
-            total_embeddings=0,
-            original_count=0,
-            mqe_count=0,
-            hyde_count=0,
-            success=False,
-            error="Network timeout"
-        )
+        def mock_vectorize_side_effect(query_id, verbose=False):
+            return QueryVectorizationResult(
+                query_id=query_id,
+                total_embeddings=0,
+                original_count=0,
+                mqe_count=0,
+                hyde_count=0,
+                success=False,
+                error="Network timeout"
+            )
+
+        mock_vectorize_query.side_effect = mock_vectorize_side_effect
 
         result = vectorize_all_queries()
 
@@ -629,27 +653,31 @@ class TestVectorizeAllQueries:
 
     @patch('psychrag.retrieval.query_embeddings.vectorize_query')
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_all_queries_verbose(self, mock_get_session, mock_vectorize_query, session, capsys):
+    def test_vectorize_all_queries_verbose(self, mock_get_session, mock_vectorize_query, mock_session, capsys):
         """Test batch vectorization with verbose output."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create pending queries
         queries = [
-            Query(original_query=f"Query {i}", vector_status="to_vec")
+            Query(id=i+1, original_query=f"Query {i}", vector_status="to_vec")
             for i in range(2)
         ]
-        session.add_all(queries)
-        session.commit()
+        # Configure query chain to return these queries
+        mock_query = create_mock_query_chain(return_data=queries)
+        mock_session.query.return_value = mock_query
 
         # Mock successful vectorizations
-        mock_vectorize_query.return_value = QueryVectorizationResult(
-            query_id=queries[0].id,
-            total_embeddings=1,
-            original_count=1,
-            mqe_count=0,
-            hyde_count=0,
-            success=True
-        )
+        def mock_vectorize_side_effect(query_id, verbose=False):
+            return QueryVectorizationResult(
+                query_id=query_id,
+                total_embeddings=1,
+                original_count=1,
+                mqe_count=0,
+                hyde_count=0,
+                success=True
+            )
+
+        mock_vectorize_query.side_effect = mock_vectorize_side_effect
 
         result = vectorize_all_queries(verbose=True)
 
@@ -662,17 +690,18 @@ class TestVectorizeAllQueries:
 
     @patch('psychrag.retrieval.query_embeddings.vectorize_query')
     @patch('psychrag.retrieval.query_embeddings.get_session')
-    def test_vectorize_all_queries_mixed_embeddings(self, mock_get_session, mock_vectorize_query, session):
+    def test_vectorize_all_queries_mixed_embeddings(self, mock_get_session, mock_vectorize_query, mock_session):
         """Test batch vectorization with queries having different embedding counts."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
 
         # Create pending queries
         queries = [
-            Query(original_query=f"Query {i}", vector_status="to_vec")
+            Query(id=i+1, original_query=f"Query {i}", vector_status="to_vec")
             for i in range(3)
         ]
-        session.add_all(queries)
-        session.commit()
+        # Configure query chain to return these queries
+        mock_query = create_mock_query_chain(return_data=queries)
+        mock_session.query.return_value = mock_query
 
         # Mock different embedding counts
         embedding_counts = [1, 3, 2]  # Original only, Original+MQE+HyDE, Original+MQE
