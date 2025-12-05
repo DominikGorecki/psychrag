@@ -84,19 +84,53 @@ You can edit this file directly or use the CLI commands above.
 
 #### B. Secrets Configuration (.env)
 
-Create a `.env` file in the root folder for secrets (API keys and passwords):
+**⚠️ REQUIRED:** Create a `.env` file in the root folder for secrets (API keys and passwords).
 
+The application will **fail to start** if required environment variables are missing. This is a security feature to prevent accidentally using default passwords.
+
+**Quick Start:**
 ```bash
-# PostgreSQL Passwords
-POSTGRES_ADMIN_PASSWORD=postgres
-POSTGRES_APP_PASSWORD=psych_rag_secure_password
+# Copy the template
+cp .env.example .env
 
-# LLM API Keys
-LLM_OPENAI_API_KEY=[YOUR OPENAI API KEY]
-LLM_GOOGLE_API_KEY=[YOUR GOOGLE API KEY]
+# Edit .env and replace placeholder values with your actual credentials
 ```
 
-**Important:** Only passwords and API keys go in `.env`. All other settings are in `psychrag.config.json`. 
+**Example `.env` file:**
+```bash
+# PostgreSQL Passwords (REQUIRED)
+POSTGRES_ADMIN_PASSWORD=your_secure_admin_password
+POSTGRES_APP_PASSWORD=your_secure_app_password
+
+# LLM API Keys (at least one required)
+LLM_OPENAI_API_KEY=sk-your-openai-key
+LLM_GOOGLE_API_KEY=your-google-api-key
+```
+
+**Important Security Notes:**
+- ✅ Only passwords and API keys go in `.env`. All other settings are in `psychrag.config.json`
+- ✅ The `.env` file is gitignored - never commit it to version control
+- ✅ Use strong, unique passwords for both database users
+- ✅ Change default passwords in production environments
+- ❌ No fallback passwords - missing variables will cause clear error messages
+
+**Validate Your Configuration:**
+Before running the application, you can validate your configuration:
+```bash
+python -m psychrag.data.validate_config_cli
+```
+
+This will check:
+- `.env` file exists
+- All required environment variables are set
+- Database connectivity (optional)
+
+**Troubleshooting:**
+If you see an error like "Environment variable 'POSTGRES_APP_PASSWORD' is not set":
+1. Ensure `.env` file exists in the project root
+2. Check that the variable is defined in `.env` without quotes: `POSTGRES_APP_PASSWORD=your_password`
+3. See `.env.example` for a complete template
+4. Run the validation tool: `python -m psychrag.data.validate_config_cli` 
 
 ### 3. Initiate the Database and Filesystem
 

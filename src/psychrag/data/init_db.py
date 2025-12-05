@@ -22,6 +22,7 @@ from sqlalchemy.exc import ProgrammingError
 
 from psychrag.config import load_config
 from .database import Base, engine, get_admin_database_url
+from .env_utils import get_required_env_var
 
 # Import all models to register them with Base
 from .models import Chunk, Query, Result, Work, RagConfig  # noqa: F401
@@ -47,7 +48,7 @@ def create_database_and_user(verbose: bool = False) -> None:
 
     db_name = db_config.db_name
     app_user = db_config.app_user
-    app_password = os.getenv("POSTGRES_APP_PASSWORD", "psych_rag_secure_password")
+    app_password = get_required_env_var("POSTGRES_APP_PASSWORD", "Application database password")
 
     admin_url = get_admin_database_url()
     admin_engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
@@ -88,9 +89,10 @@ def create_database_and_user(verbose: bool = False) -> None:
                 print(f"User already exists: {app_user}")
 
     # Grant privileges (connect to the specific database)
+    admin_password = get_required_env_var("POSTGRES_ADMIN_PASSWORD", "Admin database password")
     db_url = (
         f"postgresql+psycopg://{db_config.admin_user}:"
-        f"{os.getenv('POSTGRES_ADMIN_PASSWORD', 'postgres')}"
+        f"{admin_password}"
         f"@{db_config.host}:"
         f"{db_config.port}/{db_name}"
     )
@@ -128,9 +130,10 @@ def enable_pgvector_extension(verbose: bool = False) -> None:
     # Need admin privileges to create extensions
     db_config = load_config().database
     db_name = db_config.db_name
+    admin_password = get_required_env_var("POSTGRES_ADMIN_PASSWORD", "Admin database password")
     db_url = (
         f"postgresql+psycopg://{db_config.admin_user}:"
-        f"{os.getenv('POSTGRES_ADMIN_PASSWORD', 'postgres')}"
+        f"{admin_password}"
         f"@{db_config.host}:"
         f"{db_config.port}/{db_name}"
     )
