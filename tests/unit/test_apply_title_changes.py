@@ -22,6 +22,7 @@ from psychrag.sanitization.apply_title_changes import (
 )
 from psychrag.sanitization.extract_titles import HashMismatchError
 from psychrag.data.models.work import Work
+from tests.unit.mock_helpers import mock_session
 
 
 class TestParseTitleChanges:
@@ -457,11 +458,11 @@ class TestApplyTitleChangesFromWork:
     @patch('psychrag.sanitization.apply_title_changes.get_session')
     def test_apply_title_changes_from_work_success(
         self, mock_get_session, mock_is_readonly, mock_set_readonly,
-        mock_compute_hash, tmp_path, session
+        mock_compute_hash, tmp_path, mock_session
     ):
         """Test successful application from work with original_markdown source."""
         # Setup mock session
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
 
         # Create work with files metadata
@@ -485,8 +486,9 @@ class TestApplyTitleChangesFromWork:
                 }
             }
         )
-        session.add(work)
-        session.commit()
+        # Configure mock session to return the work
+        mock_session.query.return_value.filter.return_value.first.return_value = work
+        mock_session.get.return_value = work
 
         # Create markdown file
         markdown_content = """# Original Title
@@ -536,7 +538,7 @@ More content
         assert lines[2] == "## Updated Section"
 
         # Verify database was updated
-        session.refresh(work)
+        # session.refresh(work)  # Not needed with mocks as we modify the object in place
         assert "sanitized" in work.files
         assert work.files["sanitized"]["hash"] == sanitized_hash
         assert work.files["sanitized"]["path"] == str(output_path.resolve())
@@ -551,10 +553,10 @@ More content
     @patch('psychrag.sanitization.apply_title_changes.get_session')
     def test_apply_title_changes_from_work_overwrite_readonly(
         self, mock_get_session, mock_is_readonly, mock_set_writable,
-        mock_set_readonly, mock_compute_hash, tmp_path, session
+        mock_set_readonly, mock_compute_hash, tmp_path, mock_session
     ):
         """Test overwriting existing read-only sanitized file."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
 
         markdown_path = tmp_path / "test.md"
@@ -582,8 +584,8 @@ More content
                 }
             }
         )
-        session.add(work)
-        session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = work
+        mock_session.get.return_value = work
 
         markdown_path.write_text("# Title\nContent\n", encoding='utf-8')
         title_changes_path.write_text("""relative/path/to/file.md
@@ -620,10 +622,13 @@ More content
         assert "# New Title" in content
 
     @patch('psychrag.sanitization.apply_title_changes.get_session')
-    def test_apply_title_changes_from_work_not_found(self, mock_get_session, session):
+    def test_apply_title_changes_from_work_not_found(self, mock_get_session, mock_session):
         """Test that missing work raises ValueError."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
+        
+        mock_session.query.return_value.filter.return_value.first.return_value = None
+        mock_session.get.return_value = None
 
         with pytest.raises(ValueError) as exc_info:
             apply_title_changes_from_work(work_id=999, source_key='original_markdown')
@@ -631,14 +636,14 @@ More content
         assert "Work with ID 999 not found" in str(exc_info.value)
 
     @patch('psychrag.sanitization.apply_title_changes.get_session')
-    def test_apply_title_changes_from_work_no_files(self, mock_get_session, session):
+    def test_apply_title_changes_from_work_no_files(self, mock_get_session, mock_session):
         """Test that work without files raises ValueError."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
 
         work = Work(id=1, title="Test Work", files=None)
-        session.add(work)
-        session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = work
+        mock_session.get.return_value = work
 
         with pytest.raises(ValueError) as exc_info:
             apply_title_changes_from_work(work_id=1, source_key='original_markdown')
@@ -646,9 +651,9 @@ More content
         assert "has no files metadata" in str(exc_info.value)
 
     @patch('psychrag.sanitization.apply_title_changes.get_session')
-    def test_apply_title_changes_from_work_invalid_source_key(self, mock_get_session, session, tmp_path):
+    def test_apply_title_changes_from_work_invalid_source_key(self, mock_get_session, mock_session, tmp_path):
         """Test that invalid source_key raises ValueError."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
 
         work = Work(
@@ -656,8 +661,8 @@ More content
             title="Test Work",
             files={"original_markdown": {"path": str(tmp_path / "test.md"), "hash": "hash"}}
         )
-        session.add(work)
-        session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = work
+        mock_session.get.return_value = work
 
         with pytest.raises(ValueError) as exc_info:
             apply_title_changes_from_work(work_id=1, source_key='invalid_key')
@@ -666,9 +671,9 @@ More content
         assert "Must be 'original_markdown' or 'sanitized'" in str(exc_info.value)
 
     @patch('psychrag.sanitization.apply_title_changes.get_session')
-    def test_apply_title_changes_from_work_missing_markdown_file(self, mock_get_session, session, tmp_path):
+    def test_apply_title_changes_from_work_missing_markdown_file(self, mock_get_session, mock_session, tmp_path):
         """Test that missing markdown file in metadata raises ValueError."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
 
         work = Work(
@@ -676,8 +681,8 @@ More content
             title="Test Work",
             files={"title_changes": {"path": str(tmp_path / "changes.md"), "hash": "hash"}}
         )
-        session.add(work)
-        session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = work
+        mock_session.get.return_value = work
 
         with pytest.raises(ValueError) as exc_info:
             apply_title_changes_from_work(work_id=1, source_key='original_markdown')
@@ -685,9 +690,9 @@ More content
         assert "does not have 'original_markdown' in files metadata" in str(exc_info.value)
 
     @patch('psychrag.sanitization.apply_title_changes.get_session')
-    def test_apply_title_changes_from_work_missing_title_changes_file(self, mock_get_session, session, tmp_path):
+    def test_apply_title_changes_from_work_missing_title_changes_file(self, mock_get_session, mock_session, tmp_path):
         """Test that missing title_changes file in metadata raises ValueError."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
 
         work = Work(
@@ -695,8 +700,8 @@ More content
             title="Test Work",
             files={"original_markdown": {"path": str(tmp_path / "test.md"), "hash": "hash"}}
         )
-        session.add(work)
-        session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = work
+        mock_session.get.return_value = work
 
         with pytest.raises(ValueError) as exc_info:
             apply_title_changes_from_work(work_id=1, source_key='original_markdown')
@@ -706,10 +711,10 @@ More content
     @patch('psychrag.sanitization.apply_title_changes.compute_file_hash')
     @patch('psychrag.sanitization.apply_title_changes.get_session')
     def test_apply_title_changes_from_work_hash_mismatch(
-        self, mock_get_session, mock_compute_hash, tmp_path, session
+        self, mock_get_session, mock_compute_hash, tmp_path, mock_session
     ):
         """Test that hash mismatch raises HashMismatchError."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
 
         markdown_path = tmp_path / "test.md"
@@ -729,8 +734,8 @@ More content
                 }
             }
         )
-        session.add(work)
-        session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = work
+        mock_session.get.return_value = work
 
         markdown_path.write_text("# Title\n", encoding='utf-8')
         title_changes_path.write_text("""relative/path/to/file.md
@@ -757,10 +762,10 @@ More content
     @patch('psychrag.sanitization.apply_title_changes.get_session')
     def test_apply_title_changes_from_work_hash_mismatch_force(
         self, mock_get_session, mock_is_readonly, mock_set_readonly,
-        mock_compute_hash, tmp_path, session
+        mock_compute_hash, tmp_path, mock_session
     ):
         """Test that hash mismatch with force=True proceeds anyway."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
 
         markdown_path = tmp_path / "test.md"
@@ -780,8 +785,8 @@ More content
                 }
             }
         )
-        session.add(work)
-        session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = work
+        mock_session.get.return_value = work
 
         markdown_path.write_text("# Title\n", encoding='utf-8')
         title_changes_path.write_text("""relative/path/to/file.md
@@ -816,10 +821,10 @@ More content
     @patch('psychrag.sanitization.apply_title_changes.get_session')
     def test_apply_title_changes_from_work_sanitized_source(
         self, mock_get_session, mock_is_readonly, mock_set_readonly,
-        mock_compute_hash, tmp_path, session
+        mock_compute_hash, tmp_path, mock_session
     ):
         """Test applying changes from sanitized source."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
 
         sanitized_path = tmp_path / "test.sanitized.md"
@@ -842,8 +847,8 @@ More content
                 }
             }
         )
-        session.add(work)
-        session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = work
+        mock_session.get.return_value = work
 
         sanitized_path.write_text("# Title\nContent\n", encoding='utf-8')
         title_changes_path.write_text("""relative/path/to/file.md
@@ -879,10 +884,10 @@ More content
 
     @patch('psychrag.sanitization.apply_title_changes.get_session')
     def test_apply_title_changes_from_work_markdown_not_found_on_disk(
-        self, mock_get_session, tmp_path, session
+        self, mock_get_session, tmp_path, mock_session
     ):
         """Test that missing markdown file on disk raises FileNotFoundError."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
 
         markdown_path = tmp_path / "nonexistent.md"
@@ -902,8 +907,8 @@ More content
                 }
             }
         )
-        session.add(work)
-        session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = work
+        mock_session.get.return_value = work
 
         # Don't create the markdown file
         title_changes_path.write_text("""relative/path/to/file.md
@@ -919,10 +924,10 @@ More content
 
     @patch('psychrag.sanitization.apply_title_changes.get_session')
     def test_apply_title_changes_from_work_title_changes_not_found_on_disk(
-        self, mock_get_session, tmp_path, session
+        self, mock_get_session, tmp_path, mock_session
     ):
         """Test that missing title_changes file on disk raises FileNotFoundError."""
-        mock_get_session.return_value.__enter__.return_value = session
+        mock_get_session.return_value.__enter__.return_value = mock_session
         mock_get_session.return_value.__exit__.return_value = None
 
         markdown_path = tmp_path / "test.md"
@@ -942,8 +947,8 @@ More content
                 }
             }
         )
-        session.add(work)
-        session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = work
+        mock_session.get.return_value = work
 
         markdown_path.write_text("# Title\n", encoding='utf-8')
         # Don't create the title_changes file
