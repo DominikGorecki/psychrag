@@ -25,7 +25,7 @@ tests\unit\test_database.py ....                                                
 tests\unit\test_db_health_check.py ...................................                                           [ 40%]
 tests\unit\test_delete_conversion.py .........                                                                   [ 41%]
 tests\unit\test_env_utils.py ...............                                                                     [ 43%]
-tests\unit\test_extract_titles.py ...........................EEEEEEEEEEE                                         [ 46%]
+tests\unit\test_extract_titles.py ......................................                                         [ 46%]
 tests\unit\test_extract_toc.py .............................                                                     [ 49%]
 tests\unit\test_init_db.py ...F...                                                                               [ 50%]
 tests\unit\test_inspection.py ........                                                                           [ 51%]
@@ -39,8 +39,8 @@ tests\unit\test_original_markdown.py .....                                      
 tests\unit\test_pdf_bookmarks2toc.py ................                                                            [ 67%]
 tests\unit\test_prompt_meta_model.py ............                                                                [ 69%]
 tests\unit\test_prompt_template_model.py ............                                                            [ 70%]
-tests\unit\test_query_embeddings.py ....EEEEEEEEEEEEEEEEEE                                                       [ 72%]
-tests\unit\test_query_expansion.py ................EEE......                                                     [ 74%]
+tests\unit\test_query_embeddings.py ......................                                                       [ 72%]
+tests\unit\test_query_expansion.py .........................                                                     [ 74%]
 tests\unit\test_query_model.py ...................                                                               [ 76%]
 tests\unit\test_rag_config_api.py .FFF..F.......                                                                 [ 78%]
 tests\unit\test_rag_config_db.py .......F.....                                                                   [ 79%]
@@ -56,323 +56,6 @@ tests\unit\test_templates_api.py ..........................                     
 tests\unit\test_work_model.py .....                                                                              [100%]
 
 ======================================================= ERRORS ========================================================
-__________________ ERROR at setup of TestExtractTitlesFromWork.test_extract_titles_from_work_success __________________
-file C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py, line 400
-      @patch('psychrag.sanitization.extract_titles.compute_file_hash')
-      @patch('psychrag.sanitization.extract_titles.set_file_readonly')
-      @patch('psychrag.sanitization.extract_titles.set_file_writable')
-      @patch('psychrag.sanitization.extract_titles.get_session')
-      def test_extract_titles_from_work_success(
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py:400
-_____________ ERROR at setup of TestExtractTitlesFromWork.test_extract_titles_from_work_sanitized_source ______________
-file C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py, line 465
-      @patch('psychrag.sanitization.extract_titles.compute_file_hash')
-      @patch('psychrag.sanitization.extract_titles.set_file_readonly')
-      @patch('psychrag.sanitization.extract_titles.set_file_writable')
-      @patch('psychrag.sanitization.extract_titles.get_session')
-      def test_extract_titles_from_work_sanitized_source(
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py:465
-_________________ ERROR at setup of TestExtractTitlesFromWork.test_extract_titles_from_work_not_found _________________
-file C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py, line 517
-      @patch('psychrag.sanitization.extract_titles.get_session')
-      def test_extract_titles_from_work_not_found(self, mock_get_session, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py:517
-_________________ ERROR at setup of TestExtractTitlesFromWork.test_extract_titles_from_work_no_files __________________
-file C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py, line 528
-      @patch('psychrag.sanitization.extract_titles.get_session')
-      def test_extract_titles_from_work_no_files(self, mock_get_session, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py:528
-____________ ERROR at setup of TestExtractTitlesFromWork.test_extract_titles_from_work_invalid_source_key _____________
-file C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py, line 543
-      @patch('psychrag.sanitization.extract_titles.get_session')
-      def test_extract_titles_from_work_invalid_source_key(self, mock_get_session, session, tmp_path):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py:543
-____________ ERROR at setup of TestExtractTitlesFromWork.test_extract_titles_from_work_missing_source_file ____________
-file C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py, line 563
-      @patch('psychrag.sanitization.extract_titles.get_session')
-      def test_extract_titles_from_work_missing_source_file(self, mock_get_session, session, tmp_path):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py:563
-__________ ERROR at setup of TestExtractTitlesFromWork.test_extract_titles_from_work_file_not_found_on_disk ___________
-file C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py, line 582
-      @patch('psychrag.sanitization.extract_titles.get_session')
-      def test_extract_titles_from_work_file_not_found_on_disk(self, mock_get_session, session, tmp_path):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py:582
-_______________ ERROR at setup of TestExtractTitlesFromWork.test_extract_titles_from_work_hash_mismatch _______________
-file C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py, line 608
-      @patch('psychrag.sanitization.extract_titles.compute_file_hash')
-      @patch('psychrag.sanitization.extract_titles.get_session')
-      def test_extract_titles_from_work_hash_mismatch(
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py:608
-____________ ERROR at setup of TestExtractTitlesFromWork.test_extract_titles_from_work_hash_mismatch_force ____________
-file C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py, line 643
-      @patch('psychrag.sanitization.extract_titles.compute_file_hash')
-      @patch('psychrag.sanitization.extract_titles.set_file_readonly')
-      @patch('psychrag.sanitization.extract_titles.set_file_writable')
-      @patch('psychrag.sanitization.extract_titles.get_session')
-      def test_extract_titles_from_work_hash_mismatch_force(
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py:643
-____________ ERROR at setup of TestExtractTitlesFromWork.test_extract_titles_from_work_overwrite_existing _____________
-file C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py, line 689
-      @patch('psychrag.sanitization.extract_titles.compute_file_hash')
-      @patch('psychrag.sanitization.extract_titles.set_file_readonly')
-      @patch('psychrag.sanitization.extract_titles.set_file_writable')
-      @patch('psychrag.sanitization.extract_titles.get_session')
-      def test_extract_titles_from_work_overwrite_existing(
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py:689
-________________ ERROR at setup of TestExtractTitlesFromWork.test_extract_titles_from_work_no_headings ________________
-file C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py, line 744
-      @patch('psychrag.sanitization.extract_titles.compute_file_hash')
-      @patch('psychrag.sanitization.extract_titles.set_file_readonly')
-      @patch('psychrag.sanitization.extract_titles.set_file_writable')
-      @patch('psychrag.sanitization.extract_titles.get_session')
-      def test_extract_titles_from_work_no_headings(
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_extract_titles.py:744
-__________________ ERROR at setup of TestGetPendingQueriesCount.test_get_pending_queries_count_zero ___________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 106
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_get_pending_queries_count_zero(self, mock_get_session, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:106
-_________________ ERROR at setup of TestGetPendingQueriesCount.test_get_pending_queries_count_single __________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 115
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_get_pending_queries_count_single(self, mock_get_session, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:115
-________________ ERROR at setup of TestGetPendingQueriesCount.test_get_pending_queries_count_multiple _________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 131
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_get_pending_queries_count_multiple(self, mock_get_session, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:131
-___________________________ ERROR at setup of TestVectorizeQuery.test_vectorize_query_basic ___________________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 153
-      @patch('psychrag.ai.llm_factory.create_embeddings')
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_query_basic(self, mock_get_session, mock_create_embeddings, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:153
-_________________________ ERROR at setup of TestVectorizeQuery.test_vectorize_query_with_mqe __________________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 198
-      @patch('psychrag.ai.llm_factory.create_embeddings')
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_query_with_mqe(self, mock_get_session, mock_create_embeddings, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:198
-_________________________ ERROR at setup of TestVectorizeQuery.test_vectorize_query_with_hyde _________________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 253
-      @patch('psychrag.ai.llm_factory.create_embeddings')
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_query_with_hyde(self, mock_get_session, mock_create_embeddings, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:253
-______________________ ERROR at setup of TestVectorizeQuery.test_vectorize_query_with_all_fields ______________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 303
-      @patch('psychrag.ai.llm_factory.create_embeddings')
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_query_with_all_fields(self, mock_get_session, mock_create_embeddings, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:303
-_________________________ ERROR at setup of TestVectorizeQuery.test_vectorize_query_not_found _________________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 354
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_query_not_found(self, mock_get_session, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:354
-______________________ ERROR at setup of TestVectorizeQuery.test_vectorize_query_embedding_error ______________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 362
-      @patch('psychrag.ai.llm_factory.create_embeddings')
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_query_embedding_error(self, mock_get_session, mock_create_embeddings, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:362
-__________________________ ERROR at setup of TestVectorizeQuery.test_vectorize_query_verbose __________________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 394
-      @patch('psychrag.ai.llm_factory.create_embeddings')
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_query_verbose(self, mock_get_session, mock_create_embeddings, session, capsys):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:394
-______________________ ERROR at setup of TestVectorizeQuery.test_vectorize_query_empty_mqe_list _______________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 425
-      @patch('psychrag.ai.llm_factory.create_embeddings')
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_query_empty_mqe_list(self, mock_get_session, mock_create_embeddings, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:425
-_____________________ ERROR at setup of TestVectorizeAllQueries.test_vectorize_all_queries_empty ______________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 462
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_all_queries_empty(self, mock_get_session, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:462
-_________________ ERROR at setup of TestVectorizeAllQueries.test_vectorize_all_queries_single_success _________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 476
-      @patch('psychrag.retrieval.query_embeddings.vectorize_query')
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_all_queries_single_success(self, mock_get_session, mock_vectorize_query, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:476
-________________ ERROR at setup of TestVectorizeAllQueries.test_vectorize_all_queries_multiple_success ________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 510
-      @patch('psychrag.retrieval.query_embeddings.vectorize_query')
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_all_queries_multiple_success(self, mock_get_session, mock_vectorize_query, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:510
-_________________ ERROR at setup of TestVectorizeAllQueries.test_vectorize_all_queries_with_failures __________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 547
-      @patch('psychrag.retrieval.query_embeddings.vectorize_query')
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_all_queries_with_failures(self, mock_get_session, mock_vectorize_query, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:547
-__________________ ERROR at setup of TestVectorizeAllQueries.test_vectorize_all_queries_all_failures __________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 596
-      @patch('psychrag.retrieval.query_embeddings.vectorize_query')
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_all_queries_all_failures(self, mock_get_session, mock_vectorize_query, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:596
-____________________ ERROR at setup of TestVectorizeAllQueries.test_vectorize_all_queries_verbose _____________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 630
-      @patch('psychrag.retrieval.query_embeddings.vectorize_query')
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_all_queries_verbose(self, mock_get_session, mock_vectorize_query, session, capsys):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:630
-________________ ERROR at setup of TestVectorizeAllQueries.test_vectorize_all_queries_mixed_embeddings ________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py, line 663
-      @patch('psychrag.retrieval.query_embeddings.vectorize_query')
-      @patch('psychrag.retrieval.query_embeddings.get_session')
-      def test_vectorize_all_queries_mixed_embeddings(self, mock_get_session, mock_vectorize_query, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_embeddings.py:663
-_______________________ ERROR at setup of TestSaveExpansionToDb.test_save_expansion_to_db_basic _______________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_expansion.py, line 271
-      @patch('psychrag.retrieval.query_expansion.get_session')
-      def test_save_expansion_to_db_basic(self, mock_get_session, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_expansion.py:271
-___________________ ERROR at setup of TestSaveExpansionToDb.test_save_expansion_to_db_empty_fields ____________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_expansion.py, line 299
-      @patch('psychrag.retrieval.query_expansion.get_session')
-      def test_save_expansion_to_db_empty_fields(self, mock_get_session, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_expansion.py:299
-____________________ ERROR at setup of TestSaveExpansionToDb.test_save_expansion_to_db_returns_id _____________________
-file C:\code\python\psychRAG-test\tests\unit\test_query_expansion.py, line 321
-      @patch('psychrag.retrieval.query_expansion.get_session')
-      def test_save_expansion_to_db_returns_id(self, mock_get_session, session):
-E       fixture 'session' not found
->       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
->       use 'pytest --fixtures [testpath]' for help on them.
-
-C:\code\python\psychRAG-test\tests\unit\test_query_expansion.py:321
 _____________________________ ERROR at setup of TestRetrieveFunction.test_retrieve_basic ______________________________
 file C:\code\python\psychRAG-test\tests\unit\test_retrieve.py, line 532
       @patch('psychrag.retrieval.retrieve._rerank_chunks')
@@ -388,9 +71,7 @@ E       fixture 'session' not found
 C:\code\python\psychRAG-test\tests\unit\test_retrieve.py:532
 ________________________ ERROR at setup of TestRetrieveFunction.test_retrieve_query_not_found _________________________
 file C:\code\python\psychRAG-test\tests\unit\test_retrieve.py, line 616
-      @patch('psychrag.retrieval.retrieve.get_session')
-      @patch('psychrag.retrieval.retrieve.get_default_config')
-      def test_retrieve_query_not_found(self, mock_get_config, mock_get_session, session):
+      def test_retrieve_basic(
 E       fixture 'session' not found
 >       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
 >       use 'pytest --fixtures [testpath]' for help on them.
@@ -398,9 +79,7 @@ E       fixture 'session' not found
 C:\code\python\psychRAG-test\tests\unit\test_retrieve.py:616
 ______________________ ERROR at setup of TestRetrieveFunction.test_retrieve_query_not_vectorized ______________________
 file C:\code\python\psychRAG-test\tests\unit\test_retrieve.py, line 636
-      @patch('psychrag.retrieval.retrieve.get_session')
-      @patch('psychrag.retrieval.retrieve.get_default_config')
-      def test_retrieve_query_not_vectorized(self, mock_get_config, mock_get_session, session):
+      def test_retrieve_query_not_found(self, mock_get_config, mock_get_session, mock_session):
 E       fixture 'session' not found
 >       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
 >       use 'pytest --fixtures [testpath]' for help on them.
@@ -408,12 +87,7 @@ E       fixture 'session' not found
 C:\code\python\psychRAG-test\tests\unit\test_retrieve.py:636
 ___________________________ ERROR at setup of TestRetrieveFunction.test_retrieve_no_matches ___________________________
 file C:\code\python\psychRAG-test\tests\unit\test_retrieve.py, line 660
-      @patch('psychrag.retrieval.retrieve._rerank_chunks')
-      @patch('psychrag.retrieval.retrieve._dense_search')
-      @patch('psychrag.retrieval.retrieve._lexical_search')
-      @patch('psychrag.retrieval.retrieve.get_session')
-      @patch('psychrag.retrieval.retrieve.get_default_config')
-      def test_retrieve_no_matches(
+      def test_retrieve_query_not_vectorized(self, mock_get_config, mock_get_session, mock_session):
 E       fixture 'session' not found
 >       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
 >       use 'pytest --fixtures [testpath]' for help on them.
@@ -421,12 +95,7 @@ E       fixture 'session' not found
 C:\code\python\psychRAG-test\tests\unit\test_retrieve.py:660
 _______________________ ERROR at setup of TestRetrieveFunction.test_retrieve_with_config_preset _______________________
 file C:\code\python\psychRAG-test\tests\unit\test_retrieve.py, line 699
-      @patch('psychrag.retrieval.retrieve._rerank_chunks')
-      @patch('psychrag.retrieval.retrieve._dense_search')
-      @patch('psychrag.retrieval.retrieve._lexical_search')
-      @patch('psychrag.retrieval.retrieve.get_session')
-      @patch('psychrag.retrieval.retrieve.get_config_by_name')
-      def test_retrieve_with_config_preset(
+      def test_retrieve_no_matches(
 E       fixture 'session' not found
 >       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
 >       use 'pytest --fixtures [testpath]' for help on them.
@@ -434,12 +103,7 @@ E       fixture 'session' not found
 C:\code\python\psychRAG-test\tests\unit\test_retrieve.py:699
 _____________________________ ERROR at setup of TestRetrieveFunction.test_retrieve_top_k ______________________________
 file C:\code\python\psychRAG-test\tests\unit\test_retrieve.py, line 735
-      @patch('psychrag.retrieval.retrieve._rerank_chunks')
-      @patch('psychrag.retrieval.retrieve._dense_search')
-      @patch('psychrag.retrieval.retrieve._lexical_search')
-      @patch('psychrag.retrieval.retrieve.get_session')
-      @patch('psychrag.retrieval.retrieve.get_default_config')
-      def test_retrieve_top_k(
+      def test_retrieve_with_config_preset(
 E       fixture 'session' not found
 >       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
 >       use 'pytest --fixtures [testpath]' for help on them.
@@ -447,12 +111,7 @@ E       fixture 'session' not found
 C:\code\python\psychRAG-test\tests\unit\test_retrieve.py:735
 ________________________ ERROR at setup of TestRetrieveFunction.test_retrieve_with_mqe_queries ________________________
 file C:\code\python\psychRAG-test\tests\unit\test_retrieve.py, line 802
-      @patch('psychrag.retrieval.retrieve._rerank_chunks')
-      @patch('psychrag.retrieval.retrieve._dense_search')
-      @patch('psychrag.retrieval.retrieve._lexical_search')
-      @patch('psychrag.retrieval.retrieve.get_session')
-      @patch('psychrag.retrieval.retrieve.get_default_config')
-      def test_retrieve_with_mqe_queries(
+      def test_retrieve_top_k(
 E       fixture 'session' not found
 >       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
 >       use 'pytest --fixtures [testpath]' for help on them.
@@ -460,12 +119,7 @@ E       fixture 'session' not found
 C:\code\python\psychRAG-test\tests\unit\test_retrieve.py:802
 ______________________ ERROR at setup of TestRetrieveFunction.test_retrieve_filters_short_chunks ______________________
 file C:\code\python\psychRAG-test\tests\unit\test_retrieve.py, line 865
-      @patch('psychrag.retrieval.retrieve._rerank_chunks')
-      @patch('psychrag.retrieval.retrieve._dense_search')
-      @patch('psychrag.retrieval.retrieve._lexical_search')
-      @patch('psychrag.retrieval.retrieve.get_session')
-      @patch('psychrag.retrieval.retrieve.get_default_config')
-      def test_retrieve_filters_short_chunks(
+      def test_retrieve_with_mqe_queries(
 E       fixture 'session' not found
 >       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
 >       use 'pytest --fixtures [testpath]' for help on them.
@@ -473,12 +127,7 @@ E       fixture 'session' not found
 C:\code\python\psychRAG-test\tests\unit\test_retrieve.py:865
 ____________________ ERROR at setup of TestRetrieveFunction.test_retrieve_with_entities_and_intent ____________________
 file C:\code\python\psychRAG-test\tests\unit\test_retrieve.py, line 930
-      @patch('psychrag.retrieval.retrieve._rerank_chunks')
-      @patch('psychrag.retrieval.retrieve._dense_search')
-      @patch('psychrag.retrieval.retrieve._lexical_search')
-      @patch('psychrag.retrieval.retrieve.get_session')
-      @patch('psychrag.retrieval.retrieve.get_default_config')
-      def test_retrieve_with_entities_and_intent(
+      def test_retrieve_filters_short_chunks(
 E       fixture 'session' not found
 >       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
 >       use 'pytest --fixtures [testpath]' for help on them.
@@ -486,12 +135,7 @@ E       fixture 'session' not found
 C:\code\python\psychRAG-test\tests\unit\test_retrieve.py:930
 _________________________ ERROR at setup of TestRetrieveFunction.test_retrieve_verbose_output _________________________
 file C:\code\python\psychRAG-test\tests\unit\test_retrieve.py, line 995
-      @patch('psychrag.retrieval.retrieve._rerank_chunks')
-      @patch('psychrag.retrieval.retrieve._dense_search')
-      @patch('psychrag.retrieval.retrieve._lexical_search')
-      @patch('psychrag.retrieval.retrieve.get_session')
-      @patch('psychrag.retrieval.retrieve.get_default_config')
-      def test_retrieve_verbose_output(
+      def test_retrieve_with_entities_and_intent(
 E       fixture 'session' not found
 >       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
 >       use 'pytest --fixtures [testpath]' for help on them.
@@ -499,8 +143,7 @@ E       fixture 'session' not found
 C:\code\python\psychRAG-test\tests\unit\test_retrieve.py:995
 _____________________________ ERROR at setup of TestDenseSearch.test_dense_search_mocked ______________________________
 file C:\code\python\psychRAG-test\tests\unit\test_retrieve.py, line 1036
-      @patch('psychrag.retrieval.retrieve.get_session')
-      def test_dense_search_mocked(self, mock_get_session, session):
+      def test_retrieve_verbose_output(
 E       fixture 'session' not found
 >       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
 >       use 'pytest --fixtures [testpath]' for help on them.
@@ -508,8 +151,7 @@ E       fixture 'session' not found
 C:\code\python\psychRAG-test\tests\unit\test_retrieve.py:1036
 ___________________________ ERROR at setup of TestLexicalSearch.test_lexical_search_mocked ____________________________
 file C:\code\python\psychRAG-test\tests\unit\test_retrieve.py, line 1081
-      @patch('psychrag.retrieval.retrieve.get_session')
-      def test_lexical_search_mocked(self, mock_get_session, session):
+      def test_dense_search_mocked(self, mock_get_session, session):
 E       fixture 'session' not found
 >       available fixtures: _class_scoped_runner, _function_scoped_runner, _module_scoped_runner, _package_scoped_runner, _session_faker, _session_scoped_runner, anyio_backend, anyio_backend_name, anyio_backend_options, cache, capfd, capfdbinary, capfire, caplog, capsys, capsysbinary, capteesys, doctest_namespace, event_loop_policy, extra, extras, faker, free_tcp_port, free_tcp_port_factory, free_udp_port, free_udp_port_factory, include_metadata_in_junit_xml, metadata, mock_session, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory, unused_tcp_port, unused_tcp_port_factory, unused_udp_port, unused_udp_port_factory
 >       use 'pytest --fixtures [testpath]' for help on them.
@@ -518,7 +160,7 @@ C:\code\python\psychRAG-test\tests\unit\test_retrieve.py:1081
 ====================================================== FAILURES =======================================================
 __________________________________________ TestInitRouter.test_init_database __________________________________________
 
-self = <tests.unit.test_api_endpoints.TestInitRouter object at 0x000001E9714213A0>
+self = <tests.unit.test_api_endpoints.TestInitRouter object at 0x00000294278713D0>
 
     def test_init_database(self):
         """Test database initialization endpoint."""
@@ -547,8 +189,8 @@ Full-text search infrastructure created successfully
 Creating prompt_meta table...
 __________________________________ TestGetQueryWithContext.test_get_query_not_found ___________________________________
 
-self = <tests.unit.test_augment.TestGetQueryWithContext object at 0x000001E9714847D0>
-mock_get_session = <MagicMock name='get_session' id='2102150122576'>
+self = <tests.unit.test_augment.TestGetQueryWithContext object at 0x00000294278D4590>
+mock_get_session = <MagicMock name='get_session' id='2835352613136'>
 
     @patch('psychrag.augmentation.augment.get_session')
     def test_get_query_not_found(self, mock_get_session):
@@ -600,8 +242,8 @@ E               RuntimeError: No default RAG configuration found in database. Ru
 src\psychrag\utils\rag_config_loader.py:46: RuntimeError
 _________________________________ TestGetQueryWithContext.test_get_query_no_contexts __________________________________
 
-self = <tests.unit.test_augment.TestGetQueryWithContext object at 0x000001E971484AD0>
-mock_get_session = <MagicMock name='get_session' id='2102150214384'>
+self = <tests.unit.test_augment.TestGetQueryWithContext object at 0x00000294278D4890>
+mock_get_session = <MagicMock name='get_session' id='2835346177776'>
 
     @patch('psychrag.augmentation.augment.get_session')
     def test_get_query_no_contexts(self, mock_get_session):
@@ -657,10 +299,10 @@ E               RuntimeError: No default RAG configuration found in database. Ru
 src\psychrag\utils\rag_config_loader.py:46: RuntimeError
 _____________________________________ TestInitDatabase.test_calls_both_functions ______________________________________
 
-self = <sqlalchemy.engine.base.Connection object at 0x000001E9733DC260>
-dialect = <sqlalchemy.dialects.postgresql.psycopg.PGDialect_psycopg object at 0x000001E97CF354C0>
-context = <sqlalchemy.dialects.postgresql.psycopg.PGExecutionContext_psycopg object at 0x000001E9733DC3B0>
-statement = <sqlalchemy.dialects.postgresql.psycopg.PGCompiler_psycopg object at 0x000001E971A759D0>, parameters = [{}]
+self = <sqlalchemy.engine.base.Connection object at 0x0000029429643740>
+dialect = <sqlalchemy.dialects.postgresql.psycopg.PGDialect_psycopg object at 0x0000029433435040>
+context = <sqlalchemy.dialects.postgresql.psycopg.PGExecutionContext_psycopg object at 0x0000029429643890>
+statement = <sqlalchemy.dialects.postgresql.psycopg.PGCompiler_psycopg object at 0x0000029427DCF3E0>, parameters = [{}]
 
     def _exec_single_context(
         self,
@@ -789,7 +431,7 @@ venv\Lib\site-packages\sqlalchemy\engine\default.py:951: in do_execute
     cursor.execute(statement, parameters)
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-self = <psycopg.Cursor [closed] [IDLE] (host=127.0.0.1 user=psych_rag_app_user_test database=psych_rag_test) at 0x1e97190f410>
+self = <psycopg.Cursor [closed] [IDLE] (host=127.0.0.1 user=psych_rag_app_user_test database=psych_rag_test) at 0x29429974290>
 query = '\n            CREATE OR REPLACE FUNCTION update_prompt_meta_updated_at()\n            RETURNS TRIGGER AS $$\n        ...ated_at = CURRENT_TIMESTAMP;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql\n        '
 params = {}
 
@@ -817,9 +459,9 @@ venv\Lib\site-packages\psycopg\cursor.py:97: InsufficientPrivilege
 
 The above exception was the direct cause of the following exception:
 
-self = <tests.unit.test_init_db.TestInitDatabase object at 0x000001E9716642F0>
-mock_create_db = <MagicMock name='create_database_and_user' id='2102172305312'>
-mock_create_tables = <MagicMock name='create_tables' id='2102172309008'>
+self = <tests.unit.test_init_db.TestInitDatabase object at 0x0000029427AB0BC0>
+mock_create_db = <MagicMock name='create_database_and_user' id='2835372844736'>
+mock_create_tables = <MagicMock name='create_tables' id='2835373132160'>
 
     @patch("psychrag.data.init_db.create_tables")
     @patch("psychrag.data.init_db.create_database_and_user")
@@ -851,7 +493,7 @@ venv\Lib\site-packages\sqlalchemy\engine\default.py:951: in do_execute
     cursor.execute(statement, parameters)
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
-self = <psycopg.Cursor [closed] [IDLE] (host=127.0.0.1 user=psych_rag_app_user_test database=psych_rag_test) at 0x1e97190f410>
+self = <psycopg.Cursor [closed] [IDLE] (host=127.0.0.1 user=psych_rag_app_user_test database=psych_rag_test) at 0x29429974290>
 query = '\n            CREATE OR REPLACE FUNCTION update_prompt_meta_updated_at()\n            RETURNS TRIGGER AS $$\n        ...ated_at = CURRENT_TIMESTAMP;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql\n        '
 params = {}
 
@@ -897,7 +539,7 @@ Full-text search infrastructure created successfully
 Creating prompt_meta table...
 ___________________________________ TestListPresets.test_list_presets_default_first ___________________________________
 
-self = <tests.unit.test_rag_config_api.TestListPresets object at 0x000001E97180F020>
+self = <tests.unit.test_rag_config_api.TestListPresets object at 0x0000029427C48FE0>
 
     def test_list_presets_default_first(self):
         """Test that default preset appears first in list."""
@@ -911,7 +553,7 @@ E       assert False is True
 tests\unit\test_rag_config_api.py:36: AssertionError
 ____________________________________ TestGetDefaultPreset.test_get_default_success ____________________________________
 
-self = <tests.unit.test_rag_config_api.TestGetDefaultPreset object at 0x000001E97180E990>
+self = <tests.unit.test_rag_config_api.TestGetDefaultPreset object at 0x0000029427C4A900>
 
     def test_get_default_success(self):
         """Test successful retrieval of default preset."""
@@ -923,7 +565,7 @@ E        +  where 404 = <Response [404 Not Found]>.status_code
 tests\unit\test_rag_config_api.py:45: AssertionError
 _________________________________ TestGetPresetByName.test_get_preset_by_name_success _________________________________
 
-self = <tests.unit.test_rag_config_api.TestGetPresetByName object at 0x000001E97180E3F0>
+self = <tests.unit.test_rag_config_api.TestGetPresetByName object at 0x0000029427C4AC90>
 
     def test_get_preset_by_name_success(self):
         """Test successful retrieval by name."""
@@ -935,7 +577,7 @@ E        +  where 404 = <Response [404 Not Found]>.status_code
 tests\unit\test_rag_config_api.py:59: AssertionError
 _________________________________ TestCreatePreset.test_create_preset_duplicate_name __________________________________
 
-self = <tests.unit.test_rag_config_api.TestCreatePreset object at 0x000001E97180CCB0>
+self = <tests.unit.test_rag_config_api.TestCreatePreset object at 0x0000029427C4B650>
 
     def test_create_preset_duplicate_name(self):
         """Test 409 conflict for duplicate name."""
@@ -979,7 +621,7 @@ E        +  where 201 = <Response [201 Created]>.status_code
 tests\unit\test_rag_config_api.py:154: AssertionError
 __________________________________ TestDefaultPresetSeed.test_default_preset_exists ___________________________________
 
-self = <tests.unit.test_rag_config_db.TestDefaultPresetSeed object at 0x000001E9718397C0>
+self = <tests.unit.test_rag_config_db.TestDefaultPresetSeed object at 0x0000029427C6D9D0>
 
     def test_default_preset_exists(self):
         """Verify default preset was created."""
@@ -1000,7 +642,7 @@ E           assert None is not None
 tests\unit\test_rag_config_db.py:187: AssertionError
 __________________________ TestGetAllPresetNames.test_get_all_preset_names_includes_default ___________________________
 
-self = <tests.unit.test_rag_config_loader.TestGetAllPresetNames object at 0x000001E971865D00>
+self = <tests.unit.test_rag_config_loader.TestGetAllPresetNames object at 0x0000029427C6DDC0>
 
     def test_get_all_preset_names_includes_default(self):
         """Test that default preset is included."""
@@ -1011,7 +653,7 @@ E       AssertionError: assert 'Default' in ['Balanced', 'Test Settings']
 tests\unit\test_rag_config_loader.py:149: AssertionError
 _________________________________________ TestRagConfigModel.test_model_repr __________________________________________
 
-self = <tests.unit.test_rag_config_loader.TestRagConfigModel object at 0x000001E971865AF0>
+self = <tests.unit.test_rag_config_loader.TestRagConfigModel object at 0x0000029427C806E0>
 
     def test_model_repr(self):
         """Test __repr__ method."""
@@ -1035,38 +677,6 @@ FAILED tests/unit/test_rag_config_api.py::TestCreatePreset::test_create_preset_d
 FAILED tests/unit/test_rag_config_db.py::TestDefaultPresetSeed::test_default_preset_exists - assert None is not None
 FAILED tests/unit/test_rag_config_loader.py::TestGetAllPresetNames::test_get_all_preset_names_includes_default - Asse...
 FAILED tests/unit/test_rag_config_loader.py::TestRagConfigModel::test_model_repr - AssertionError: assert 'RagConfig'...
-ERROR tests/unit/test_extract_titles.py::TestExtractTitlesFromWork::test_extract_titles_from_work_success
-ERROR tests/unit/test_extract_titles.py::TestExtractTitlesFromWork::test_extract_titles_from_work_sanitized_source
-ERROR tests/unit/test_extract_titles.py::TestExtractTitlesFromWork::test_extract_titles_from_work_not_found
-ERROR tests/unit/test_extract_titles.py::TestExtractTitlesFromWork::test_extract_titles_from_work_no_files
-ERROR tests/unit/test_extract_titles.py::TestExtractTitlesFromWork::test_extract_titles_from_work_invalid_source_key
-ERROR tests/unit/test_extract_titles.py::TestExtractTitlesFromWork::test_extract_titles_from_work_missing_source_file
-ERROR tests/unit/test_extract_titles.py::TestExtractTitlesFromWork::test_extract_titles_from_work_file_not_found_on_disk
-ERROR tests/unit/test_extract_titles.py::TestExtractTitlesFromWork::test_extract_titles_from_work_hash_mismatch
-ERROR tests/unit/test_extract_titles.py::TestExtractTitlesFromWork::test_extract_titles_from_work_hash_mismatch_force
-ERROR tests/unit/test_extract_titles.py::TestExtractTitlesFromWork::test_extract_titles_from_work_overwrite_existing
-ERROR tests/unit/test_extract_titles.py::TestExtractTitlesFromWork::test_extract_titles_from_work_no_headings
-ERROR tests/unit/test_query_embeddings.py::TestGetPendingQueriesCount::test_get_pending_queries_count_zero
-ERROR tests/unit/test_query_embeddings.py::TestGetPendingQueriesCount::test_get_pending_queries_count_single
-ERROR tests/unit/test_query_embeddings.py::TestGetPendingQueriesCount::test_get_pending_queries_count_multiple
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeQuery::test_vectorize_query_basic
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeQuery::test_vectorize_query_with_mqe
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeQuery::test_vectorize_query_with_hyde
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeQuery::test_vectorize_query_with_all_fields
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeQuery::test_vectorize_query_not_found
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeQuery::test_vectorize_query_embedding_error
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeQuery::test_vectorize_query_verbose
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeQuery::test_vectorize_query_empty_mqe_list
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeAllQueries::test_vectorize_all_queries_empty
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeAllQueries::test_vectorize_all_queries_single_success
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeAllQueries::test_vectorize_all_queries_multiple_success
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeAllQueries::test_vectorize_all_queries_with_failures
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeAllQueries::test_vectorize_all_queries_all_failures
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeAllQueries::test_vectorize_all_queries_verbose
-ERROR tests/unit/test_query_embeddings.py::TestVectorizeAllQueries::test_vectorize_all_queries_mixed_embeddings
-ERROR tests/unit/test_query_expansion.py::TestSaveExpansionToDb::test_save_expansion_to_db_basic
-ERROR tests/unit/test_query_expansion.py::TestSaveExpansionToDb::test_save_expansion_to_db_empty_fields
-ERROR tests/unit/test_query_expansion.py::TestSaveExpansionToDb::test_save_expansion_to_db_returns_id
 ERROR tests/unit/test_retrieve.py::TestRetrieveFunction::test_retrieve_basic
 ERROR tests/unit/test_retrieve.py::TestRetrieveFunction::test_retrieve_query_not_found
 ERROR tests/unit/test_retrieve.py::TestRetrieveFunction::test_retrieve_query_not_vectorized
@@ -1079,4 +689,4 @@ ERROR tests/unit/test_retrieve.py::TestRetrieveFunction::test_retrieve_with_enti
 ERROR tests/unit/test_retrieve.py::TestRetrieveFunction::test_retrieve_verbose_output
 ERROR tests/unit/test_retrieve.py::TestDenseSearch::test_dense_search_mocked
 ERROR tests/unit/test_retrieve.py::TestLexicalSearch::test_lexical_search_mocked
-===================================== 11 failed, 970 passed, 44 errors in 50.99s ======================================
+===================================== 11 failed, 1002 passed, 12 errors in 51.54s =====================================
