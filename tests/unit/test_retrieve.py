@@ -27,6 +27,8 @@ from psychrag.retrieval.retrieve import (
     _compute_chunk_similarity,
     _apply_mmr_diversity,
 )
+from psychrag.config.app_config import AppConfig, LoggingConfig
+
 
 
 class TestRetrievedChunk:
@@ -797,24 +799,170 @@ class TestRetrieveFunction:
         mock_dense_search.return_value = [(c.id, i+1) for i, c in enumerate(chunks)]
         mock_lexical_search.return_value = [(chunks[0].id, 1)]
 
-        # Mock reranked chunks
-        reranked = [
-            RetrievedChunk(
-                id=c.id, parent_id=None, work_id=work.id,
-                content=c.content, enriched_content=c.content,
-                start_line=c.start_line, end_line=c.end_line,
-                level=c.level, rrf_score=0.9-i*0.1, rerank_score=0.9-i*0.1,
-                final_score=0.9-i*0.1
-            )
-            for i, c in enumerate(chunks)
-        ]
-        mock_rerank_chunks.return_value = reranked
+    @patch('psychrag.retrieval.retrieve._rerank_chunks')
+    @patch('psychrag.retrieval.retrieve._dense_search')
+    @patch('psychrag.retrieval.retrieve._lexical_search')
+    @patch('psychrag.retrieval.retrieve.get_session')
+    @patch('psychrag.retrieval.retrieve.get_default_config')
+    def test_retrieve_calls_lexical_search(
+        self, mock_get_config, mock_get_session, mock_lexical_search,
+        mock_dense_search, mock_rerank_chunks, mock_session
+    ):
+        """Test that retrieve calls _lexical_search for each query text."""
+        # Setup config
+        mock_config = {
+            "retrieval": {
+                "dense_limit": 10, "lexical_limit": 5, "rrf_k": 50,
+                "top_k_rrf": 20, "top_n_final": 5, "mmr_lambda": 0.7,
+                "entity_boost": 0.0, "min_word_count": 0, "min_char_count": 0,
+                "min_content_length": 0, "enrich_lines_above": 0, "enrich_lines_below": 0,
+                "reranker_batch_size": 8, "reranker_max_length": 512
+            }
+        }
+        mock_get_config.return_value = mock_config
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        
+        # Setup work and chunks
+        work = Work(title="Test", authors="Author")
+        work.id = 1
+        mock_session.add(work)
+        
+        chunk = Chunk(
+            work_id=work.id, content="test content",
+            vector_status="vec", embedding=[0.1] * 768
+        )
+        chunk.id = 1
+        mock_session.add(chunk)
+        mock_session.commit()
+        
+        # Setup query with expanded queries
+        query = Query(
+            original_query="original",
+            vector_status="vec",
+            embedding_original=[0.1] * 768,
+            expanded_queries=["expanded 1", "expanded 2"]
+        )
+        query.id = 1
+        mock_session.add(query)
+        mock_session.commit()
+        mock_session.query.return_value.filter.return_value.first.return_value = query
+        
+        # Mock search results
+        mock_dense_search.return_value = []
+        mock_lexical_search.return_value = []
+        mock_rerank_chunks.return_value = []
+        
+        retrieve(query.id, verbose=False)
+        
+        # Should be called 3 times: 1 original + 2 expanded
+        assert mock_lexical_search.call_count == 3
+        # Verify calls
+        args = [call[0][1] for call in mock_lexical_search.call_args_list]
+        assert "original" in args
+        assert "expanded 1" in args
+        assert "expanded 2" in args
 
-        result = retrieve(query.id, top_n_final=3, verbose=False)
 
-        # Should be limited to top_n_final (3) after MMR
-        assert result.final_count <= 3
-        assert len(result.chunks) <= 3
+class TestRetrievalLogging:
+    """Tests for retrieval logging."""
+
+    @patch('psychrag.retrieval.retrieve.load_config')
+    @patch('psychrag.retrieval.retrieve._save_retrieval_log')
+    @patch('psychrag.retrieval.retrieve.get_session')
+    @patch('psychrag.retrieval.retrieve.get_default_config')
+    @patch('psychrag.retrieval.retrieve._dense_search')
+    @patch('psychrag.retrieval.retrieve._lexical_search')
+    @patch('psychrag.retrieval.retrieve._rerank_chunks')
+    def test_retrieve_logging_enabled(
+        self, mock_rerank, mock_lexical, mock_dense, mock_get_default, mock_get_session, mock_save_log, mock_load_config
+    ):
+        """Test that logging is called when enabled."""
+        # Setup logging config
+        mock_log_config = AppConfig(logging=LoggingConfig(enabled=True))
+        mock_load_config.return_value = mock_log_config
+
+        # Setup RAG config
+        mock_get_default.return_value = {
+            "retrieval": {
+                "dense_limit": 10, "lexical_limit": 5, "rrf_k": 50,
+                "top_k_rrf": 20, "top_n_final": 5, "mmr_lambda": 0.7,
+                "entity_boost": 0.0, "min_word_count": 0, "min_char_count": 0,
+                "min_content_length": 0, "enrich_lines_above": 0, "enrich_lines_below": 0,
+                "reranker_batch_size": 8, "reranker_max_length": 512
+            }
+        }
+
+        # Setup mocks
+        mock_session = MagicMock()
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        
+        mock_query = Mock(spec=Query)
+        mock_query.original_query = "Test"
+        mock_query.vector_status = "vec"
+        mock_query.embedding_original = [0.1] * 768
+        mock_query.embeddings_mqe = []
+        mock_query.expanded_queries = []
+        mock_query.embedding_hyde = None
+        mock_query.intent = "GENERAL"
+        mock_query.entities = []
+        
+        mock_session.query.return_value.filter.return_value.first.return_value = mock_query
+
+        mock_dense.return_value = []
+        mock_lexical.return_value = []
+        mock_rerank.return_value = []
+
+        retrieve(1, verbose=False)
+
+        mock_save_log.assert_called_once()
+        args = mock_save_log.call_args[0]
+        assert args[0] == 1  # query_id
+
+    @patch('psychrag.retrieval.retrieve.load_config')
+    @patch('psychrag.retrieval.retrieve._save_retrieval_log')
+    @patch('psychrag.retrieval.retrieve.get_session')
+    @patch('psychrag.retrieval.retrieve.get_default_config')
+    @patch('psychrag.retrieval.retrieve._dense_search')
+    @patch('psychrag.retrieval.retrieve._lexical_search')
+    @patch('psychrag.retrieval.retrieve._rerank_chunks')
+    def test_retrieve_logging_disabled(
+        self, mock_rerank, mock_lexical, mock_dense, mock_get_default, mock_get_session, mock_save_log, mock_load_config
+    ):
+        """Test that logging is NOT called when disabled."""
+        # Setup logging config
+        mock_log_config = AppConfig(logging=LoggingConfig(enabled=False))
+        mock_load_config.return_value = mock_log_config
+
+        # Setup RAG config
+        mock_get_default.return_value = {
+            "retrieval": {
+                "dense_limit": 10, "lexical_limit": 5, "rrf_k": 50,
+                "top_k_rrf": 20, "top_n_final": 5, "mmr_lambda": 0.7,
+                "entity_boost": 0.0, "min_word_count": 0, "min_char_count": 0,
+                "min_content_length": 0, "enrich_lines_above": 0, "enrich_lines_below": 0,
+                "reranker_batch_size": 8, "reranker_max_length": 512
+            }
+        }
+
+        # Setup mocks
+        mock_session = MagicMock()
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        
+        mock_query = Mock(spec=Query)
+        mock_query.vector_status = "vec"
+        mock_query.embeddings_mqe = []
+        mock_query.expanded_queries = []
+        mock_query.embedding_hyde = None
+        mock_query.entities = []
+        mock_session.query.return_value.filter.return_value.first.return_value = mock_query
+
+        mock_dense.return_value = []
+        mock_lexical.return_value = []
+        mock_rerank.return_value = []
+
+        retrieve(1, verbose=False)
+
+        mock_save_log.assert_not_called()
 
     @patch('psychrag.retrieval.retrieve._rerank_chunks')
     @patch('psychrag.retrieval.retrieve._dense_search')

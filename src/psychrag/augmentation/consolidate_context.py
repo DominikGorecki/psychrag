@@ -19,11 +19,9 @@ from psychrag.data.database import get_session
 from psychrag.data.models import Chunk, Query, Work
 from psychrag.utils.file_utils import compute_file_hash
 from psychrag.utils.rag_config_loader import get_default_config, get_config_by_name
+from psychrag.config.app_config import load_config
 
 
-# Logging configuration
-ENABLE_LOGGING = True  # Set to True to enable detailed JSON logging
-LOGS_DIR = Path("logs")
 
 
 @dataclass
@@ -88,12 +86,14 @@ def _serialize_item_for_log(item: dict) -> dict:
 
 def _save_consolidation_log(query_id: int, log_data: dict) -> None:
     """Save consolidation log to JSON file."""
-    if not ENABLE_LOGGING:
+    config = load_config()
+    if not config.logging.enabled:
         return
     
-    LOGS_DIR.mkdir(exist_ok=True)
+    logs_dir = Path(config.logging.log_dir)
+    logs_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file = LOGS_DIR / f"consolidate_query_{query_id}_{timestamp}.json"
+    log_file = logs_dir / f"consolidate_query_{query_id}_{timestamp}.json"
     
     with open(log_file, 'w', encoding='utf-8') as f:
         json.dump(log_data, f, indent=2, ensure_ascii=False)
@@ -397,7 +397,7 @@ def consolidate_context(
                 'level': ctx.get('level', 'chunk')
             })
         
-        if ENABLE_LOGGING:
+        if load_config().logging.enabled:
             log_data["original_items"] = [_serialize_item_for_log(item) for item in items]
 
         # Get unique levels and sort by depth (deepest first)
@@ -414,7 +414,7 @@ def consolidate_context(
             processed = False
             iteration += 1
             
-            if ENABLE_LOGGING:
+            if load_config().logging.enabled:
                 iteration_log = {
                     "iteration": iteration,
                     "items_before": len(items),
@@ -481,7 +481,7 @@ def consolidate_context(
                         if verbose:
                             print(f"  Replaced {len(group_items)} items with parent {parent_id} ({coverage:.0%} coverage)")
                         
-                        if ENABLE_LOGGING:
+                        if load_config().logging.enabled:
                             iteration_log["operations"].append({
                                 "type": "replace_with_parent",
                                 "parent_id": parent_id,
@@ -498,7 +498,7 @@ def consolidate_context(
                             if verbose:
                                 print(f"  Merged {len(group_items)} items into {len(merged)} (parent {parent_id})")
                             
-                            if ENABLE_LOGGING:
+                            if load_config().logging.enabled:
                                 iteration_log["operations"].append({
                                     "type": "merge_adjacent",
                                     "parent_id": parent_id,
@@ -513,7 +513,7 @@ def consolidate_context(
                     if len(merged) < len(group_items):
                         processed = True
                         
-                        if ENABLE_LOGGING:
+                        if load_config().logging.enabled:
                             iteration_log["operations"].append({
                                 "type": "merge_adjacent_no_parent",
                                 "work_id": work_id,
@@ -523,7 +523,7 @@ def consolidate_context(
                             })
                     new_items.extend(merged)
 
-            if ENABLE_LOGGING:
+            if load_config().logging.enabled:
                 iteration_log["items_after"] = len(new_items)
                 iteration_log["new_items"] = [_serialize_item_for_log(item) for item in new_items]
                 log_data["iterations"].append(iteration_log)
@@ -561,7 +561,7 @@ def consolidate_context(
                 filtered_count = pre_filter_count - len(groups)
                 print(f"  Filtered out {filtered_count} items with content < {min_content_length} characters")
         
-        if ENABLE_LOGGING:
+        if load_config().logging.enabled:
             log_data["final_groups"] = [_serialize_group_for_log(group) for group in groups]
             log_data["filtered_groups"] = [_serialize_group_for_log(group) for group in filtered_groups]
             log_data["filtering"] = {
@@ -592,7 +592,9 @@ def consolidate_context(
             print(f"  Saved to query.clean_retrieval_context")
 
         # Save log file
-        _save_consolidation_log(query_id, log_data)
+        # Save log file
+        if load_config().logging.enabled:
+            _save_consolidation_log(query_id, log_data)
 
         return ConsolidationResult(
             query_id=query_id,

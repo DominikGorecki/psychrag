@@ -76,12 +76,20 @@ class PathsConfig(BaseModel):
             raise ValueError(f"output_dir must be an absolute path, got: {self.output_dir}")
 
 
+class LoggingConfig(BaseModel):
+    """Logging configuration settings."""
+
+    enabled: bool = Field(default=False, description="Enable detailed logging")
+    log_dir: str = Field(default="logs", description="Directory to store logs")
+
+
 class AppConfig(BaseModel):
     """Root application configuration."""
 
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     llm: LLMConfig = Field(default_factory=LLMConfig)
     paths: PathsConfig = Field(default_factory=PathsConfig)
+    logging: LoggingConfig = Field(default_factory=LoggingConfig)
 
 
 # Singleton instance

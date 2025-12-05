@@ -3,7 +3,8 @@ platform linux -- Python 3.12.3, pytest-9.0.1, pluggy-1.6.0
 rootdir: /home/dardawk/python/psychrag
 configfile: pyproject.toml
 testpaths: tests
-plugins: Faker-38.2.0, logfire-4.16.0, langsmith-0.4.55, anyio-4.12.0
+plugins: html-4.1.1, metadata-3.1.1, Faker-38.2.0, asyncio-1.3.0, logfire-4.16.0, langsmith-0.4.55, markdown-docs-0.9.0, anyio-4.12.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
 collected 1053 items
 
 tests/unit/test_ai_config.py ................................            [  3%]
@@ -22,7 +23,7 @@ tests/unit/test_content_chunking.py .................................... [ 31%]
 ...........                                                              [ 32%]
 tests/unit/test_conv_epub2md.py ............                             [ 33%]
 tests/unit/test_conv_pdf2md.py ...........                               [ 34%]
-tests/unit/test_conversion_api_endpoints.py FFFFFFFFFFF                  [ 35%]
+tests/unit/test_conversion_api_endpoints.py ...........                  [ 35%]
 tests/unit/test_database.py ....                                         [ 36%]
 tests/unit/test_db_health_check.py ...................................   [ 39%]
 tests/unit/test_delete_conversion.py .........                           [ 40%]
@@ -39,7 +40,7 @@ tests/unit/test_llm_factory.py ......................................... [ 58%]
 ..................                                                       [ 60%]
 tests/unit/test_llm_processor.py .........................               [ 62%]
 tests/unit/test_new_work.py ................                             [ 64%]
-tests/unit/test_original_markdown.py FFFFF                               [ 64%]
+tests/unit/test_original_markdown.py .....                               [ 64%]
 tests/unit/test_pdf_bookmarks2toc.py ................                    [ 66%]
 tests/unit/test_prompt_meta_model.py ............                        [ 67%]
 tests/unit/test_prompt_template_model.py ............                    [ 68%]
@@ -48,4 +49,107 @@ tests/unit/test_query_expansion.py .........................             [ 72%]
 tests/unit/test_query_model.py ...................                       [ 74%]
 tests/unit/test_rag_config_api.py ..............                         [ 75%]
 tests/unit/test_rag_config_db.py .............                           [ 77%]
-tests/unit/test_rag_config_integration.py .......
+tests/unit/test_rag_config_integration.py ...............                [ 78%]
+tests/unit/test_rag_config_loader.py .............                       [ 79%]
+tests/unit/test_result_model.py ...........                              [ 80%]
+tests/unit/test_retrieve.py ............................................ [ 84%]
+...                                                                      [ 85%]
+tests/unit/test_seed_templates.py ..............                         [ 86%]
+tests/unit/test_skip_apply.py ...............                            [ 88%]
+tests/unit/test_style_v_hier.py .....................................    [ 91%]
+tests/unit/test_suggest_heading_changes.py .............F                [ 92%]
+tests/unit/test_suggested_chunks.py .................................    [ 96%]
+tests/unit/test_template_loader.py ...........                           [ 97%]
+tests/unit/test_templates_api.py ..........................              [ 99%]
+tests/unit/test_work_model.py .....                                      [100%]
+
+=================================== FAILURES ===================================
+________________ TestSaveTitleChanges.test_save_changes_success ________________
+
+self = PosixPath('/abs/path'), mode = 511, parents = True, exist_ok = True
+
+    def mkdir(self, mode=0o777, parents=False, exist_ok=False):
+        """
+        Create a new directory at this given path.
+        """
+        try:
+>           os.mkdir(self, mode)
+E           FileNotFoundError: [Errno 2] No such file or directory: '/abs/path'
+
+/usr/lib/python3.12/pathlib.py:1313: FileNotFoundError
+
+During handling of the above exception, another exception occurred:
+
+self = <tests.unit.test_suggest_heading_changes.TestSaveTitleChanges object at 0x7fa20abaadb0>
+mock_get_session = <MagicMock name='get_session' id='140333784766592'>
+mock_session = <MagicMock name='get_session().__enter__()' id='140333781554368'>
+mock_compute_hash = <MagicMock name='compute_file_hash' id='140333785307120'>
+mock_path_exists = <MagicMock name='exists' id='140333784770672'>
+
+    @patch('psychrag.sanitization.suggest_heading_changes.get_session')
+    def test_save_changes_success(
+        self,
+        mock_get_session,
+        mock_session,
+        mock_compute_hash, # for output hash
+        mock_path_exists
+    ):
+        mock_get_session.return_value.__enter__.return_value = mock_session
+    
+        work = create_mock_work(id=1)
+        work.files = {
+            "original_markdown": {"path": "/abs/path/orig.md", "hash": "hash123"},
+            "titles": {"path": "/abs/path/titles.md", "hash": "hash123"}
+        }
+        configure_mock_session_query(mock_session, Work, return_first=work)
+    
+        with patch('pathlib.Path.write_text') as mock_write, \
+             patch('psychrag.sanitization.suggest_heading_changes.set_file_writable') as mock_set_writable, \
+             patch('psychrag.sanitization.suggest_heading_changes.set_file_readonly') as mock_set_readonly:
+    
+            mock_compute_hash.return_value = "full_output_hash"
+    
+            mock_path_exists.return_value = True # ensure markdown path exists
+    
+>           output_path = save_title_changes_from_response(
+                1,
+                "original_markdown",
+                SAMPLE_LLM_RESPONSE
+            )
+
+tests/unit/test_suggest_heading_changes.py:278: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/psychrag/sanitization/suggest_heading_changes.py:658: in save_title_changes_from_response
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+/usr/lib/python3.12/pathlib.py:1317: in mkdir
+    self.parent.mkdir(parents=True, exist_ok=True)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/abs'), mode = 511, parents = True, exist_ok = True
+
+    def mkdir(self, mode=0o777, parents=False, exist_ok=False):
+        """
+        Create a new directory at this given path.
+        """
+        try:
+>           os.mkdir(self, mode)
+E           PermissionError: [Errno 13] Permission denied: '/abs'
+
+/usr/lib/python3.12/pathlib.py:1313: PermissionError
+=============================== warnings summary ===============================
+tests/unit/test_llm_factory.py::TestCreatePydanticAgent::test_create_pydantic_agent_openai_light
+tests/unit/test_llm_factory.py::TestCreatePydanticAgent::test_create_pydantic_agent_openai_light
+  <frozen abc>:106: DeprecationWarning: You should use `Logger` instead. Deprecated since version 1.39.0 and will be removed in a future release.
+
+tests/unit/test_llm_factory.py::TestCreatePydanticAgent::test_create_pydantic_agent_openai_light
+tests/unit/test_llm_factory.py::TestCreatePydanticAgent::test_create_pydantic_agent_openai_light
+  <frozen abc>:106: DeprecationWarning: You should use `LoggerProvider` instead. Deprecated since version 1.39.0 and will be removed in a future release.
+
+tests/unit/test_llm_factory.py::TestCreatePydanticAgent::test_create_pydantic_agent_openai_light
+  /home/dardawk/python/psychrag/venv/lib/python3.12/site-packages/opentelemetry/_events/__init__.py:201: DeprecationWarning: You should use `ProxyLoggerProvider` instead. Deprecated since version 1.39.0 and will be removed in a future release.
+    _PROXY_EVENT_LOGGER_PROVIDER = ProxyEventLoggerProvider()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/test_suggest_heading_changes.py::TestSaveTitleChanges::test_save_changes_success
+================= 1 failed, 1052 passed, 5 warnings in 10.69s ==================

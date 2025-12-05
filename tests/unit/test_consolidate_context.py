@@ -14,6 +14,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
 
+from psychrag.config.app_config import AppConfig, LoggingConfig
+
 from psychrag.augmentation.consolidate_context import (
     ConsolidatedGroup,
     ConsolidationResult,
@@ -1060,3 +1062,108 @@ class TestDeduplicationAndMerging:
         # Should filter out empty strings
         assert chain == ["Chapter 1", "Section A"]
 
+
+class TestConsolidationLogging:
+    """Tests for logging functionality in consolidation."""
+
+    @patch('psychrag.augmentation.consolidate_context.load_config')
+    @patch('psychrag.augmentation.consolidate_context._save_consolidation_log')
+    @patch('psychrag.augmentation.consolidate_context.compute_file_hash')
+    @patch('psychrag.augmentation.consolidate_context.get_session')
+    @patch('psychrag.augmentation.consolidate_context.get_default_config')
+    def test_consolidation_logging_enabled(
+        self, mock_get_config, mock_get_session, mock_compute_hash, mock_save_log, mock_load_config
+    ):
+        """Test that logging is called when enabled in config."""
+        # Setup mocks
+        mock_config = AppConfig(logging=LoggingConfig(enabled=True))
+        mock_load_config.return_value = mock_config
+        
+        # Consolidation config
+        mock_rag_config = {
+            "consolidation": {
+                "coverage_threshold": 0.5,
+                "line_gap": 7,
+                "min_content_length": 350,
+                "enrich_from_md": True
+            }
+        }
+        mock_get_config.return_value = mock_rag_config
+
+        # Setup data
+        mock_work = Mock()
+        mock_work.id = 1
+        mock_work.files = {"sanitized": {"path": "/tmp/test.md", "hash": "hash"}}
+        
+        mock_query = Mock()
+        mock_query.id = 1
+        mock_query.retrieved_context = [
+            {'id': 1, 'work_id': 1, 'parent_id': None, 'content': 'Content', 'start_line': 1, 'end_line': 5, 'final_score': 0.9}
+        ]
+        
+        mock_session = MagicMock()
+        mock_session.query.return_value.filter.return_value.first.return_value = mock_query
+        # Works query, parents query, all parents query
+        mock_session.query.return_value.filter.return_value.all.side_effect = [[mock_work], [], []]
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        
+        mock_compute_hash.return_value = "hash"
+        
+        with patch('pathlib.Path.exists', return_value=True), \
+             patch('pathlib.Path.read_text', return_value="Content"):
+            consolidate_context(1)
+
+        mock_save_log.assert_called_once()
+        args = mock_save_log.call_args[0]
+        assert args[0] == 1  # query_id
+        assert "iterations" in args[1]
+        assert "original_items" in args[1]
+
+    @patch('psychrag.augmentation.consolidate_context.load_config')
+    @patch('psychrag.augmentation.consolidate_context._save_consolidation_log')
+    @patch('psychrag.augmentation.consolidate_context.compute_file_hash')
+    @patch('psychrag.augmentation.consolidate_context.get_session')
+    @patch('psychrag.augmentation.consolidate_context.get_default_config')
+    def test_consolidation_logging_disabled(
+        self, mock_get_config, mock_get_session, mock_compute_hash, mock_save_log, mock_load_config
+    ):
+        """Test that logging is NOT called when disabled."""
+        # Setup mocks
+        mock_config = AppConfig(logging=LoggingConfig(enabled=False))
+        mock_load_config.return_value = mock_config
+        
+        # Consolidation config
+        mock_rag_config = {
+            "consolidation": {
+                "coverage_threshold": 0.5,
+                "line_gap": 7,
+                "min_content_length": 350,
+                "enrich_from_md": True
+            }
+        }
+        mock_get_config.return_value = mock_rag_config
+
+        # Setup data
+        mock_work = Mock()
+        mock_work.id = 1
+        mock_work.files = {"sanitized": {"path": "/tmp/test.md", "hash": "hash"}}
+        
+        mock_query = Mock()
+        mock_query.id = 1
+        mock_query.retrieved_context = [
+            {'id': 1, 'work_id': 1, 'parent_id': None, 'content': 'Content', 'start_line': 1, 'end_line': 5, 'final_score': 0.9}
+        ]
+        
+        mock_session = MagicMock()
+        mock_session.query.return_value.filter.return_value.first.return_value = mock_query
+        # Works query, parents query, all parents query
+        mock_session.query.return_value.filter.return_value.all.side_effect = [[mock_work], [], []]
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        
+        mock_compute_hash.return_value = "hash"
+        
+        with patch('pathlib.Path.exists', return_value=True), \
+             patch('pathlib.Path.read_text', return_value="Content"):
+            consolidate_context(1)
+
+        mock_save_log.assert_not_called()

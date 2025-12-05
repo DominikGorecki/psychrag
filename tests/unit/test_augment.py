@@ -15,6 +15,7 @@ from psychrag.augmentation.augment import (
 )
 from psychrag.data.models.query import Query
 from psychrag.data.models.work import Work
+from psychrag.config.app_config import AppConfig, LoggingConfig
 
 
 class TestGetQueryWithContext:
@@ -326,6 +327,65 @@ class TestGenerateAugmentedPrompt:
         assert "Test" in result  # The actual question
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+
+
+
+class TestAugmentationLogging:
+    """Tests for logging functionality in augmentation."""
+
+    @patch('psychrag.augmentation.augment.load_config')
+    @patch('psychrag.augmentation.augment._save_augmentation_log')
+    @patch('psychrag.augmentation.augment.get_session')
+    @patch('psychrag.augmentation.augment.get_query_with_context')
+    @patch('psychrag.augmentation.augment.format_context_blocks')
+    def test_generate_prompt_logging_enabled(
+        self, mock_format, mock_get_query, mock_get_session, mock_save_log, mock_load_config
+    ):
+        """Test that logging is called when enabled in config."""
+        # Setup config
+        mock_config = AppConfig(logging=LoggingConfig(enabled=True))
+        mock_load_config.return_value = mock_config
+
+        # Setup mocks
+        mock_query = Mock(spec=Query)
+        mock_query.original_query = "Test"
+        mock_query.intent = "GENERAL"
+        mock_query.entities = []
+        mock_get_query.return_value = (mock_query, [])
+        mock_format.return_value = "Context"
+        mock_get_session.return_value.__enter__.return_value = MagicMock()
+
+        generate_augmented_prompt(1)
+
+        mock_save_log.assert_called_once()
+        args = mock_save_log.call_args[0]
+        assert args[0] == 1  # query_id
+        assert "final_prompt" in args[1]
+
+    @patch('psychrag.augmentation.augment.load_config')
+    @patch('psychrag.augmentation.augment._save_augmentation_log')
+    @patch('psychrag.augmentation.augment.get_session')
+    @patch('psychrag.augmentation.augment.get_query_with_context')
+    @patch('psychrag.augmentation.augment.format_context_blocks')
+    def test_generate_prompt_logging_disabled(
+        self, mock_format, mock_get_query, mock_get_session, mock_save_log, mock_load_config
+    ):
+        """Test that logging is NOT called when disabled."""
+        # Setup config
+        mock_config = AppConfig(logging=LoggingConfig(enabled=False))
+        mock_load_config.return_value = mock_config
+
+        # Setup mocks
+        mock_query = Mock(spec=Query)
+        mock_query.original_query = "Test"
+        mock_query.intent = "GENERAL"
+        mock_query.entities = []
+        mock_get_query.return_value = (mock_query, [])
+        mock_format.return_value = "Context"
+        mock_get_session.return_value.__enter__.return_value = MagicMock()
+
+        generate_augmented_prompt(1)
+
+        mock_save_log.assert_not_called()
+
 

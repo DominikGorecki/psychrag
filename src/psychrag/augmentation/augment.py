@@ -30,11 +30,10 @@ from ..data.models.query import Query
 from ..data.models.work import Work
 from ..data.template_loader import load_template
 from ..utils.rag_config_loader import get_default_config, get_config_by_name
+from ..config.app_config import load_config
 
 
-# Logging configuration
-ENABLE_LOGGING = True  # Set to True to enable detailed JSON logging
-LOGS_DIR = Path("logs")
+
 
 
 def _find_heading_from_parent(parent_id: int | None, session: Session) -> str | None:
@@ -79,12 +78,16 @@ def _find_heading_from_parent(parent_id: int | None, session: Session) -> str | 
 
 def _save_augmentation_log(query_id: int, log_data: dict) -> None:
     """Save augmentation log to JSON file."""
-    if not ENABLE_LOGGING:
+    config = load_config()
+    # DEBUG PRINT
+    print(f"DEBUG: _save_augmentation_log called. Enabled: {config.logging.enabled}, LogDir: {config.logging.log_dir}")
+    if not config.logging.enabled:
         return
     
-    LOGS_DIR.mkdir(exist_ok=True)
+    log_dir = Path(config.logging.log_dir)
+    log_dir.mkdir(exist_ok=True, parents=True) # Ensure parents exist and exist_ok is handled
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file = LOGS_DIR / f"augment_query_{query_id}_{timestamp}.json"
+    log_file = log_dir / f"augment_query_{query_id}_{timestamp}.json"
     
     with open(log_file, 'w', encoding='utf-8') as f:
         json.dump(log_data, f, indent=2, ensure_ascii=False)
@@ -247,7 +250,9 @@ def generate_augmented_prompt(
     entities = query.entities or []
 
     # Log query info
-    if ENABLE_LOGGING:
+    config = load_config()
+    print(f"DEBUG: generate_augmented_prompt. Logging enabled: {config.logging.enabled}")
+    if config.logging.enabled:
         log_data["query"] = {
             "original_query": user_question,
             "intent": intent,
@@ -265,7 +270,7 @@ def generate_augmented_prompt(
     with get_session() as session:
         context_blocks = format_context_blocks(top_contexts, session)
         
-        if ENABLE_LOGGING:
+        if load_config().logging.enabled:
             log_data["formatted_context_blocks"] = context_blocks
 
     # Define fallback template builder
@@ -362,7 +367,7 @@ USER QUESTION
     )
     
     # Log final prompt
-    if ENABLE_LOGGING:
+    if load_config().logging.enabled:
         log_data["final_prompt"] = prompt
         _save_augmentation_log(query_id, log_data)
     

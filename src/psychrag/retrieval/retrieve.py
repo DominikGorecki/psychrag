@@ -27,11 +27,10 @@ from psychrag.data.database import get_session
 from psychrag.data.models import Chunk, Query, Work
 from psychrag.utils.file_utils import compute_file_hash
 from psychrag.utils.rag_config_loader import get_default_config, get_config_by_name
+from psychrag.config.app_config import load_config
 
 
-# Logging configuration
-ENABLE_LOGGING = True  # Set to True to enable detailed JSON logging
-LOGS_DIR = Path("logs")
+
 
 
 @dataclass
@@ -113,7 +112,7 @@ def _log_retrieval_stage(
     log_data: dict
 ) -> None:
     """Log a retrieval stage to the log_data dict."""
-    if not ENABLE_LOGGING:
+    if not load_config().logging.enabled:
         return
     
     log_data["stages"][stage] = {
@@ -124,12 +123,14 @@ def _log_retrieval_stage(
 
 def _save_retrieval_log(query_id: int, log_data: dict) -> None:
     """Save retrieval log to JSON file."""
-    if not ENABLE_LOGGING:
+    config = load_config()
+    if not config.logging.enabled:
         return
     
-    LOGS_DIR.mkdir(exist_ok=True)
+    log_dir = Path(config.logging.log_dir)
+    log_dir.mkdir(exist_ok=True, parents=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file = LOGS_DIR / f"retrieve_query_{query_id}_{timestamp}.json"
+    log_file = log_dir / f"retrieve_query_{query_id}_{timestamp}.json"
     
     with open(log_file, 'w', encoding='utf-8') as f:
         json.dump(log_data, f, indent=2, ensure_ascii=False)
@@ -772,7 +773,7 @@ def retrieve(
         for idx, emb in enumerate(embeddings):
             results = _dense_search(session, emb, dense_limit)
             dense_results.append(results)
-            if ENABLE_LOGGING:
+            if load_config().logging.enabled:
                 # Determine query type based on position
                 if idx == 0 and num_original > 0:
                     query_type = "original"
@@ -802,7 +803,7 @@ def retrieve(
         for idx, text in enumerate(query_texts):
             results = _lexical_search(session, text, lexical_limit)
             lexical_results.append(results)
-            if ENABLE_LOGGING:
+            if load_config().logging.enabled:
                 log_data.setdefault("lexical_queries", []).append({
                     "query_index": idx,
                     "query_text": text[:200],  # Truncate for logging
@@ -990,8 +991,9 @@ def retrieve(
         if verbose:
             print(f"  Saved {len(context_data)} results to query.retrieved_context")
 
-        # Save log file
-        _save_retrieval_log(query_id, log_data)
+        # Save log
+        if load_config().logging.enabled:
+            _save_retrieval_log(query_id, log_data)
 
         return RetrievalResult(
             query_id=query_id,
