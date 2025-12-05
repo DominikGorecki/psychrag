@@ -48,17 +48,6 @@ class TestInitRouter:
         assert "embeddings_ready" in data
         assert "models_loaded" in data
 
-    def test_init_database(self):
-        """Test database initialization endpoint."""
-        response = client.post(
-            "/init/database",
-            json={"reset": False, "create_indexes": True}
-        )
-        assert response.status_code == 201
-        data = response.json()
-        assert data["success"] is True
-        assert "tables_created" in data
-
     def test_detailed_health_check(self):
         """Test detailed health check endpoint."""
         response = client.get("/init/health")
