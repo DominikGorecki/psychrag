@@ -8,7 +8,7 @@ linked to Query objects (one-to-many relationship: one query can have many resul
 from datetime import datetime
 
 from sqlalchemy import ForeignKey, Integer, Text, DateTime, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from ..database import Base
 
