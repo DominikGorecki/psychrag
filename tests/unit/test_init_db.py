@@ -74,14 +74,36 @@ class TestCreateTables:
 class TestInitDatabase:
     """Tests for the init_database function."""
 
+    @patch("psychrag.data.init_db.create_default_rag_config")
+    @patch("psychrag.data.init_db.seed_prompt_templates")
+    @patch("psychrag.data.init_db.create_prompt_meta_table")
+    @patch("psychrag.data.init_db.create_fulltext_search")
+    @patch("psychrag.data.init_db.create_vector_indexes")
     @patch("psychrag.data.init_db.create_tables")
+    @patch("psychrag.data.init_db.enable_pgvector_extension")
     @patch("psychrag.data.init_db.create_database_and_user")
-    def test_calls_both_functions(self, mock_create_db, mock_create_tables):
-        """Test that init_database calls both setup functions."""
+    def test_calls_both_functions(
+        self,
+        mock_create_db,
+        mock_enable_pgvector,
+        mock_create_tables,
+        mock_create_vector_indexes,
+        mock_create_fulltext_search,
+        mock_create_prompt_meta_table,
+        mock_seed_prompt_templates,
+        mock_create_default_rag_config,
+    ):
+        """Test that init_database calls all setup functions."""
         init_database(verbose=True)
 
         mock_create_db.assert_called_once_with(verbose=True)
+        mock_enable_pgvector.assert_called_once_with(verbose=verbose)
         mock_create_tables.assert_called_once_with(verbose=True)
+        mock_create_vector_indexes.assert_called_once_with(verbose=verbose)
+        mock_create_fulltext_search.assert_called_once_with(verbose=verbose)
+        mock_create_prompt_meta_table.assert_called_once_with(verbose=verbose)
+        mock_seed_prompt_templates.assert_called_once_with(verbose=verbose)
+        mock_create_default_rag_config.assert_called_once_with(verbose=verbose)
 
 
 class TestMain:
