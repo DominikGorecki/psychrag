@@ -27,7 +27,7 @@ tests\unit\test_delete_conversion.py .........                                  
 tests\unit\test_env_utils.py ...............                                                                     [ 42%]
 tests\unit\test_extract_titles.py ......................................                                         [ 46%]
 tests\unit\test_extract_toc.py .............................                                                     [ 49%]
-tests\unit\test_init_db.py ...F...                                                                               [ 50%]
+tests\unit\test_init_db.py .......                                                                               [ 50%]
 tests\unit\test_inspection.py ........                                                                           [ 50%]
 tests\unit\test_io_file_model.py .............                                                                   [ 52%]
 tests\unit\test_io_folder_data.py ............................                                                   [ 54%]
@@ -55,49 +55,4 @@ tests\unit\test_template_loader.py ...........                                  
 tests\unit\test_templates_api.py ..........................                                                      [ 99%]
 tests\unit\test_work_model.py .....                                                                              [100%]
 
-====================================================== FAILURES =======================================================
-_____________________________________ TestInitDatabase.test_calls_both_functions ______________________________________
-
-self = <tests.unit.test_init_db.TestInitDatabase object at 0x000001FB253F89B0>
-mock_create_db = <MagicMock name='create_database_and_user' id='2178203942208'>
-mock_enable_pgvector = <MagicMock name='enable_pgvector_extension' id='2178203356096'>
-mock_create_tables = <MagicMock name='create_tables' id='2178203941632'>
-mock_create_vector_indexes = <MagicMock name='create_vector_indexes' id='2178203937792'>
-mock_create_fulltext_search = <MagicMock name='create_fulltext_search' id='2178203934000'>
-mock_create_prompt_meta_table = <MagicMock name='create_prompt_meta_table' id='2178203930160'>
-mock_seed_prompt_templates = <MagicMock name='seed_prompt_templates' id='2178203893488'>
-mock_create_default_rag_config = <MagicMock name='create_default_rag_config' id='2178203360128'>
-
-    @patch("psychrag.data.init_db.create_default_rag_config")
-    @patch("psychrag.data.init_db.seed_prompt_templates")
-    @patch("psychrag.data.init_db.create_prompt_meta_table")
-    @patch("psychrag.data.init_db.create_fulltext_search")
-    @patch("psychrag.data.init_db.create_vector_indexes")
-    @patch("psychrag.data.init_db.create_tables")
-    @patch("psychrag.data.init_db.enable_pgvector_extension")
-    @patch("psychrag.data.init_db.create_database_and_user")
-    def test_calls_both_functions(
-        self,
-        mock_create_db,
-        mock_enable_pgvector,
-        mock_create_tables,
-        mock_create_vector_indexes,
-        mock_create_fulltext_search,
-        mock_create_prompt_meta_table,
-        mock_seed_prompt_templates,
-        mock_create_default_rag_config,
-    ):
-        """Test that init_database calls all setup functions."""
-        init_database(verbose=True)
-    
-        mock_create_db.assert_called_once_with(verbose=True)
->       mock_enable_pgvector.assert_called_once_with(verbose=verbose)
-                                                             ^^^^^^^
-E       NameError: name 'verbose' is not defined
-
-tests\unit\test_init_db.py:100: NameError
------------------------------------------------- Captured stdout call -------------------------------------------------
-Database initialization complete
-=============================================== short test summary info ===============================================
-FAILED tests/unit/test_init_db.py::TestInitDatabase::test_calls_both_functions - NameError: name 'verbose' is not def...
-=========================================== 1 failed, 1023 passed in 32.08s ===========================================
+================================================ 1024 passed in 31.77s ================================================

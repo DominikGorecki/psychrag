@@ -97,13 +97,13 @@ class TestInitDatabase:
         init_database(verbose=True)
 
         mock_create_db.assert_called_once_with(verbose=True)
-        mock_enable_pgvector.assert_called_once_with(verbose=verbose)
+        mock_enable_pgvector.assert_called_once_with(verbose=True)
         mock_create_tables.assert_called_once_with(verbose=True)
-        mock_create_vector_indexes.assert_called_once_with(verbose=verbose)
-        mock_create_fulltext_search.assert_called_once_with(verbose=verbose)
-        mock_create_prompt_meta_table.assert_called_once_with(verbose=verbose)
-        mock_seed_prompt_templates.assert_called_once_with(verbose=verbose)
-        mock_create_default_rag_config.assert_called_once_with(verbose=verbose)
+        mock_create_vector_indexes.assert_called_once_with(verbose=True)
+        mock_create_fulltext_search.assert_called_once_with(verbose=True)
+        mock_create_prompt_meta_table.assert_called_once_with(verbose=True)
+        mock_seed_prompt_templates.assert_called_once_with(verbose=True)
+        mock_create_default_rag_config.assert_called_once_with(verbose=True)
 
 
 class TestMain:
