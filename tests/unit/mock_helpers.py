@@ -332,6 +332,7 @@ def create_mock_io_file(
     io_file.id = id
     io_file.file_path = file_path
     io_file.file_type = file_type
+    io_file.filename = kwargs.get('filename')
     io_file.status = kwargs.get('status', 'pending')
     io_file.created_at = kwargs.get('created_at')
     io_file.updated_at = kwargs.get('updated_at')
