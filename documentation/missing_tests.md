@@ -612,7 +612,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test CLI argument parsing
 - Test CLI workflow execution
 
-#### `sanitization/san_map.py`
+#### `sanitization/san_map.py` 
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - Sanitization mapping logic
@@ -633,7 +633,7 @@ This document outlines all modules in the `src/` directory and identifies which 
 - Test CLI argument parsing
 - Test CLI workflow execution
 
-#### `sanitization/skip_apply.py`
+#### `sanitization/skip_apply.py`- DONE
 **Status:** ❌ Missing tests
 **Functions/Classes:**
 - Skip application logic
