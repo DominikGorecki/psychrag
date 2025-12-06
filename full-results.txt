@@ -5,62 +5,56 @@ configfile: pyproject.toml
 testpaths: tests
 plugins: html-4.1.1, metadata-3.1.1, Faker-38.2.0, asyncio-1.3.0, logfire-4.16.0, langsmith-0.4.55, markdown-docs-0.9.0, anyio-4.12.0
 asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 1053 items
+collected 965 items
 
 tests/unit/test_ai_config.py ................................            [  3%]
-tests/unit/test_api_endpoints.py ..............                          [  4%]
-tests/unit/test_app_config.py ...............................            [  7%]
+tests/unit/test_app_config.py ...............................            [  6%]
 tests/unit/test_apply_title_changes.py ...........................       [  9%]
 tests/unit/test_apply_title_edits.py .............................       [ 12%]
-tests/unit/test_augment.py ..............                                [ 13%]
+tests/unit/test_augment.py ................                              [ 13%]
 tests/unit/test_bib_extractor.py ..................................      [ 17%]
-tests/unit/test_chunk_headings.py ...................................... [ 20%]
-.                                                                        [ 20%]
-tests/unit/test_chunk_model.py ................                          [ 22%]
-tests/unit/test_consolidate_context.py ................................. [ 25%]
-...........................                                              [ 28%]
-tests/unit/test_content_chunking.py .................................... [ 31%]
-...........                                                              [ 32%]
-tests/unit/test_conv_epub2md.py ............                             [ 33%]
-tests/unit/test_conv_pdf2md.py ...........                               [ 34%]
-tests/unit/test_conversion_api_endpoints.py ...........                  [ 35%]
-tests/unit/test_database.py ....                                         [ 36%]
-tests/unit/test_db_health_check.py ...................................   [ 39%]
-tests/unit/test_delete_conversion.py .........                           [ 40%]
-tests/unit/test_env_utils.py ...............                             [ 41%]
-tests/unit/test_extract_titles.py ...................................... [ 45%]
-                                                                         [ 45%]
-tests/unit/test_extract_toc.py .............................             [ 48%]
-tests/unit/test_init_db.py .......                                       [ 48%]
-tests/unit/test_inspection.py ........                                   [ 49%]
-tests/unit/test_io_file_model.py .............                           [ 50%]
-tests/unit/test_io_folder_data.py ............................           [ 53%]
-tests/unit/test_llm_citation_parser.py ...........                       [ 54%]
-tests/unit/test_llm_factory.py ......................................... [ 58%]
-..................                                                       [ 60%]
-tests/unit/test_llm_processor.py .........................               [ 62%]
-tests/unit/test_new_work.py ................                             [ 64%]
-tests/unit/test_original_markdown.py .....                               [ 64%]
-tests/unit/test_pdf_bookmarks2toc.py ................                    [ 66%]
-tests/unit/test_prompt_meta_model.py ............                        [ 67%]
-tests/unit/test_prompt_template_model.py ............                    [ 68%]
-tests/unit/test_query_embeddings.py ......................               [ 70%]
-tests/unit/test_query_expansion.py .........................             [ 72%]
-tests/unit/test_query_model.py ...................                       [ 74%]
-tests/unit/test_rag_config_api.py ..............                         [ 75%]
-tests/unit/test_rag_config_db.py .............                           [ 77%]
-tests/unit/test_rag_config_integration.py ...............                [ 78%]
-tests/unit/test_rag_config_loader.py .............                       [ 79%]
-tests/unit/test_result_model.py ...........                              [ 80%]
-tests/unit/test_retrieve.py ............................................ [ 84%]
-...                                                                      [ 85%]
-tests/unit/test_seed_templates.py ..............                         [ 86%]
-tests/unit/test_skip_apply.py ...............                            [ 88%]
-tests/unit/test_style_v_hier.py .....................................    [ 91%]
-tests/unit/test_suggest_heading_changes.py .............F                [ 92%]
-tests/unit/test_suggested_chunks.py .................................    [ 96%]
-tests/unit/test_template_loader.py ...........                           [ 97%]
-tests/unit/test_templates_api.py ..........................              [ 99%]
+tests/unit/test_chunk_headings.py ...................................... [ 21%]
+.                                                                        [ 21%]
+tests/unit/test_chunk_model.py ................                          [ 23%]
+tests/unit/test_consolidate_context.py ................................. [ 26%]
+.............................                                            [ 29%]
+tests/unit/test_content_chunking.py .................................... [ 33%]
+...........                                                              [ 34%]
+tests/unit/test_conv_epub2md.py ............                             [ 35%]
+tests/unit/test_conv_pdf2md.py ...........                               [ 36%]
+tests/unit/test_conversion_api_endpoints.py ...........                  [ 38%]
+tests/unit/test_database.py ....                                         [ 38%]
+tests/unit/test_db_health_check.py ...................................   [ 42%]
+tests/unit/test_delete_conversion.py .........                           [ 43%]
+tests/unit/test_env_utils.py ...............                             [ 44%]
+tests/unit/test_extract_titles.py ...................................... [ 48%]
+                                                                         [ 48%]
+tests/unit/test_extract_toc.py .............................             [ 51%]
+tests/unit/test_init_db.py .......                                       [ 52%]
+tests/unit/test_inspection.py ........                                   [ 53%]
+tests/unit/test_io_file_model.py .............                           [ 54%]
+tests/unit/test_io_folder_data.py ............................           [ 57%]
+tests/unit/test_llm_citation_parser.py ...........                       [ 58%]
+tests/unit/test_llm_factory.py ......................................... [ 62%]
+..................                                                       [ 64%]
+tests/unit/test_llm_processor.py .........................               [ 67%]
+tests/unit/test_new_work.py ................                             [ 68%]
+tests/unit/test_original_markdown.py .....                               [ 69%]
+tests/unit/test_pdf_bookmarks2toc.py ................                    [ 70%]
+tests/unit/test_prompt_meta_model.py ............                        [ 72%]
+tests/unit/test_prompt_template_model.py ............                    [ 73%]
+tests/unit/test_query_embeddings.py ......................               [ 75%]
+tests/unit/test_query_expansion.py .........................             [ 78%]
+tests/unit/test_query_model.py ...................                       [ 80%]
+tests/unit/test_result_model.py ...........                              [ 81%]
+tests/unit/test_retrieve.py ............................................ [ 86%]
+......                                                                   [ 86%]
+tests/unit/test_seed_templates.py ..............                         [ 88%]
+tests/unit/test_skip_apply.py ...............                            [ 89%]
+tests/unit/test_style_v_hier.py .....................................    [ 93%]
+tests/unit/test_suggest_heading_changes.py .............F                [ 94%]
+tests/unit/test_suggested_chunks.py .................................    [ 98%]
+tests/unit/test_template_loader.py ...........                           [ 99%]
 tests/unit/test_work_model.py .....                                      [100%]
 
 =================================== FAILURES ===================================
@@ -80,11 +74,11 @@ E           FileNotFoundError: [Errno 2] No such file or directory: '/abs/path'
 
 During handling of the above exception, another exception occurred:
 
-self = <tests.unit.test_suggest_heading_changes.TestSaveTitleChanges object at 0x7fa20abaadb0>
-mock_get_session = <MagicMock name='get_session' id='140333784766592'>
-mock_session = <MagicMock name='get_session().__enter__()' id='140333781554368'>
-mock_compute_hash = <MagicMock name='compute_file_hash' id='140333785307120'>
-mock_path_exists = <MagicMock name='exists' id='140333784770672'>
+self = <tests.unit.test_suggest_heading_changes.TestSaveTitleChanges object at 0x7b0bf88d86b0>
+mock_get_session = <MagicMock name='get_session' id='135291182306448'>
+mock_session = <MagicMock name='get_session().__enter__()' id='135291182262240'>
+mock_compute_hash = <MagicMock name='compute_file_hash' id='135291182314224'>
+mock_path_exists = <MagicMock name='exists' id='135291182311200'>
 
     @patch('psychrag.sanitization.suggest_heading_changes.get_session')
     def test_save_changes_success(
@@ -152,4 +146,4 @@ tests/unit/test_llm_factory.py::TestCreatePydanticAgent::test_create_pydantic_ag
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 =========================== short test summary info ============================
 FAILED tests/unit/test_suggest_heading_changes.py::TestSaveTitleChanges::test_save_changes_success
-================= 1 failed, 1052 passed, 5 warnings in 10.69s ==================
+================== 1 failed, 964 passed, 5 warnings in 8.99s ===================
